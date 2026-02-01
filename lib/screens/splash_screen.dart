@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import '../services/firebase_service.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../firebase_options.dart';
 import 'auth_screen.dart';
 import 'home_screen.dart';
 
@@ -11,63 +12,72 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
-  final _firebaseService = FirebaseService();
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
-    _initialize();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.elasticOut),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
+    );
+
+    _controller.forward();
+    _initializeApp();
   }
 
-  Future<void> _initialize() async {
+  Future<void> _initializeApp() async {
     try {
       // Initialize Firebase
-      await _firebaseService.initialize();
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
 
-      // Wait for animation to complete (3 seconds)
-      await Future.delayed(const Duration(seconds: 3));
+      // Wait for animation
+      await Future.delayed(const Duration(seconds: 2));
 
       if (!mounted) return;
 
-      // Check if user is signed in
-      final isSignedIn = _firebaseService.isSignedIn;
+      // Check auth state
+      final user = FirebaseAuth.instance.currentUser;
 
-      // Navigate to appropriate screen
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              isSignedIn ? const HomeScreen() : const AuthScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            // Liquid transition effect
-            const begin = Offset(0.0, 1.0);
-            const end = Offset.zero;
-            const curve = Curves.easeInOutCubic;
-            var tween = Tween(begin: begin, end: end)
-                .chain(CurveTween(curve: curve));
-            var offsetAnimation = animation.drive(tween);
-            return SlideTransition(
-              position: offsetAnimation,
-              child: FadeTransition(
-                opacity: animation,
-                child: child,
-              ),
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 800),
-        ),
-      );
+      if (user != null) {
+        // User is logged in
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      } else {
+        // Show login
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const AuthScreen()),
+        );
+      }
     } catch (e) {
-      print('Initialization error: $e');
-      // Show error and retry
+      // Show error
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error initializing app: $e'),
-            action: SnackBarAction(
-              label: 'Retry',
-              onPressed: _initialize,
-            ),
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Initialization Error'),
+            content: Text('Failed to initialize: $e'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Retry'),
+              ),
+            ],
           ),
         );
       }
@@ -75,17 +85,23 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Theme.of(context).colorScheme.primary,
-              Theme.of(context).colorScheme.secondary,
-              Theme.of(context).colorScheme.tertiary,
+              Color(0xFF9333EA), // Purple
+              Color(0xFF8B5CF6), // Violet
+              Color(0xFFEC4899), // Pink
             ],
           ),
         ),
@@ -93,134 +109,73 @@ class _SplashScreenState extends State<SplashScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // App Logo with liquid drop animation
-              _buildLogo(),
-              const SizedBox(height: 40),
-              // App Name with shimmer effect
-              _buildAppName(),
-              const SizedBox(height: 20),
-              // Tagline
-              _buildTagline(),
-              const SizedBox(height: 60),
-              // Loading indicator
-              _buildLoadingIndicator(),
+              ScaleTransition(
+                scale: _scaleAnimation,
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 30,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.account_balance_wallet_rounded,
+                      size: 60,
+                      color: Color(0xFF9333EA),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: const Text(
+                  'ExpenWall',
+                  style: TextStyle(
+                    fontSize: 42,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: Text(
+                  'Your intelligent wallet manager',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white.withOpacity(0.9),
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 50),
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: const SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    strokeWidth: 3,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
       ),
     );
-  }
-
-  Widget _buildLogo() {
-    return Container(
-      width: 120,
-      height: 120,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [
-            Colors.white,
-            Colors.white.withOpacity(0.8),
-          ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.white.withOpacity(0.5),
-            blurRadius: 30,
-            spreadRadius: 10,
-          ),
-        ],
-      ),
-      child: Center(
-        child: Icon(
-          Icons.account_balance_wallet_rounded,
-          size: 60,
-          color: Theme.of(context).colorScheme.primary,
-        ),
-      ),
-    )
-        .animate(onPlay: (controller) => controller.repeat())
-        .shimmer(
-          delay: 1000.ms,
-          duration: 2000.ms,
-          color: Colors.white.withOpacity(0.3),
-        )
-        .animate()
-        .scale(
-          begin: const Offset(0, 0),
-          end: const Offset(1, 1),
-          duration: 800.ms,
-          curve: Curves.elasticOut,
-        )
-        .then()
-        .shake(
-          hz: 2,
-          curve: Curves.easeInOutCubic,
-          duration: 500.ms,
-        );
-  }
-
-  Widget _buildAppName() {
-    return Text(
-      'ExpenWall',
-      style: TextStyle(
-        fontSize: 48,
-        fontWeight: FontWeight.bold,
-        color: Colors.white,
-        letterSpacing: 2,
-        shadows: [
-          Shadow(
-            color: Colors.black.withOpacity(0.3),
-            offset: const Offset(0, 4),
-            blurRadius: 10,
-          ),
-        ],
-      ),
-    )
-        .animate()
-        .fadeIn(delay: 400.ms, duration: 600.ms)
-        .slideY(begin: 0.3, end: 0, duration: 600.ms, curve: Curves.easeOut)
-        .animate(onPlay: (controller) => controller.repeat())
-        .shimmer(
-          delay: 1500.ms,
-          duration: 2000.ms,
-          color: Colors.white.withOpacity(0.5),
-        );
-  }
-
-  Widget _buildTagline() {
-    return Text(
-      'Track. Save. Resist.',
-      style: TextStyle(
-        fontSize: 18,
-        color: Colors.white.withOpacity(0.9),
-        letterSpacing: 1.5,
-        fontWeight: FontWeight.w300,
-      ),
-    )
-        .animate()
-        .fadeIn(delay: 800.ms, duration: 600.ms)
-        .slideY(begin: 0.3, end: 0, duration: 600.ms, curve: Curves.easeOut);
-  }
-
-  Widget _buildLoadingIndicator() {
-    return SizedBox(
-      width: 40,
-      height: 40,
-      child: CircularProgressIndicator(
-        strokeWidth: 3,
-        valueColor: AlwaysStoppedAnimation<Color>(
-          Colors.white.withOpacity(0.8),
-        ),
-      ),
-    )
-        .animate(onPlay: (controller) => controller.repeat())
-        .fadeIn(delay: 1200.ms, duration: 600.ms)
-        .scale(
-          begin: const Offset(0.8, 0.8),
-          end: const Offset(1, 1),
-          duration: 1000.ms,
-          curve: Curves.easeInOut,
-        );
   }
 }
