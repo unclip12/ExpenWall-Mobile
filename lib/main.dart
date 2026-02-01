@@ -12,14 +12,19 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
   
-  // Set system UI overlay style
+  // ✅ FIX: Set system UI to edge-to-edge (NO white bottom line!)
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: Colors.white,
+      systemNavigationBarColor: Colors.transparent, // <-- FIXED!
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
+  );
+  
+  // Enable edge-to-edge mode
+  SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.edgeToEdge,
   );
   
   runApp(const ExpenWallApp());
@@ -57,6 +62,10 @@ class ExpenWallApp extends StatelessWidget {
         backgroundColor: Colors.transparent,
         foregroundColor: Color(0xFF1E293B),
         centerTitle: true,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+        ),
       ),
       cardTheme: CardTheme(
         elevation: 0,
@@ -95,7 +104,9 @@ class ExpenWallApp extends StatelessWidget {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: Colors.white.withOpacity(0.8), // Glassmorphism!
         indicatorColor: const Color(0xFF9333EA).withOpacity(0.2),
+        elevation: 0,
         iconTheme: MaterialStateProperty.resolveWith((states) {
           if (states.contains(MaterialState.selected)) {
             return const IconThemeData(color: Color(0xFF9333EA));
@@ -137,6 +148,10 @@ class ExpenWallApp extends StatelessWidget {
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         centerTitle: true,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+        ),
       ),
       cardTheme: CardTheme(
         elevation: 0,
@@ -146,7 +161,9 @@ class ExpenWallApp extends StatelessWidget {
         color: const Color(0xFF1E293B),
       ),
       navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: const Color(0xFF1E293B).withOpacity(0.8),
         indicatorColor: const Color(0xFF9333EA).withOpacity(0.2),
+        elevation: 0,
         iconTheme: MaterialStateProperty.resolveWith((states) {
           if (states.contains(MaterialState.selected)) {
             return const IconThemeData(color: Color(0xFF9333EA));
