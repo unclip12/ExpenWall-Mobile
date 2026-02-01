@@ -96,14 +96,14 @@ class ExpenWallApp extends StatelessWidget {
       ),
       navigationBarTheme: NavigationBarThemeData(
         indicatorColor: const Color(0xFF9333EA).withOpacity(0.2),
-        iconTheme: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
+        iconTheme: MaterialStateProperty.resolveWith((states) {
+          if (states.contains(MaterialState.selected)) {
             return const IconThemeData(color: Color(0xFF9333EA));
           }
           return const IconThemeData(color: Color(0xFF64748B));
         }),
-        labelTextStyle: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
+        labelTextStyle: MaterialStateProperty.resolveWith((states) {
+          if (states.contains(MaterialState.selected)) {
             return const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -147,14 +147,14 @@ class ExpenWallApp extends StatelessWidget {
       ),
       navigationBarTheme: NavigationBarThemeData(
         indicatorColor: const Color(0xFF9333EA).withOpacity(0.2),
-        iconTheme: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
+        iconTheme: MaterialStateProperty.resolveWith((states) {
+          if (states.contains(MaterialState.selected)) {
             return const IconThemeData(color: Color(0xFF9333EA));
           }
           return const IconThemeData(color: Color(0xFF94A3B8));
         }),
-        labelTextStyle: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
+        labelTextStyle: MaterialStateProperty.resolveWith((states) {
+          if (states.contains(MaterialState.selected)) {
             return const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
