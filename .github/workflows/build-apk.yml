@@ -1,10 +1,8 @@
 name: Build Flutter APK
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  # Disabled auto-build during development
+  # Only manual trigger via Actions tab
   workflow_dispatch:
 
 jobs:
@@ -28,8 +26,6 @@ jobs:
         channel: 'stable'
     
     # 🔒 SECURITY: Create Firebase config files from GitHub Secrets
-    # These files contain API keys and should NEVER be committed to git
-    # They're created temporarily during build and discarded after
     - name: Create google-services.json from secret
       run: |
         echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > android/app/google-services.json
