@@ -1,0 +1,89 @@
+name: Build Flutter APK
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+    
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.19.0'
+        channel: 'stable'
+    
+    # 🔒 SECURITY: Create Firebase config files from GitHub Secrets
+    # These files contain API keys and should NEVER be committed to git
+    # They're created temporarily during build and discarded after
+    - name: Create google-services.json from secret
+      run: |
+        echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > android/app/google-services.json
+        echo "✅ google-services.json created from secret"
+    
+    - name: Create firebase_options.dart from secret
+      run: |
+        echo "${{ secrets.FIREBASE_OPTIONS_DART }}" | base64 --decode > lib/firebase_options.dart
+        echo "✅ firebase_options.dart created from secret"
+    
+    - name: Install dependencies
+      run: flutter pub get
+    
+    - name: Analyze code
+      run: flutter analyze
+    
+    - name: Run tests
+      run: flutter test
+      continue-on-error: true
+    
+    - name: Build Debug APK
+      run: flutter build apk --debug
+    
+    - name: Build Release APK
+      run: flutter build apk --release
+      continue-on-error: true
+    
+    - name: Get current date
+      id: date
+      run: echo "date=$(date +'%Y-%m-%d-%H%M')" >> $GITHUB_OUTPUT
+    
+    - name: Upload Debug APK to Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: expenwall-debug-${{ steps.date.outputs.date }}
+        path: build/app/outputs/flutter-apk/app-debug.apk
+        retention-days: 30
+    
+    - name: Upload Release APK to Artifacts (if built)
+      uses: actions/upload-artifact@v4
+      if: success()
+      with:
+        name: expenwall-release-${{ steps.date.outputs.date }}
+        path: build/app/outputs/flutter-apk/app-release.apk
+        retention-days: 90
+      continue-on-error: true
+    
+    - name: Create Release on Tag
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          build/app/outputs/flutter-apk/app-release.apk
+          build/app/outputs/flutter-apk/app-debug.apk
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
