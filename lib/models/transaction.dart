@@ -114,8 +114,7 @@ class Transaction {
     this.recurringId,
   });
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
+  Map<String, dynamic> toFirestore() => {
         'userId': userId,
         'merchant': merchant,
         'merchantEmoji': merchantEmoji,
