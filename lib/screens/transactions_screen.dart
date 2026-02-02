@@ -4,17 +4,22 @@ import '../models/merchant_rule.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/transaction_item_widget.dart';
 import '../utils/currency_formatter.dart';
+import 'add_transaction_screen_v2.dart';
 
 class TransactionsScreen extends StatefulWidget {
   final List<Transaction> transactions;
   final List<MerchantRule> rules;
   final Function(String) onDeleteTransaction;
+  final Function(Transaction)? onUpdateTransaction;
+  final String userId;
 
   const TransactionsScreen({
     super.key,
     required this.transactions,
     required this.rules,
     required this.onDeleteTransaction,
+    this.onUpdateTransaction,
+    required this.userId,
   });
 
   @override
@@ -316,7 +321,23 @@ class _TransactionsScreenState extends State<TransactionsScreen>
                 child: ElevatedButton.icon(
                   onPressed: () {
                     Navigator.pop(context);
-                    // TODO: Implement edit
+                    // Open edit screen
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => AddTransactionScreenV2(
+                          userId: widget.userId,
+                          initialData: transaction,
+                          onSave: (updatedTransaction) async {
+                            if (widget.onUpdateTransaction != null) {
+                              widget.onUpdateTransaction!(updatedTransaction);
+                            }
+                            if (context.mounted) {
+                              Navigator.of(context).pop();
+                            }
+                          },
+                        ),
+                      ),
+                    );
                   },
                   icon: const Icon(Icons.edit),
                   label: const Text('Edit'),
