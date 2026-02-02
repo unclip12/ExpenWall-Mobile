@@ -37,7 +37,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   final _themeService = ThemeService();
-  String _currentTheme = 'midnightPurple';
+  AppThemeType _currentTheme = AppThemeType.midnightPurple;
   bool _isDarkMode = false;
 
   @override
@@ -48,20 +48,21 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _loadThemePreferences() async {
     final theme = await _themeService.getTheme();
-    final darkMode = await _themeService.getDarkMode();
+    final darkMode = await _themeService.isDarkMode();
     setState(() {
       _currentTheme = theme;
       _isDarkMode = darkMode;
     });
   }
 
-  void changeTheme(String theme, bool isDark) {
-    setState(() {
-      _currentTheme = theme;
-      _isDarkMode = isDark;
-    });
-    _themeService.saveTheme(theme);
-    _themeService.saveDarkMode(isDark);
+  Future<void> toggleDarkMode(bool isDark) async {
+    setState(() => _isDarkMode = isDark);
+    await _themeService.setDarkMode(isDark);
+  }
+
+  Future<void> changeTheme(AppThemeType theme) async {
+    setState(() => _currentTheme = theme);
+    await _themeService.setTheme(theme);
   }
 
   @override

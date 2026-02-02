@@ -31,16 +31,51 @@ class ThemeService {
     await prefs.setInt(_themeKey, theme.index);
   }
   
+  // Alias for compatibility
+  Future<void> saveTheme(AppThemeType theme) async {
+    await setTheme(theme);
+  }
+  
   // Get dark mode preference
   Future<bool> isDarkMode() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_darkModeKey) ?? false;
   }
   
+  // Alias for compatibility
+  Future<bool> getDarkMode() async {
+    return await isDarkMode();
+  }
+  
   // Set dark mode
   Future<void> setDarkMode(bool isDark) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_darkModeKey, isDark);
+  }
+  
+  // Alias for compatibility
+  Future<void> saveDarkMode(bool isDark) async {
+    await setDarkMode(isDark);
+  }
+  
+  // Get gradient colors for background
+  List<Color> getGradientColors(AppThemeType themeType, bool isDark) {
+    final metadata = themeMetadata[themeType]!;
+    final primaryColor = metadata['primaryColor'] as Color;
+    
+    if (isDark) {
+      return [
+        primaryColor.withOpacity(0.4),
+        primaryColor.withOpacity(0.2),
+        const Color(0xFF0A0A0A),
+      ];
+    } else {
+      return [
+        primaryColor.withOpacity(0.6),
+        primaryColor.withOpacity(0.3),
+        Colors.white.withOpacity(0.9),
+      ];
+    }
   }
   
   // Get theme data
