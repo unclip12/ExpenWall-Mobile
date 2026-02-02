@@ -290,64 +290,66 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   Widget _buildContactCard(Contact contact) {
-    return GlassCard(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-          child: Text(
-            contact.name[0].toUpperCase(),
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
-              fontWeight: FontWeight.bold,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassCard(
+        child: ListTile(
+          leading: CircleAvatar(
+            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+            child: Text(
+              contact.name[0].toUpperCase(),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-        ),
-        title: Text(
-          contact.name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (contact.phone != null)
-              Text('📱 ${contact.phone}',
-                  style: const TextStyle(fontSize: 12)),
-            if (contact.email != null)
-              Text('✉️ ${contact.email}',
-                  style: const TextStyle(fontSize: 12)),
-          ],
-        ),
-        trailing: PopupMenuButton(
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'edit',
-              child: Row(
-                children: [
-                  Icon(Icons.edit, size: 20),
-                  SizedBox(width: 8),
-                  Text('Edit'),
-                ],
+          title: Text(
+            contact.name,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (contact.phone != null)
+                Text('📱 ${contact.phone}',
+                    style: const TextStyle(fontSize: 12)),
+              if (contact.email != null)
+                Text('✉️ ${contact.email}',
+                    style: const TextStyle(fontSize: 12)),
+            ],
+          ),
+          trailing: PopupMenuButton(
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit, size: 20),
+                    SizedBox(width: 8),
+                    Text('Edit'),
+                  ],
+                ),
               ),
-            ),
-            const PopupMenuItem(
-              value: 'delete',
-              child: Row(
-                children: [
-                  Icon(Icons.delete, size: 20, color: Colors.red),
-                  SizedBox(width: 8),
-                  Text('Delete', style: TextStyle(color: Colors.red)),
-                ],
+              const PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete, size: 20, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Delete', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
               ),
-            ),
-          ],
-          onSelected: (value) {
-            if (value == 'edit') {
-              _showAddEditContactDialog(contact);
-            } else if (value == 'delete') {
-              _deleteContact(contact);
-            }
-          },
+            ],
+            onSelected: (value) {
+              if (value == 'edit') {
+                _showAddEditContactDialog(contact);
+              } else if (value == 'delete') {
+                _deleteContact(contact);
+              }
+            },
+          ),
         ),
       ),
     );
@@ -380,7 +382,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 : 'Try a different search',
             style: TextStyle(color: Colors.grey[600]),
           ),
-          if (_searchQuery.isEmpty) ..[
+          if (_searchQuery.isEmpty) ...,[
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () => _showAddEditContactDialog(),
