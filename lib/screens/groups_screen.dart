@@ -271,7 +271,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (group.description != null) ...,[
+            if (group.description != null) ...[
               Text(
                 group.description!,
                 style: TextStyle(color: Colors.grey[600]),
