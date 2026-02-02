@@ -149,7 +149,7 @@ class _RecurringBillsScreenState extends State<RecurringBillsScreen> {
                         const SizedBox(height: 24),
 
                         // Active Rules Section
-                        if (_activeRules.isNotEmpty) ..[
+                        if (_activeRules.isNotEmpty) ...[
                           const Padding(
                             padding: EdgeInsets.only(left: 4, bottom: 12),
                             child: Text(
@@ -165,7 +165,7 @@ class _RecurringBillsScreenState extends State<RecurringBillsScreen> {
                         ],
 
                         // Paused Rules Section
-                        if (_pausedRules.isNotEmpty) ..[
+                        if (_pausedRules.isNotEmpty) ...[
                           const Padding(
                             padding: EdgeInsets.only(left: 4, bottom: 12),
                             child: Text(

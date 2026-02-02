@@ -122,7 +122,7 @@ class _CravingsScreenState extends State<CravingsScreen> {
           const SizedBox(height: 24),
 
           // Active Cravings
-          if (active.isNotEmpty) ..[
+          if (active.isNotEmpty) ...[
             const Text(
               'Want to Try',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -136,7 +136,7 @@ class _CravingsScreenState extends State<CravingsScreen> {
           ],
 
           // Completed Cravings
-          if (completed.isNotEmpty) ..[
+          if (completed.isNotEmpty) ...[
             const Text(
               'Tried & Tested',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
