@@ -9,7 +9,7 @@
 
 ## 🎯 Project Overview
 
-**ExpenWall Mobile** is a Flutter-based expense tracking and budget management app, ported from the original web application. It provides intelligent wallet management with real-time cloud sync via Firebase.
+**ExpenWall Mobile** is a Flutter-based expense tracking and budget management app, ported from the original web application. It provides intelligent wallet management with **offline-first local storage** and real-time cloud sync via Firebase.
 
 ### Key Features:
 - 💰 Smart expense tracking with multi-item transactions
@@ -18,6 +18,7 @@
 - 🎨 Premium Material 3 UI with glassmorphism effects
 - 🌙 Dark mode support
 - ☁️ Real-time Firebase sync
+- 📱 **Offline-first with local storage** (NEW - In Progress)
 - 🔐 Secure authentication with Secret ID
 
 ---
@@ -110,125 +111,249 @@
 - ✅ Firebase secrets injection at build time
 - ✅ APK artifact upload (30-day retention)
 - ✅ No credentials exposed in public code
+- ✅ Release APK optimization (60MB vs 197MB debug)
 
-### Phase 8: Bug Fixes (Completed)
+### Phase 8: Bug Fixes & Stability (Completed)
 - ✅ Fixed Product model `fromFirestore` signature mismatch
 - ✅ Fixed Budget model consistency
 - ✅ Fixed Firestore service type errors
 - ✅ Added userId to all delete operations
 - ✅ Fixed MultiDex support for Android
 - ✅ Fixed Firebase initialization error handling
-- ✅ Fixed Transaction naming conflict with cloud_firestore (Feb 2, 2026 - 2:40 PM)
-- ✅ Fixed all model `fromFirestore` signatures to use DocumentSnapshot (Feb 2, 2026 - 2:40 PM)
-- ✅ Renamed Transaction.toJson to toFirestore for consistency (Feb 2, 2026 - 2:40 PM)
+- ✅ Fixed Transaction naming conflict with cloud_firestore (Feb 2, 2026)
+- ✅ Fixed all model `fromFirestore` signatures to use DocumentSnapshot
+- ✅ Renamed Transaction.toJson to toFirestore for consistency
+- ✅ Fixed corrupted Android launcher icons (Feb 2, 2026 - 3:34 PM)
+- ✅ Fixed infinite loading issue with timeout and error handling (Feb 2, 2026 - 3:58 PM)
 
 ---
 
-## 🔄 CURRENT STATUS
+## 🔄 CURRENT STATUS - ACTIVE DEVELOPMENT
+
+### **Phase 9: Offline-First Local Storage (IN PROGRESS - Started Feb 2, 4:08 PM)**
+
+**Priority: HIGHEST** - This is the foundation for app performance and offline capability.
+
+#### What We're Building:
+1. **LocalStorageService** - JSON-based on-device cache
+   - Save/load transactions, budgets, products, wallets
+   - Uses `path_provider` for file storage
+   - Uses `shared_preferences` for metadata
+   - Fast instant loading on app start
+
+2. **Offline-First Data Flow:**
+   ```
+   App Launch → Load Local JSON (instant) → Show UI → Firebase Sync (background) → Update Local Cache
+   ```
+
+3. **Pending Operations Queue:**
+   - User makes changes offline → Saved locally + queued
+   - When online → Auto-sync pending changes to Firebase
+   - Conflict resolution with timestamps
+
+4. **Firebase Storage Strategy:**
+   - ✅ **Store:** Text data only (transactions, budgets, products)
+   - ❌ **Don't Store:** Images, large files
+   - 🔄 **Image Processing:** OCR → Extract text → Delete image → Save text only
+
+#### Implementation Steps:
+- [ ] Create `lib/services/local_storage_service.dart`
+- [ ] Add JSON save/load methods for all entities
+- [ ] Create pending operations queue system
+- [ ] Update FirestoreService to work with local cache
+- [ ] Update HomeScreen to load local-first
+- [ ] Add sync status indicators in UI
+- [ ] Test offline → online sync flow
 
 ### Build Status:
-- ✅ Latest commit: `0ff83616c36752973ad8d4e90c8ede7cc6cc88ae`
-- ✅ Workflow: Configured with Firebase secrets
-- ⏳ Current build: In progress (triggered at ~2:40 PM IST, Feb 2, 2026)
-- 🎯 Expected completion: ~3-5 minutes
-
-### Firebase Configuration:
-- ✅ Project ID: `expenwall`
-- ✅ Web app configured
-- ✅ Android app configured
-- ✅ iOS app configured
-- ✅ Firestore Database: Enabled
-- ✅ Authentication: Anonymous enabled
-- ✅ GitHub Secrets: Both secrets created
-  - `FIREBASE_OPTIONS_DART`
-  - `GOOGLE_SERVICES_JSON`
-
-### Repository:
-- 📦 **Name:** ExpenWall-Mobile
-- 🔗 **URL:** https://github.com/unclip12/ExpenWall-Mobile
-- 🌿 **Branch:** main
-- 📝 **License:** MIT
+- ✅ Latest successful build: `b75ff30` (Feb 2, 4:05 PM)
+- ✅ APK Size: ~60 MB (release build)
+- ✅ All critical bugs fixed
+- 🚀 Ready for offline-first implementation
 
 ---
 
-## 🎯 PLANNED FEATURES
+## 🎯 DEVELOPMENT ROADMAP
 
-### High Priority:
-- [ ] **Charts & Analytics**
-  - Spending trends over time
-  - Category-wise pie charts
-  - Monthly comparison graphs
-  - Budget vs actual spending visualization
-  
-- [ ] **Recurring Transactions**
-  - Set up recurring bills/subscriptions
-  - Auto-create transactions on schedule
-  - Reminders for upcoming bills
-  
-- [ ] **Export Functionality**
-  - Export to CSV
-  - Export to PDF with formatting
-  - Date range selection for exports
-  - Email export option
+### **Immediate Priority (This Week):**
 
-### Medium Priority:
-- [ ] **Enhanced Search**
-  - Full-text search across transactions
-  - Search by merchant, amount, notes
-  - Advanced filters
-  
-- [ ] **Merchant Auto-categorization**
-  - Implement merchant rules UI
-  - Auto-apply rules to new transactions
-  - Learn from user patterns
-  
-- [ ] **Receipt Scanning**
-  - OCR for receipt images
-  - Auto-extract amount, merchant, items
-  - Attach photos to transactions
-  
-- [ ] **Bill Reminders**
-  - Notification system
-  - Recurring bill alerts
-  - Due date tracking
+#### 1. Offline-First Local Storage ⚡ (IN PROGRESS)
+- **Goal:** Instant app loading, works offline, syncs when online
+- **Status:** Started Feb 2, 4:08 PM
+- **Components:**
+  - LocalStorageService with JSON file caching
+  - Pending operations queue for offline changes
+  - Local-first data loading in all screens
+  - Background Firebase sync
+  - Sync status UI indicators
 
-### Low Priority:
-- [ ] **Investment Tracking**
-  - Portfolio management
-  - Stock/crypto price tracking
-  - Investment categories
-  
-- [ ] **Multi-currency Support**
-  - Currency conversion
-  - Multiple wallet currencies
-  - Exchange rate tracking
-  
-- [ ] **Shared Budgets**
-  - Multi-user access
-  - Family budget sharing
-  - Collaborative expense tracking
-  
-- [ ] **Widgets**
-  - Home screen widgets
-  - Quick add transaction widget
-  - Budget status widget
+#### 2. UI Enhancement & Web App Parity 🎨 (NEXT)
+- **Goal:** Match the beautiful web app design
+- **Components:**
+  - Enhanced glassmorphism effects
+  - Liquid glass aesthetics
+  - Improved white theme with gradients
+  - Better dark mode consistency
+  - Smooth micro-animations
+  - Loading skeletons instead of spinners
+
+### **Near Future (Weeks 2-3):**
+
+#### 3. Receipt OCR & Image Processing 📸
+- **Goal:** Scan receipts, extract text, no image storage in Firebase
+- **Components:**
+  - Camera/gallery image picker
+  - OCR service (Google ML Kit or Tesseract)
+  - Text extraction (merchant, amount, date, items)
+  - Auto-populate transaction form
+  - Delete original image after extraction
+  - Only save extracted text to Firebase
+
+#### 4. Notification-Based Auto-Tracking 🔔
+- **Goal:** Auto-detect payment notifications and create transactions
+- **Components:**
+  - Notification listener service
+  - Payment pattern recognition (Paytm, GPay, PhonePe, etc.)
+  - Smart merchant/amount extraction
+  - Auto-create transaction with user confirmation
+  - Privacy-first: all processing on-device
+
+### **Future Enhancements:**
+
+- [ ] Charts & Analytics Dashboard
+- [ ] Recurring Transactions & Subscriptions
+- [ ] Export (CSV/PDF)
+- [ ] Advanced Search & Filters
+- [ ] Bill Reminders
+- [ ] Multi-currency Support
+- [ ] Budget Sharing (family/team)
+- [ ] Investment Tracking
+- [ ] Voice Input for Transactions
+- [ ] Biometric Authentication
+- [ ] Home Screen Widgets
+
+---
+
+## 🏗️ ARCHITECTURE
+
+### Current Architecture:
+```
+lib/
+├── models/          # Data models (Transaction, Budget, etc.)
+├── screens/         # UI screens
+├── services/        
+│   ├── firestore_service.dart       # Firebase CRUD
+│   └── local_storage_service.dart   # Local JSON cache (NEW - In Progress)
+├── theme/           # AppTheme configuration
+├── utils/           # Helper functions
+├── widgets/         # Reusable UI components
+├── firebase_options.dart
+└── main.dart
+```
+
+### Data Flow (After Offline-First Implementation):
+```
+┌─────────────┐
+│   UI Layer  │
+└──────┬──────┘
+       │
+   ┌───▼────────────────────┐
+   │  HomeScreen/Screens    │
+   └───┬────────────────┬───┘
+       │                │
+┌──────▼─────┐   ┌──────▼──────┐
+│   Local    │   │  Firestore  │
+│  Storage   │◄──┤   Service   │
+│  Service   │   │             │
+└──────┬─────┘   └──────┬──────┘
+       │                │
+┌──────▼─────┐   ┌──────▼──────┐
+│  JSON File │   │  Firebase   │
+│  Cache     │   │  Cloud      │
+└────────────┘   └─────────────┘
+
+1. Load from Local (instant)
+2. Show UI immediately
+3. Sync with Firebase (background)
+4. Update Local on changes
+```
+
+---
+
+## 💾 OFFLINE-FIRST STRATEGY
+
+### Local Storage Design:
+
+#### File Structure:
+```
+App Documents/
+├── cache/
+│   ├── transactions_{userId}.json
+│   ├── budgets_{userId}.json
+│   ├── products_{userId}.json
+│   ├── wallets_{userId}.json
+│   └── pending_ops_{userId}.json
+└── images/  (temporary, deleted after OCR)
+    └── receipt_temp.jpg
+```
+
+#### Pending Operations Format:
+```json
+[
+  {
+    "id": "uuid",
+    "timestamp": "2026-02-02T16:08:00Z",
+    "type": "create|update|delete",
+    "entity": "transaction|budget|product|wallet",
+    "payload": { ... },
+    "status": "pending|synced|failed"
+  }
+]
+```
+
+### Sync Strategy:
+
+1. **On App Start:**
+   - Load local JSON files
+   - Display data immediately
+   - Check internet connection
+   - If online: Start Firebase listeners
+   - Process pending operations queue
+
+2. **On User Action:**
+   - Save to local JSON instantly
+   - Update UI immediately
+   - Add to pending operations queue
+   - Try Firebase sync in background
+   - Mark as synced on success
+
+3. **Conflict Resolution:**
+   - Use timestamp-based last-write-wins
+   - Firebase has authoritative data when conflicts occur
+   - Local changes from offline mode always attempt to sync
+
+4. **Firebase Storage Limits:**
+   - **DO STORE:** All text-based data (transactions, budgets, products, notes)
+   - **DON'T STORE:** Images, PDFs, large files
+   - **Image Processing:** OCR locally → Extract text → Delete image → Sync text only
+   - This keeps Firebase usage minimal and within free tier
 
 ---
 
 ## 🐛 KNOWN ISSUES
 
 ### Active Issues:
-*None currently - All major issues resolved*
+*None currently - All blocking issues resolved*
 
 ### Resolved Issues:
-- ✅ Type mismatch in Product.fromFirestore (Fixed: Feb 2, 2026)
-- ✅ Budget model inconsistency (Fixed: Feb 2, 2026)
-- ✅ Missing userId in delete operations (Fixed: Feb 2, 2026)
-- ✅ Build failure due to missing Firebase config (Fixed: Feb 2, 2026)
-- ✅ Bottom white line on Android (Fixed: Feb 2, 2026)
-- ✅ Transaction class naming conflict with cloud_firestore (Fixed: Feb 2, 2026 - 2:40 PM)
-- ✅ fromFirestore method signature mismatches (Fixed: Feb 2, 2026 - 2:40 PM)
-- ✅ Transaction.toJson renamed to toFirestore (Fixed: Feb 2, 2026 - 2:40 PM)
+- ✅ Type mismatch in Product.fromFirestore (Fixed: Feb 2)
+- ✅ Budget model inconsistency (Fixed: Feb 2)
+- ✅ Missing userId in delete operations (Fixed: Feb 2)
+- ✅ Build failure due to missing Firebase config (Fixed: Feb 2)
+- ✅ Bottom white line on Android (Fixed: Feb 2)
+- ✅ Transaction class naming conflict (Fixed: Feb 2, 2:40 PM)
+- ✅ Corrupted Android launcher icons causing build failure (Fixed: Feb 2, 3:34 PM)
+- ✅ Infinite loading screen (Fixed: Feb 2, 3:58 PM)
 
 ---
 
@@ -238,32 +363,32 @@
 - **Framework:** Flutter 3.24.3
 - **Language:** Dart 3.0+
 - **Backend:** Firebase (Firestore + Auth)
+- **Local Storage:** JSON files + shared_preferences
 - **UI:** Material 3 Design System
-- **State Management:** StatefulWidget (simple app)
+- **State Management:** StatefulWidget
 - **Build System:** GitHub Actions
 - **Version Control:** Git + GitHub
 
-### Dependencies:
+### Key Dependencies:
 ```yaml
-flutter_sdk: ">=3.0.0 <4.0.0"
-firebase_core: Latest
-firebase_auth: Latest
-cloud_firestore: Latest
-Intl: For date formatting
-UUID: For ID generation
-```
+# Firebase
+firebase_core: ^2.27.0
+firebase_auth: ^4.17.8
+cloud_firestore: ^4.15.8
+firebase_storage: ^11.6.9
 
-### Architecture:
-```
-lib/
-├── models/          # Data models
-├── screens/         # UI screens
-├── services/        # Firebase & other services
-├── theme/           # Theme configuration
-├── utils/           # Helper functions
-├── widgets/         # Reusable widgets
-├── firebase_options.dart
-└── main.dart
+# Local Storage
+shared_preferences: ^2.2.2
+path_provider: ^2.1.2
+
+# UI & Charts
+fl_chart: ^0.66.2
+syncfusion_flutter_charts: ^24.2.9
+google_fonts: ^6.1.0
+
+# Utilities
+intl: ^0.19.0
+provider: ^6.1.1
 ```
 
 ---
@@ -271,166 +396,73 @@ lib/
 ## 📝 DEVELOPMENT WORKFLOW
 
 ### Making Changes:
-1. Create/update files in local development
-2. Test locally with `flutter run`
-3. Commit and push to main branch
-4. GitHub Actions automatically builds APK
-5. Download APK from Actions artifacts
-6. Test on physical device
-7. **UPDATE THIS PROGRESS.MD FILE**
-
-### Adding New Features:
-1. **Check this PROGRESS.MD first**
-2. Review planned features list
-3. Implement feature
-4. Update relevant screens/models
-5. Test thoroughly
-6. Update this document with completed status
-7. Add any new planned features discovered
+1. **Check PROGRESS.MD first**
+2. Review current roadmap and priorities
+3. Implement feature with tests
+4. Test locally with `flutter run`
+5. Commit and push to main branch
+6. GitHub Actions builds APK automatically
+7. Download and test APK on device
+8. **Update PROGRESS.MD with status**
 
 ### Testing Checklist:
-- [ ] Splash screen loads correctly
-- [ ] Login works (Secret ID)
+- [ ] App loads instantly from local storage
+- [ ] Works completely offline
+- [ ] Syncs changes when back online
+- [ ] Pending operations queue processes correctly
 - [ ] Dashboard shows correct data
-- [ ] Can add transactions
-- [ ] Transactions persist after restart
-- [ ] Budgets calculate correctly
-- [ ] All navigation works
-- [ ] Dark mode toggle works
-- [ ] No console errors
-- [ ] Firebase sync is real-time
-
----
-
-## 📚 REFERENCE: MIGRATION FROM WEB APP
-
-### Original Web App Features:
-- ✅ Transaction management → **Fully ported**
-- ✅ Budget tracking → **Fully ported**
-- ✅ Product price tracking → **Fully ported**
-- ✅ Category system → **Fully ported**
-- ✅ Firebase integration → **Fully ported**
-- ✅ Dark mode → **Fully ported**
-- ⏳ Charts/Analytics → **Planned**
-- ⏳ Export functionality → **Planned**
-- ⏳ Recurring transactions → **Planned**
-
-### Design Improvements Over Web:
-- ✅ Native mobile Material 3 design
-- ✅ Glassmorphism effects
-- ✅ Better touch-optimized UI
-- ✅ Smooth animations (60fps)
-- ✅ Floating bottom navigation
-- ✅ Native mobile date pickers
-
----
-
-## 💡 IDEAS & SUGGESTIONS
-
-### User Experience:
-- Haptic feedback on button presses
-- Swipe gestures for quick actions
-- Pull-to-refresh on lists
-- Skeleton loading states
-- Empty state illustrations
-
-### Performance:
-- Implement pagination for large transaction lists
-- Cache Firebase data locally
-- Optimize image loading
-- Lazy load screens
-
-### Features:
-- Voice input for quick transaction add
-- Biometric authentication
-- Backup/restore functionality
-- Transaction templates
-- Split transactions between categories
+- [ ] All CRUD operations work (create, read, update, delete)
+- [ ] Dark/light theme works
+- [ ] No data loss in offline mode
+- [ ] Firebase sync is transparent to user
 
 ---
 
 ## 📅 TIMELINE
 
 ### Completed:
-- **Feb 1-2, 2026:** Full app development (8 batches)
-- **Feb 2, 2026 (Morning):** Bug fixes and Firebase integration
-- **Feb 2, 2026 (Afternoon):** GitHub Actions setup with secrets, critical bug fixes
+- **Feb 1-2, 2026 (Morning):** Core app development
+- **Feb 2, 2026 (Afternoon):** Build system, bug fixes, stability
+- **Feb 2, 2026 (4:00 PM):** Infinite loading fixed, APK working
 
-### Upcoming:
-- **Week 1:** Test APK thoroughly, gather feedback
-- **Week 2:** Implement charts & analytics
-- **Week 3:** Add export functionality
-- **Week 4:** Recurring transactions
-- **Month 2:** Advanced features (OCR, reminders, etc.)
+### In Progress:
+- **Feb 2, 2026 (4:08 PM - Now):** Offline-first local storage implementation
 
----
+### This Week:
+- **Days 1-2:** Complete local storage service
+- **Days 3-4:** UI enhancements to match web app
+- **Day 5:** Testing and polish
 
-## 🔐 SECURITY NOTES
-
-- ✅ Firebase credentials stored in GitHub Secrets (never in code)
-- ✅ Secrets injected during build time only
-- ✅ Public repository is safe (no sensitive data)
-- ✅ Firestore security rules should be configured
-- ⚠️ TODO: Review and tighten Firestore security rules
-- ⚠️ TODO: Add rate limiting for API calls
-
----
-
-## 📞 CONTACT & RESOURCES
-
-### Repository:
-- GitHub: https://github.com/unclip12/ExpenWall-Mobile
-- Web Version: https://github.com/unclip12/ExpenWall (if exists)
-
-### Firebase:
-- Console: https://console.firebase.google.com/project/expenwall
-- Project ID: expenwall
-
-### Documentation:
-- Flutter: https://docs.flutter.dev
-- Firebase: https://firebase.google.com/docs
-- Material 3: https://m3.material.io
-
----
-
-## 🎯 NEXT SESSION CHECKLIST
-
-**For AI Assistant (or Developer) starting a new session:**
-
-1. ✅ **READ THIS ENTIRE PROGRESS.MD FILE FIRST**
-2. ✅ Check current status section
-3. ✅ Review completed features
-4. ✅ Check planned features list
-5. ✅ Review known issues
-6. ✅ Understand the technical architecture
-7. ✅ Check latest commit and build status
-8. ✅ Always update this file after making changes
+### Next Week:
+- **Week 2:** Receipt OCR implementation
+- **Week 3:** Notification-based auto-tracking
+- **Week 4:** Charts and analytics
 
 ---
 
 ## 📊 STATISTICS
 
-### Code Stats (Approximate):
-- **Total Files:** 25+
+### Code Stats:
+- **Total Files:** 30+
 - **Models:** 5 (Transaction, Budget, Product, Wallet, MerchantRule)
-- **Screens:** 8 (Splash, Auth, Home, Dashboard, Transactions, Add Transaction, Budgets, Products, Settings)
-- **Services:** 1 (FirestoreService)
-- **Widgets:** 2+ (GlassCard, TransactionItemWidget)
-- **Lines of Code:** ~3500+
+- **Screens:** 8 screens
+- **Services:** 2 (FirestoreService, LocalStorageService)
+- **Widgets:** 3+ reusable components
+- **Lines of Code:** ~4000+
 
-### Features Count:
-- **Completed:** 40+ features
-- **Planned:** 20+ features
-- **In Progress:** 0
-
----
-
-**Last Updated:** February 2, 2026, 2:40 PM IST  
-**Version:** 1.0.1  
-**Status:** 🔧 Build in Progress (Critical fixes applied)  
-**Next Milestone:** Charts & Analytics Implementation
+### Features:
+- **Completed:** 45+ features
+- **In Progress:** 1 (Offline-first storage)
+- **Planned:** 25+ features
 
 ---
 
-> 💡 **Remember:** This document is the source of truth for the project.  
-> Keep it updated, keep it accurate, keep context alive!
+**Last Updated:** February 2, 2026, 4:08 PM IST  
+**Version:** 1.1.0  
+**Status:** 🚀 Active Development - Offline-First Storage  
+**Next Milestone:** Local Storage Service Complete
+
+---
+
+> 💡 **Remember:** This document is the living source of truth.  
+> Update after every session. Keep context alive across all AI interactions!
