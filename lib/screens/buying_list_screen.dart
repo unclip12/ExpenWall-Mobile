@@ -40,7 +40,7 @@ class _BuyingListScreenState extends State<BuyingListScreen> {
         name: _items[index].name,
         estimatedPrice: _items[index].estimatedPrice,
         isPurchased: !_items[index].isPurchased,
-      });
+      );
     });
   }
 
@@ -131,7 +131,7 @@ class _BuyingListScreenState extends State<BuyingListScreen> {
           const SizedBox(height: 24),
 
           // Unpurchased Items
-          if (unpurchased.isNotEmpty) ..[
+          if (unpurchased.isNotEmpty) ...[
             const Text(
               'To Buy',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -145,7 +145,7 @@ class _BuyingListScreenState extends State<BuyingListScreen> {
           ],
 
           // Purchased Items
-          if (purchased.isNotEmpty) ..[
+          if (purchased.isNotEmpty) ...[
             const Text(
               'Purchased',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
