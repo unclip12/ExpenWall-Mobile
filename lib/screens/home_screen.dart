@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:ui';
+import 'dart:async';
 import 'dashboard_screen.dart';
 import 'transactions_screen.dart';
 import 'add_transaction_screen.dart';
@@ -33,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   
   bool _isLoading = true;
   String? _userId;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -41,46 +43,95 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _initializeData() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    setState(() {
-      _userId = user.uid;
-    });
-
-    // Subscribe to real-time updates
-    _firestoreService.subscribeToTransactions(user.uid).listen((transactions) {
-      if (mounted) {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
         setState(() {
-          _transactions = transactions;
+          _errorMessage = 'No user logged in';
           _isLoading = false;
         });
+        return;
       }
-    });
 
-    _firestoreService.subscribeToRules(user.uid).listen((rules) {
-      if (mounted) {
-        setState(() => _rules = rules);
-      }
-    });
+      setState(() {
+        _userId = user.uid;
+      });
 
-    _firestoreService.subscribeToWallets(user.uid).listen((wallets) {
-      if (mounted) {
-        setState(() => _wallets = wallets);
-      }
-    });
+      // Set a timeout to stop loading after 5 seconds
+      Timer(const Duration(seconds: 5), () {
+        if (mounted && _isLoading) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      });
 
-    _firestoreService.subscribeToBudgets(user.uid).listen((budgets) {
-      if (mounted) {
-        setState(() => _budgets = budgets);
-      }
-    });
+      // Subscribe to real-time updates with error handling
+      _firestoreService.subscribeToTransactions(user.uid).listen(
+        (transactions) {
+          if (mounted) {
+            setState(() {
+              _transactions = transactions;
+              _isLoading = false;
+              _errorMessage = null;
+            });
+          }
+        },
+        onError: (error) {
+          print('Error loading transactions: $error');
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+              _errorMessage = 'Failed to load data. Please check your connection.';
+            });
+          }
+        },
+      );
 
-    _firestoreService.subscribeToProducts(user.uid).listen((products) {
+      _firestoreService.subscribeToRules(user.uid).listen(
+        (rules) {
+          if (mounted) {
+            setState(() => _rules = rules);
+          }
+        },
+        onError: (error) => print('Error loading rules: $error'),
+      );
+
+      _firestoreService.subscribeToWallets(user.uid).listen(
+        (wallets) {
+          if (mounted) {
+            setState(() => _wallets = wallets);
+          }
+        },
+        onError: (error) => print('Error loading wallets: $error'),
+      );
+
+      _firestoreService.subscribeToBudgets(user.uid).listen(
+        (budgets) {
+          if (mounted) {
+            setState(() => _budgets = budgets);
+          }
+        },
+        onError: (error) => print('Error loading budgets: $error'),
+      );
+
+      _firestoreService.subscribeToProducts(user.uid).listen(
+        (products) {
+          if (mounted) {
+            setState(() => _products = products);
+          }
+        },
+        onError: (error) => print('Error loading products: $error'),
+      );
+    } catch (e) {
+      print('Error initializing data: $e');
       if (mounted) {
-        setState(() => _products = products);
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Failed to initialize: $e';
+        });
       }
-    });
+    }
   }
 
   List<Widget> get _screens => [
@@ -97,7 +148,6 @@ class _HomeScreenState extends State<HomeScreen> {
           budgets: _budgets,
           transactions: _transactions,
           onAddBudget: (budget) {
-            // Add userId to budget before saving
             final budgetWithUserId = Budget(
               id: budget.id,
               userId: _userId,
@@ -138,18 +188,43 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : IndexedStack(
-              index: _currentIndex,
-              children: _screens,
-            ),
-      floatingActionButton: _currentIndex < 2
+          : _errorMessage != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                      const SizedBox(height: 16),
+                      Text(
+                        _errorMessage!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _isLoading = true;
+                            _errorMessage = null;
+                          });
+                          _initializeData();
+                        },
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                )
+              : IndexedStack(
+                  index: _currentIndex,
+                  children: _screens,
+                ),
+      floatingActionButton: _currentIndex < 2 && !_isLoading && _errorMessage == null
           ? FloatingActionButton(
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => AddTransactionScreen(
                       onSave: (transaction) async {
-                        // Add userId to transaction
                         final txWithUserId = models.Transaction(
                           id: transaction.id,
                           userId: _userId,
@@ -164,7 +239,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           currency: transaction.currency,
                         );
                         await _firestoreService.addTransaction(txWithUserId);
-                        Navigator.of(context).pop();
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                        }
                       },
                     ),
                   ),
