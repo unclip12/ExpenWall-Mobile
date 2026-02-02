@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math' as math;
-import '../firebase_options.dart';
-import 'auth_screen.dart';
 import 'home_screen.dart';
 import '../theme/app_theme.dart';
 
@@ -70,68 +66,26 @@ class _SplashScreenState extends State<SplashScreen>
       if (mounted) _titleController.forward();
     });
 
-    _initializeApp();
+    // Navigate to home after splash
+    _navigateToHome();
   }
 
-  Future<void> _initializeApp() async {
-    try {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+  Future<void> _navigateToHome() async {
+    // Wait for animations to complete
+    await Future.delayed(const Duration(milliseconds: 2500));
 
-      await Future.delayed(const Duration(milliseconds: 2500));
+    if (!mounted) return;
 
-      if (!mounted) return;
-
-      final user = FirebaseAuth.instance.currentUser;
-
-      if (user != null) {
-        Navigator.of(context).pushReplacement(
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
-            transitionDuration: const Duration(milliseconds: 500),
-          ),
-        );
-      } else {
-        Navigator.of(context).pushReplacement(
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => const AuthScreen(),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
-            transitionDuration: const Duration(milliseconds: 500),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        await Future.delayed(const Duration(seconds: 2));
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            title: const Text('Demo Mode'),
-            content: const Text(
-              'Firebase is not configured. The app is running in demo mode.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => const AuthScreen()),
-                  );
-                },
-                child: const Text('Continue'),
-              ),
-            ],
-          ),
-        );
-      }
-    }
+    // Navigate directly to HomeScreen (no auth required!)
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 500),
+      ),
+    );
   }
 
   @override
