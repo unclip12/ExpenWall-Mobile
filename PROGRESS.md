@@ -118,15 +118,18 @@
 - ✅ Added userId to all delete operations
 - ✅ Fixed MultiDex support for Android
 - ✅ Fixed Firebase initialization error handling
+- ✅ Fixed Transaction naming conflict with cloud_firestore (Feb 2, 2026 - 2:40 PM)
+- ✅ Fixed all model `fromFirestore` signatures to use DocumentSnapshot (Feb 2, 2026 - 2:40 PM)
+- ✅ Renamed Transaction.toJson to toFirestore for consistency (Feb 2, 2026 - 2:40 PM)
 
 ---
 
 ## 🔄 CURRENT STATUS
 
 ### Build Status:
-- ✅ Latest commit: `9f15ed962c51bcddf5720d4f56192fec99f0f82b`
+- ✅ Latest commit: `0ff83616c36752973ad8d4e90c8ede7cc6cc88ae`
 - ✅ Workflow: Configured with Firebase secrets
-- ⏳ Current build: In progress (triggered at ~1:54 PM IST, Feb 2, 2026)
+- ⏳ Current build: In progress (triggered at ~2:40 PM IST, Feb 2, 2026)
 - 🎯 Expected completion: ~3-5 minutes
 
 ### Firebase Configuration:
@@ -223,6 +226,9 @@
 - ✅ Missing userId in delete operations (Fixed: Feb 2, 2026)
 - ✅ Build failure due to missing Firebase config (Fixed: Feb 2, 2026)
 - ✅ Bottom white line on Android (Fixed: Feb 2, 2026)
+- ✅ Transaction class naming conflict with cloud_firestore (Fixed: Feb 2, 2026 - 2:40 PM)
+- ✅ fromFirestore method signature mismatches (Fixed: Feb 2, 2026 - 2:40 PM)
+- ✅ Transaction.toJson renamed to toFirestore (Fixed: Feb 2, 2026 - 2:40 PM)
 
 ---
 
@@ -255,6 +261,7 @@ lib/
 ├── services/        # Firebase & other services
 ├── theme/           # Theme configuration
 ├── utils/           # Helper functions
+├── widgets/         # Reusable widgets
 ├── firebase_options.dart
 └── main.dart
 ```
@@ -347,7 +354,7 @@ lib/
 ### Completed:
 - **Feb 1-2, 2026:** Full app development (8 batches)
 - **Feb 2, 2026 (Morning):** Bug fixes and Firebase integration
-- **Feb 2, 2026 (Afternoon):** GitHub Actions setup with secrets
+- **Feb 2, 2026 (Afternoon):** GitHub Actions setup with secrets, critical bug fixes
 
 ### Upcoming:
 - **Week 1:** Test APK thoroughly, gather feedback
@@ -404,11 +411,12 @@ lib/
 ## 📊 STATISTICS
 
 ### Code Stats (Approximate):
-- **Total Files:** 20+
+- **Total Files:** 25+
 - **Models:** 5 (Transaction, Budget, Product, Wallet, MerchantRule)
 - **Screens:** 8 (Splash, Auth, Home, Dashboard, Transactions, Add Transaction, Budgets, Products, Settings)
 - **Services:** 1 (FirestoreService)
-- **Lines of Code:** ~3000+
+- **Widgets:** 2+ (GlassCard, TransactionItemWidget)
+- **Lines of Code:** ~3500+
 
 ### Features Count:
 - **Completed:** 40+ features
@@ -417,9 +425,9 @@ lib/
 
 ---
 
-**Last Updated:** February 2, 2026, 1:58 PM IST  
-**Version:** 1.0.0  
-**Status:** ✅ Production Ready (APK building)  
+**Last Updated:** February 2, 2026, 2:40 PM IST  
+**Version:** 1.0.1  
+**Status:** 🔧 Build in Progress (Critical fixes applied)  
 **Next Milestone:** Charts & Analytics Implementation
 
 ---
