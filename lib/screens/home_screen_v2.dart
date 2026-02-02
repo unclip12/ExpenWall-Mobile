@@ -4,10 +4,13 @@ import 'dart:async';
 import 'dashboard_screen.dart';
 import 'transactions_screen.dart';
 import 'add_transaction_screen_v2.dart';
-import 'planning_screen.dart';
-import 'social_screen.dart';
+import 'budget_screen.dart';
 import 'products_screen.dart';
 import 'settings_screen_v2.dart';
+import 'buying_list_screen.dart';
+import 'cravings_screen.dart';
+import 'recurring_bills_screen.dart';
+import 'split_bills_screen.dart';
 import '../models/transaction.dart' as models;
 import '../models/wallet.dart';
 import '../models/merchant_rule.dart';
@@ -15,6 +18,7 @@ import '../models/budget.dart';
 import '../models/product.dart';
 import '../services/local_storage_service.dart';
 import '../widgets/sync_indicator.dart';
+import '../widgets/expandable_tab_bar.dart';
 import '../widgets/money_flow_animation.dart';
 
 class HomeScreenV2 extends StatefulWidget {
@@ -25,7 +29,10 @@ class HomeScreenV2 extends StatefulWidget {
 }
 
 class _HomeScreenV2State extends State<HomeScreenV2> {
-  int _currentIndex = 0;
+  int _currentMainTab = 0; // Main bottom nav: Dashboard, Expenses, Planning, Social, Insights
+  int _planningSubTab = 0; // Budget, Recurring, Buying List
+  int _socialSubTab = 0; // Split Bills, Cravings
+  
   final _localStorageService = LocalStorageService();
   
   List<models.Transaction> _transactions = [];
@@ -38,11 +45,9 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
   bool _isSyncing = false;
   final String _userId = 'local_user';
   String? _errorMessage;
-  
-  // Money animation state
   bool _showMoneyAnimation = false;
   double _animationAmount = 0;
-  bool _animationIsIncome = false;
+  bool _isAnimationIncome = false;
 
   @override
   void initState() {
@@ -107,15 +112,22 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
 
     setState(() {
       _transactions.add(txWithUserId);
+      // Show money animation
+      _showMoneyAnimation = true;
+      _animationAmount = transaction.amount;
+      _isAnimationIncome = transaction.type == models.TransactionType.income;
     });
 
     await _localStorageService.saveTransactions(_userId, _transactions);
-    
-    // Show money animation
-    _showMoneyAnimationEffect(
-      amount: transaction.amount,
-      isIncome: transaction.type == models.TransactionType.income,
-    );
+
+    // Hide animation after 2 seconds
+    Future.delayed(const Duration(milliseconds: 2000), () {
+      if (mounted) {
+        setState(() {
+          _showMoneyAnimation = false;
+        });
+      }
+    });
   }
 
   Future<void> _updateTransaction(models.Transaction transaction) async {
@@ -125,7 +137,6 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
         _transactions[index] = transaction;
       }
     });
-
     await _localStorageService.saveTransactions(_userId, _transactions);
   }
 
@@ -133,7 +144,6 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
     setState(() {
       _transactions.removeWhere((t) => t.id == id);
     });
-
     await _localStorageService.saveTransactions(_userId, _transactions);
   }
 
@@ -161,35 +171,109 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
     await _localStorageService.saveBudgets(_userId, _budgets);
   }
 
-  void _showMoneyAnimationEffect({required double amount, required bool isIncome}) {
-    setState(() {
-      _showMoneyAnimation = true;
-      _animationAmount = amount;
-      _animationIsIncome = isIncome;
-    });
-  }
-
-  List<Widget> get _screens => [
-        DashboardScreen(
+  Widget _getCurrentScreen() {
+    switch (_currentMainTab) {
+      case 0: // Dashboard
+        return DashboardScreen(
           transactions: _transactions,
           budgets: _budgets,
-        ),
-        TransactionsScreen(
+        );
+      case 1: // Expenses
+        return TransactionsScreen(
           transactions: _transactions,
           rules: _rules,
           onDeleteTransaction: _deleteTransaction,
           onUpdateTransaction: _updateTransaction,
           userId: _userId,
-        ),
-        PlanningScreen(
+        );
+      case 2: // Planning
+        return _getPlanningScreen();
+      case 3: // Social
+        return _getSocialScreen();
+      case 4: // Insights (Settings for now)
+        return const SettingsScreenV2();
+      default:
+        return DashboardScreen(
+          transactions: _transactions,
+          budgets: _budgets,
+        );
+    }
+  }
+
+  Widget _getPlanningScreen() {
+    switch (_planningSubTab) {
+      case 0:
+        return BudgetScreen(
           budgets: _budgets,
           transactions: _transactions,
           onAddBudget: _addBudget,
           onDeleteBudget: _deleteBudget,
-        ),
-        const SocialScreen(),
-        const SettingsScreenV2(),
-      ];
+        );
+      case 1:
+        return const RecurringBillsScreen();
+      case 2:
+        return const BuyingListScreen();
+      default:
+        return BudgetScreen(
+          budgets: _budgets,
+          transactions: _transactions,
+          onAddBudget: _addBudget,
+          onDeleteBudget: _deleteBudget,
+        );
+    }
+  }
+
+  Widget _getSocialScreen() {
+    switch (_socialSubTab) {
+      case 0:
+        return const SplitBillsScreen();
+      case 1:
+        return const CravingsScreen();
+      default:
+        return const SplitBillsScreen();
+    }
+  }
+
+  String _getAppBarTitle() {
+    switch (_currentMainTab) {
+      case 0:
+        return 'Dashboard';
+      case 1:
+        return 'Expenses';
+      case 2:
+        return _getPlanningTitle();
+      case 3:
+        return _getSocialTitle();
+      case 4:
+        return 'Settings';
+      default:
+        return 'ExpenWall';
+    }
+  }
+
+  String _getPlanningTitle() {
+    switch (_planningSubTab) {
+      case 0:
+        return 'Budget';
+      case 1:
+        return 'Recurring Bills';
+      case 2:
+        return 'Buying List';
+      default:
+        return 'Planning';
+    }
+  }
+
+  String _getSocialTitle() {
+    switch (_socialSubTab) {
+      case 0:
+        return 'Split Bills';
+      case 1:
+        return 'Cravings';
+      default:
+        return 'Social';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -219,63 +303,42 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
       ),
       body: Stack(
         children: [
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _errorMessage != null
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                          const SizedBox(height: 16),
-                          Text(
-                            _errorMessage!,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                          const SizedBox(height: 24),
-                          ElevatedButton(
-                            onPressed: () {
-                              setState(() {
-                                _isLoading = true;
-                                _errorMessage = null;
-                              });
-                              _initializeData();
-                            },
-                            child: const Text('Retry'),
-                          ),
-                        ],
-                      ),
-                    )
-                  : IndexedStack(
-                      index: _currentIndex,
-                      children: _screens,
-                    ),
+          Column(
+            children: [
+              // Sub-tabs for Planning and Social
+              if (_currentMainTab == 2) _buildPlanningSubTabs(),
+              if (_currentMainTab == 3) _buildSocialSubTabs(),
+              
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _errorMessage != null
+                        ? _buildErrorState()
+                        : _getCurrentScreen(),
+              ),
+            ],
+          ),
+          
+          // Money flow animation overlay
+          if (_showMoneyAnimation)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: MoneyFlowAnimation(
+                  amount: _animationAmount,
+                  isIncome: _isAnimationIncome,
+                  onComplete: () {},
+                ),
+              ),
+            ),
           
           SyncIndicator(
             isSyncing: _isSyncing,
             hasError: _errorMessage != null,
             errorMessage: _errorMessage,
           ),
-          
-          // Money Flow Animation Overlay
-          if (_showMoneyAnimation)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: MoneyFlowAnimation(
-                  amount: _animationAmount,
-                  isIncome: _animationIsIncome,
-                  onComplete: () {
-                    setState(() {
-                      _showMoneyAnimation = false;
-                    });
-                  },
-                ),
-              ),
-            ),
         ],
       ),
-      floatingActionButton: (_currentIndex == 0 || _currentIndex == 1) && !_isLoading
+      floatingActionButton: (_currentMainTab == 0 || _currentMainTab == 1) && !_isLoading
           ? FloatingActionButton(
               onPressed: () {
                 Navigator.of(context).push(
@@ -297,107 +360,67 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
             )
           : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: _buildGlassBottomNav(),
+      bottomNavigationBar: ExpandableTabBar(
+        tabs: [
+          TabItem(icon: Icons.dashboard_rounded, label: 'Dashboard'),
+          TabItem(icon: Icons.receipt_long_rounded, label: 'Expenses'),
+          TabItem(icon: Icons.calendar_today, label: 'Planning'),
+          TabItem(icon: Icons.people_alt, label: 'Social'),
+          TabItem(icon: Icons.insights, label: 'Insights'),
+        ],
+        selectedIndex: _currentMainTab,
+        onTabSelected: (index) => setState(() => _currentMainTab = index),
+      ),
     );
   }
 
-  String _getAppBarTitle() {
-    switch (_currentIndex) {
-      case 0:
-        return 'Dashboard';
-      case 1:
-        return 'Transactions';
-      case 2:
-        return 'Planning';
-      case 3:
-        return 'Social';
-      case 4:
-        return 'Settings';
-      default:
-        return 'ExpenWall';
-    }
+  Widget _buildPlanningSubTabs() {
+    return ExpandableTabBar(
+      tabs: [
+        TabItem(icon: Icons.account_balance_wallet, label: 'Budget'),
+        TabItem(icon: Icons.repeat, label: 'Recurring'),
+        TabItem(icon: Icons.shopping_cart, label: 'Buying List'),
+      ],
+      selectedIndex: _planningSubTab,
+      onTabSelected: (index) => setState(() => _planningSubTab = index),
+    );
   }
 
-  Widget _buildGlassBottomNav() {
-    return Container(
-      margin: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+  Widget _buildSocialSubTabs() {
+    return ExpandableTabBar(
+      tabs: [
+        TabItem(icon: Icons.people, label: 'Split Bills'),
+        TabItem(icon: Icons.favorite, label: 'Cravings'),
+      ],
+      selectedIndex: _socialSubTab,
+      onTabSelected: (index) => setState(() => _socialSubTab = index),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, size: 64, color: Colors.red),
+          const SizedBox(height: 16),
+          Text(
+            _errorMessage!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _isLoading = true;
+                _errorMessage = null;
+              });
+              _initializeData();
+            },
+            child: const Text('Retry'),
           ),
         ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            height: 70,
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.white.withOpacity(0.8),
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.2),
-                width: 1.5,
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(Icons.dashboard_rounded, 'Home', 0),
-                _buildNavItem(Icons.receipt_long_rounded, 'Activity', 1),
-                _buildNavItem(Icons.calendar_today, 'Planning', 2),
-                _buildNavItem(Icons.people, 'Social', 3),
-                _buildNavItem(Icons.settings_rounded, 'Settings', 4),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, int index) {
-    final isSelected = _currentIndex == index;
-    return GestureDetector(
-      onTap: () => setState(() => _currentIndex = index),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: isSelected
-                  ? Theme.of(context).colorScheme.primary
-                  : Colors.grey[600],
-              size: 22,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected
-                    ? Theme.of(context).colorScheme.primary
-                    : Colors.grey[600],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
