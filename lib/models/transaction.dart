@@ -133,12 +133,12 @@ class Transaction {
         'recurringId': recurringId,
       };
 
-  factory Transaction.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  factory Transaction.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data()!;
     return Transaction(
       id: doc.id,
       userId: data['userId'],
-      merchant: data['merchant'],
+      merchant: data['merchant'] ?? '',
       merchantEmoji: data['merchantEmoji'],
       date: (data['date'] as Timestamp).toDate(),
       time: data['time'],
