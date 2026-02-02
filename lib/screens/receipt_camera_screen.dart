@@ -2,16 +2,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
-import '../services/receipt_ocr_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'receipt_review_screen.dart';
 
-/// Camera screen for capturing receipt images with OCR processing
+/// Camera screen for capturing receipt images with live preview
 class ReceiptCameraScreen extends StatefulWidget {
   final String userId;
 
-  const ReceiptCameraScreen({super.key, required this.userId});
+  const ReceiptCameraScreen({Key? key, required this.userId}) : super(key: key);
 
   @override
   State<ReceiptCameraScreen> createState() => _ReceiptCameraScreenState();
@@ -19,15 +17,14 @@ class ReceiptCameraScreen extends StatefulWidget {
 
 class _ReceiptCameraScreenState extends State<ReceiptCameraScreen>
     with WidgetsBindingObserver {
-  CameraController? _cameraController;
+  CameraController? _controller;
   List<CameraDescription> _cameras = [];
-  int _selectedCameraIndex = 0;
-  bool _isInitializing = true;
+  bool _isInitialized = false;
   bool _isFlashOn = false;
   bool _showGrid = true;
-  bool _isProcessing = false;
+  bool _isTakingPicture = false;
+  String? _errorMessage;
   final ImagePicker _imagePicker = ImagePicker();
-  final ReceiptOCRService _ocrService = ReceiptOCRService();
 
   @override
   void initState() {
@@ -39,101 +36,88 @@ class _ReceiptCameraScreenState extends State<ReceiptCameraScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _cameraController?.dispose();
-    _ocrService.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final CameraController? cameraController = _cameraController;
-
-    // App state changed before we got the chance to initialize.
-    if (cameraController == null || !cameraController.value.isInitialized) {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
       return;
     }
 
     if (state == AppLifecycleState.inactive) {
-      cameraController.dispose();
+      controller.dispose();
     } else if (state == AppLifecycleState.resumed) {
       _initializeCamera();
     }
   }
 
-  /// Initialize camera
+  /// Initialize camera with permissions
   Future<void> _initializeCamera() async {
     try {
-      setState(() {
-        _isInitializing = true;
-      });
-
-      // Get available cameras
-      _cameras = await availableCameras();
-
-      if (_cameras.isEmpty) {
-        if (mounted) {
-          setState(() {
-            _isInitializing = false;
-          });
-        }
+      // Request camera permission
+      final cameraStatus = await Permission.camera.request();
+      if (!cameraStatus.isGranted) {
+        setState(() {
+          _errorMessage = 'Camera permission denied. Please enable it in settings.';
+        });
         return;
       }
 
-      // Use back camera by default
-      _selectedCameraIndex = _cameras.indexWhere(
-        (camera) => camera.lensDirection == CameraLensDirection.back,
-      );
-      if (_selectedCameraIndex == -1) _selectedCameraIndex = 0;
+      // Get available cameras
+      _cameras = await availableCameras();
+      if (_cameras.isEmpty) {
+        setState(() {
+          _errorMessage = 'No cameras found on this device.';
+        });
+        return;
+      }
 
-      // Initialize camera controller
-      _cameraController = CameraController(
-        _cameras[_selectedCameraIndex],
+      // Initialize camera controller with back camera
+      final backCamera = _cameras.firstWhere(
+        (camera) => camera.lensDirection == CameraLensDirection.back,
+        orElse: () => _cameras.first,
+      );
+
+      _controller = CameraController(
+        backCamera,
         ResolutionPreset.high,
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
 
-      await _cameraController!.initialize();
+      await _controller!.initialize();
+      await _controller!.setFlashMode(FlashMode.off);
 
-      // Set flash mode
-      await _cameraController!.setFlashMode(FlashMode.off);
-
-      // Enable auto-focus
-      if (_cameraController!.value.isInitialized) {
-        await _cameraController!.setFocusMode(FocusMode.auto);
+      // Set auto-focus mode
+      if (_controller!.value.isInitialized) {
+        await _controller!.setFocusMode(FocusMode.auto);
       }
 
-      if (mounted) {
-        setState(() {
-          _isInitializing = false;
-        });
-      }
+      setState(() {
+        _isInitialized = true;
+      });
     } catch (e) {
-      print('Error initializing camera: $e');
-      if (mounted) {
-        setState(() {
-          _isInitializing = false;
-        });
-        _showErrorSnackBar('Failed to initialize camera: $e');
-      }
+      setState(() {
+        _errorMessage = 'Failed to initialize camera: ${e.toString()}';
+      });
     }
   }
 
   /// Toggle flash on/off
   Future<void> _toggleFlash() async {
-    if (_cameraController == null || !_cameraController!.value.isInitialized) {
-      return;
-    }
+    if (_controller == null || !_controller!.value.isInitialized) return;
 
     try {
       final newFlashMode = _isFlashOn ? FlashMode.off : FlashMode.torch;
-      await _cameraController!.setFlashMode(newFlashMode);
+      await _controller!.setFlashMode(newFlashMode);
       setState(() {
         _isFlashOn = !_isFlashOn;
       });
     } catch (e) {
       print('Error toggling flash: $e');
-      _showErrorSnackBar('Failed to toggle flash');
     }
   }
 
@@ -144,149 +128,122 @@ class _ReceiptCameraScreenState extends State<ReceiptCameraScreen>
     });
   }
 
-  /// Capture image from camera
-  Future<void> _captureImage() async {
-    if (_cameraController == null ||
-        !_cameraController!.value.isInitialized ||
-        _isProcessing) {
+  /// Capture photo from camera
+  Future<void> _takePicture() async {
+    if (_controller == null ||
+        !_controller!.value.isInitialized ||
+        _isTakingPicture) {
       return;
     }
 
+    setState(() {
+      _isTakingPicture = true;
+    });
+
     try {
-      setState(() {
-        _isProcessing = true;
-      });
-
-      // Capture image
-      final XFile image = await _cameraController!.takePicture();
-
-      // Save to temp directory
-      final Directory tempDir = await getTemporaryDirectory();
-      final String fileName =
-          'receipt_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final String savePath = path.join(tempDir.path, fileName);
-
-      // Copy file to temp directory
-      await File(image.path).copy(savePath);
-
-      // Process with OCR
-      await _processImage(savePath);
-    } catch (e) {
-      print('Error capturing image: $e');
-      _showErrorSnackBar('Failed to capture image: $e');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-        });
+      // Turn off flash before capture if it was on for torch mode
+      if (_isFlashOn) {
+        await _controller!.setFlashMode(FlashMode.auto);
       }
+
+      final XFile image = await _controller!.takePicture();
+
+      // Navigate to review screen
+      if (mounted) {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ReceiptReviewScreen(
+              imagePath: image.path,
+              userId: widget.userId,
+            ),
+          ),
+        );
+      }
+
+      // Reset flash state
+      if (_isFlashOn) {
+        await _controller!.setFlashMode(FlashMode.torch);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to take picture: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isTakingPicture = false;
+      });
     }
   }
 
   /// Pick image from gallery
   Future<void> _pickFromGallery() async {
-    if (_isProcessing) return;
-
     try {
-      setState(() {
-        _isProcessing = true;
-      });
+      // Request storage permission (for Android < 13)
+      if (Platform.isAndroid) {
+        final storageStatus = await Permission.storage.request();
+        if (!storageStatus.isGranted) {
+          final photosStatus = await Permission.photos.request();
+          if (!photosStatus.isGranted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Storage permission denied'),
+                backgroundColor: Colors.red,
+              ),
+            );
+            return;
+          }
+        }
+      }
 
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 1920,
-        maxHeight: 1920,
-        imageQuality: 85,
+        imageQuality: 100,
       );
 
-      if (image != null) {
-        // Save to temp directory
-        final Directory tempDir = await getTemporaryDirectory();
-        final String fileName =
-            'receipt_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        final String savePath = path.join(tempDir.path, fileName);
-
-        // Copy file to temp directory
-        await File(image.path).copy(savePath);
-
-        // Process with OCR
-        await _processImage(savePath);
-      }
-    } catch (e) {
-      print('Error picking image: $e');
-      _showErrorSnackBar('Failed to pick image: $e');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-        });
-      }
-    }
-  }
-
-  /// Process image with OCR and navigate to review screen
-  Future<void> _processImage(String imagePath) async {
-    try {
-      // Show processing indicator
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                ),
-                SizedBox(width: 16),
-                Text('Processing receipt...'),
-              ],
-            ),
-            duration: Duration(seconds: 5),
-          ),
-        );
-      }
-
-      // Run OCR
-      final ExtractedReceipt receipt = await _ocrService.scanReceipt(imagePath);
-
-      if (mounted) {
-        // Hide processing indicator
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
-        // Navigate to review screen
-        Navigator.of(context).push(
+      if (image != null && mounted) {
+        await Navigator.push(
+          context,
           MaterialPageRoute(
             builder: (context) => ReceiptReviewScreen(
+              imagePath: image.path,
               userId: widget.userId,
-              imagePath: imagePath,
-              extractedReceipt: receipt,
             ),
           ),
         );
       }
     } catch (e) {
-      print('Error processing image: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        _showErrorSnackBar('Failed to process receipt: $e');
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to pick image: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
-  /// Show error snackbar
-  void _showErrorSnackBar(String message) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.red.shade700,
-          duration: const Duration(seconds: 3),
-        ),
+  /// Manual focus on tap
+  Future<void> _onTapToFocus(TapUpDetails details) async {
+    if (_controller == null || !_controller!.value.isInitialized) return;
+
+    try {
+      final offset = Offset(
+        details.localPosition.dx / context.size!.width,
+        details.localPosition.dy / context.size!.height,
       );
+
+      await _controller!.setFocusPoint(offset);
+      await _controller!.setExposurePoint(offset);
+
+      // Show focus indicator
+      setState(() {
+        // Visual feedback would go here
+      });
+    } catch (e) {
+      print('Error focusing: $e');
     }
   }
 
@@ -294,348 +251,296 @@ class _ReceiptCameraScreenState extends State<ReceiptCameraScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // Camera preview
-          _buildCameraPreview(),
+      body: SafeArea(
+        child: _errorMessage != null
+            ? _buildErrorView()
+            : !_isInitialized
+                ? _buildLoadingView()
+                : _buildCameraView(),
+      ),
+    );
+  }
 
-          // Grid overlay
-          if (_showGrid) _buildGridOverlay(),
-
-          // Top controls
-          _buildTopControls(),
-
-          // Bottom controls
-          _buildBottomControls(),
-
-          // Processing overlay
-          if (_isProcessing)
-            Container(
-              color: Colors.black54,
-              child: const Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              ),
+  /// Build error view
+  Widget _buildErrorView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              color: Colors.red,
+              size: 64,
             ),
+            const SizedBox(height: 16),
+            Text(
+              _errorMessage!,
+              style: const TextStyle(color: Colors.white),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Go Back'),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => openAppSettings(),
+              child: const Text('Open Settings'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build loading view
+  Widget _buildLoadingView() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(color: Colors.white),
+          SizedBox(height: 16),
+          Text(
+            'Initializing camera...',
+            style: TextStyle(color: Colors.white),
+          ),
         ],
       ),
     );
   }
 
-  /// Build camera preview
-  Widget _buildCameraPreview() {
-    if (_isInitializing) {
-      return const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-        ),
-      );
-    }
-
-    if (_cameraController == null || !_cameraController!.value.isInitialized) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.camera_alt_outlined,
-              size: 64,
-              color: Colors.white54,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Camera not available',
-              style: TextStyle(color: Colors.white70, fontSize: 16),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: _pickFromGallery,
-              icon: const Icon(Icons.photo_library),
-              label: const Text('Pick from Gallery'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return SizedBox.expand(
-      child: FittedBox(
-        fit: BoxFit.cover,
-        child: SizedBox(
-          width: _cameraController!.value.previewSize!.height,
-          height: _cameraController!.value.previewSize!.width,
-          child: CameraPreview(_cameraController!),
-        ),
-      ),
-    );
-  }
-
-  /// Build grid overlay (Rule of thirds)
-  Widget _buildGridOverlay() {
-    return IgnorePointer(
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.white24, width: 1),
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              child: Row(
-                children: [
-                  _buildGridCell(),
-                  _buildGridCell(),
-                  _buildGridCell(),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Row(
-                children: [
-                  _buildGridCell(),
-                  _buildGridCell(),
-                  _buildGridCell(),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Row(
-                children: [
-                  _buildGridCell(),
-                  _buildGridCell(),
-                  _buildGridCell(),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Build single grid cell
-  Widget _buildGridCell() {
-    return Expanded(
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.white12, width: 0.5),
-        ),
-      ),
-    );
-  }
-
-  /// Build top controls (Flash, Grid, Close)
-  Widget _buildTopControls() {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // Close button
-            _buildControlButton(
-              icon: Icons.close,
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-
-            Row(
-              children: [
-                // Flash toggle
-                _buildControlButton(
-                  icon: _isFlashOn ? Icons.flash_on : Icons.flash_off,
-                  onPressed: _toggleFlash,
-                  isActive: _isFlashOn,
-                ),
-                const SizedBox(width: 12),
-
-                // Grid toggle
-                _buildControlButton(
-                  icon: Icons.grid_on,
-                  onPressed: _toggleGrid,
-                  isActive: _showGrid,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Build bottom controls (Gallery, Capture, Info)
-  Widget _buildBottomControls() {
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Gallery button
-              _buildGalleryButton(),
-
-              // Capture button
-              _buildCaptureButton(),
-
-              // Info button
-              _buildInfoButton(),
-            ],
+  /// Build camera view with controls
+  Widget _buildCameraView() {
+    return Stack(
+      children: [
+        // Camera preview
+        GestureDetector(
+          onTapUp: _onTapToFocus,
+          child: SizedBox.expand(
+            child: CameraPreview(_controller!),
           ),
         ),
-      ),
+
+        // Grid overlay
+        if (_showGrid) _buildGridOverlay(),
+
+        // Top controls
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: _buildTopControls(),
+        ),
+
+        // Bottom controls
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: _buildBottomControls(),
+        ),
+
+        // Capture button (center bottom)
+        Positioned(
+          bottom: 40,
+          left: 0,
+          right: 0,
+          child: _buildCaptureButton(),
+        ),
+      ],
     );
   }
 
-  /// Build control button
-  Widget _buildControlButton({
-    required IconData icon,
-    required VoidCallback onPressed,
-    bool isActive = false,
-  }) {
+  /// Build grid overlay (rule of thirds)
+  Widget _buildGridOverlay() {
+    return CustomPaint(
+      size: Size.infinite,
+      painter: _GridPainter(),
+    );
+  }
+
+  /// Build top controls (close, flash, grid)
+  Widget _buildTopControls() {
     return Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isActive ? Colors.white24 : Colors.black45,
-        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.black.withOpacity(0.5),
+            Colors.transparent,
+          ],
+        ),
       ),
-      child: IconButton(
-        icon: Icon(icon),
-        color: isActive ? Colors.amber : Colors.white,
-        onPressed: onPressed,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Close button
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.close, color: Colors.white),
+            iconSize: 28,
+          ),
+
+          // Flash toggle
+          IconButton(
+            onPressed: _toggleFlash,
+            icon: Icon(
+              _isFlashOn ? Icons.flash_on : Icons.flash_off,
+              color: Colors.white,
+            ),
+            iconSize: 28,
+          ),
+
+          // Grid toggle
+          IconButton(
+            onPressed: _toggleGrid,
+            icon: Icon(
+              _showGrid ? Icons.grid_on : Icons.grid_off,
+              color: Colors.white,
+            ),
+            iconSize: 28,
+          ),
+        ],
       ),
     );
   }
 
-  /// Build gallery button
-  Widget _buildGalleryButton() {
-    return GestureDetector(
-      onTap: _pickFromGallery,
-      child: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          color: Colors.black45,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white54, width: 2),
+  /// Build bottom controls (gallery, tips)
+  Widget _buildBottomControls() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [
+            Colors.black.withOpacity(0.7),
+            Colors.transparent,
+          ],
         ),
-        child: const Icon(
-          Icons.photo_library,
-          color: Colors.white,
-          size: 28,
-        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Tips
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Text(
+              '💡 Align receipt within frame for best results',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 80), // Space for capture button
+          // Gallery button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextButton.icon(
+                onPressed: _pickFromGallery,
+                icon: const Icon(Icons.photo_library, color: Colors.white),
+                label: const Text(
+                  'Choose from Gallery',
+                  style: TextStyle(color: Colors.white),
+                ),
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.black.withOpacity(0.5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   /// Build capture button
   Widget _buildCaptureButton() {
-    return GestureDetector(
-      onTap: _captureImage,
-      child: Container(
-        width: 80,
-        height: 80,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 4),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
+    return Center(
+      child: GestureDetector(
+        onTap: _isTakingPicture ? null : _takePicture,
         child: Container(
-          margin: const EdgeInsets.all(4),
+          width: 70,
+          height: 70,
           decoration: BoxDecoration(
-            color: Colors.white,
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.black12, width: 2),
+            color: Colors.white,
+            border: Border.all(
+              color: Colors.white,
+              width: 4,
+            ),
           ),
+          child: _isTakingPicture
+              ? const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: CircularProgressIndicator(
+                    color: Colors.black,
+                    strokeWidth: 3,
+                  ),
+                )
+              : Container(
+                  margin: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                  ),
+                ),
         ),
       ),
+    );
+  }
+}
+
+/// Custom painter for grid overlay (rule of thirds)
+class _GridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.3)
+      ..strokeWidth = 1.0;
+
+    // Vertical lines
+    canvas.drawLine(
+      Offset(size.width / 3, 0),
+      Offset(size.width / 3, size.height),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(size.width * 2 / 3, 0),
+      Offset(size.width * 2 / 3, size.height),
+      paint,
+    );
+
+    // Horizontal lines
+    canvas.drawLine(
+      Offset(0, size.height / 3),
+      Offset(size.width, size.height / 3),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(0, size.height * 2 / 3),
+      Offset(size.width, size.height * 2 / 3),
+      paint,
     );
   }
 
-  /// Build info button
-  Widget _buildInfoButton() {
-    return GestureDetector(
-      onTap: _showHelpDialog,
-      child: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          color: Colors.black45,
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white54, width: 2),
-        ),
-        child: const Icon(
-          Icons.info_outline,
-          color: Colors.white,
-          size: 28,
-        ),
-      ),
-    );
-  }
-
-  /// Show help dialog
-  void _showHelpDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.help_outline, color: Colors.blue),
-            SizedBox(width: 12),
-            Text('Receipt Scanning Tips'),
-          ],
-        ),
-        content: const SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '📸 Camera Tips:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              SizedBox(height: 8),
-              Text('• Ensure receipt is well-lit and flat'),
-              Text('• Avoid shadows and glare'),
-              Text('• Use grid to align receipt'),
-              Text('• Fill frame with receipt'),
-              SizedBox(height: 16),
-              Text(
-                '💡 Best Results:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              SizedBox(height: 8),
-              Text('• Clean, uncrumpled receipts'),
-              Text('• Good contrast and lighting'),
-              Text('• Horizontal orientation'),
-              Text('• Printed receipts (not handwritten)'),
-              SizedBox(height: 16),
-              Text(
-                '⚡ Flash:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              SizedBox(height: 8),
-              Text('• Use flash in low light'),
-              Text('• Avoid direct flash on glossy receipts'),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Got it!'),
-          ),
-        ],
-      ),
-    );
-  }
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
