@@ -11,12 +11,14 @@ import 'buying_list_screen.dart';
 import 'cravings_screen.dart';
 import 'recurring_bills_screen.dart';
 import 'split_bills_screen.dart';
+import 'notification_center_screen.dart';
 import '../models/transaction.dart' as models;
 import '../models/wallet.dart';
 import '../models/merchant_rule.dart';
 import '../models/budget.dart';
 import '../models/product.dart';
 import '../services/local_storage_service.dart';
+import '../services/recurring_bill_service.dart';
 import '../widgets/sync_indicator.dart';
 import '../widgets/expandable_tab_bar.dart';
 import '../widgets/money_flow_animation.dart';
@@ -34,6 +36,7 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
   int _socialSubTab = 0; // Split Bills, Cravings
   
   final _localStorageService = LocalStorageService();
+  late RecurringBillService _recurringService;
   
   List<models.Transaction> _transactions = [];
   List<MerchantRule> _rules = [];
@@ -48,11 +51,50 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
   bool _showMoneyAnimation = false;
   double _animationAmount = 0;
   bool _isAnimationIncome = false;
+  int _notificationCount = 0;
+  Timer? _notificationTimer;
 
   @override
   void initState() {
     super.initState();
+    _recurringService = RecurringBillService(
+      localStorage: _localStorageService,
+      userId: _userId,
+    );
     _initializeData();
+    _loadNotificationCount();
+    
+    // Refresh notification count every 30 seconds
+    _notificationTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _loadNotificationCount();
+    });
+  }
+
+  @override
+  void dispose() {
+    _notificationTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadNotificationCount() async {
+    final count = await _recurringService.getPendingNotificationCount();
+    if (mounted) {
+      setState(() {
+        _notificationCount = count;
+      });
+    }
+  }
+
+  Future<void> _openNotificationCenter() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NotificationCenterScreen(userId: _userId),
+      ),
+    );
+    
+    // Reload count after returning
+    _loadNotificationCount();
   }
 
   Future<void> _initializeData() async {
@@ -210,7 +252,7 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
           onDeleteBudget: _deleteBudget,
         );
       case 1:
-        return const RecurringBillsScreen();
+        return RecurringBillsScreen(userId: _userId);
       case 2:
         return const BuyingListScreen();
       default:
@@ -294,9 +336,39 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
               padding: EdgeInsets.only(right: 8),
               child: SyncDot(isSyncing: true),
             ),
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {},
+          // Notification Bell with Badge
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined),
+                onPressed: _openNotificationCenter,
+              ),
+              if (_notificationCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 18,
+                      minHeight: 18,
+                    ),
+                    child: Text(
+                      _notificationCount.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(width: 8),
         ],
