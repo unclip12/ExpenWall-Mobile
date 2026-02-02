@@ -17,7 +17,7 @@ class FirestoreService {
         .orderBy('date', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => models.Transaction.fromFirestore(doc.data(), doc.id))
+            .map((doc) => models.Transaction.fromFirestore(doc))
             .toList());
   }
 
