@@ -1,277 +1,261 @@
-# Development Workflow & Build Rules
+# 🔧 Development Workflow & Build Rules
 
-**Last Updated:** February 3, 2026, 2:00 AM IST
-
----
-
-## 🚨 CRITICAL RULES FOR AI ASSISTANTS
-
-### ⚠️ Build Trigger Policy
-
-**APK builds should ONLY be triggered when:**
-1. A version tag is created (e.g., `v2.3.1`, `v2.4.0`)
-2. Manual trigger is explicitly requested by the user
-
-**APK builds should NEVER be triggered by:**
-- Regular commits during development
-- Individual file updates
-- Incomplete phases
-- Documentation changes
+**Last Updated:** February 3, 2026, 2:06 AM IST  
+**Purpose:** Guidelines for AI assistants and contributors working on ExpenWall Mobile
 
 ---
 
-## 📄 Phase-Based Development Approach
+## 🚨 CRITICAL RULES - READ FIRST
 
-### ✅ CORRECT Workflow:
+### ⚠️ Rule #1: Phase-Based Commits (MOST IMPORTANT)
 
-**When working on a feature/phase:**
-1. **Plan:** Identify ALL files that need to be created/updated for the phase
-2. **Batch:** Prepare ALL changes locally or in planning
-3. **Commit Once:** Push ALL changes in ONE commit with clear message: "Phase X Complete"
-4. **Test:** User manually triggers build if testing is needed
-
-**Example:**
-```bash
-# Phase 1: Analytics Dashboard (5 files needed)
-- Create lib/services/analytics_service.dart
-- Create lib/models/analytics_data.dart
-- Create lib/screens/analytics_screen.dart
-- Update lib/screens/home_screen.dart
-- Update pubspec.yaml (add chart package)
-
-# ALL files prepared, then ONE commit:
-git add .
-git commit -m "feat: Analytics Dashboard - Phase 1 Complete
-
-- Added analytics service
-- Created analytics data model
-- Built analytics screen UI
-- Integrated into home screen
-- Added charts package"
-git push
+**❌ NEVER DO THIS:**
 ```
-
-### ❌ INCORRECT Workflow:
-
-**DO NOT do this:**
-```bash
-# Create service
-git add lib/services/analytics_service.dart
-git commit -m "Add analytics service"
-git push  # ❌ Push 1
-
-# Create model
-git add lib/models/analytics_data.dart
-git commit -m "Add analytics model"
-git push  # ❌ Push 2
-
-# Create screen
-git add lib/screens/analytics_screen.dart
-git commit -m "Add analytics screen"
-git push  # ❌ Push 3
-
-# Result: 3 separate commits for ONE phase ❌
+Update file1.dart → Commit → Push
+Update file2.dart → Commit → Push  
+Update file3.dart → Commit → Push
+Update file4.dart → Commit → Push
 ```
+**Result:** 4 commits, cluttered history, confusing progress tracking
 
----
+**✅ ALWAYS DO THIS:**
+```
+Update ALL files needed for Phase 1
+Batch into ONE commit with clear message
+Push ONCE: "feat: Phase 1 Complete - [Feature Name]"
+```
+**Result:** 1 clean commit per phase, clear milestones, organized history
 
-## 🎯 Phase Completion Checklist
+### 🎯 Commit Strategy
 
-Before pushing a "Phase Complete" commit, verify:
+#### Phase Completion Commits
+When working on a feature with multiple files/changes:
 
-- [ ] **All planned files** for the phase are created/updated
-- [ ] **No compilation errors** exist
-- [ ] **Dependencies added** to pubspec.yaml (if needed)
-- [ ] **Imports are correct** in all files
-- [ ] **Code follows existing patterns** in the project
-- [ ] **PROGRESS.md updated** with phase completion status
-- [ ] **Commit message is descriptive** and mentions "Phase X Complete"
-
----
-
-## 🚀 Release Workflow
-
-### When a Version is Complete:
-
-1. **User confirms:** "Version is ready" or "Everything works, release it"
-2. **AI creates version tag:**
-   ```bash
-   git tag v2.3.1 -m "Release v2.3.1: Split Bills Feature"
-   git push origin v2.3.1
+1. **Identify the phase scope** - What files need to be updated for this phase?
+2. **Make ALL changes** - Update/create all necessary files
+3. **Test locally if possible** - Verify syntax, no obvious errors
+4. **Commit ONCE** with descriptive message:
    ```
-3. **GitHub Actions automatically builds** the APK
-4. **User downloads** from Actions artifacts
-5. **User tests** and approves
-6. **Optional:** Create GitHub Release with changelog
+   feat: Phase 1 Complete - Split Bills Core Models
+   feat: Phase 2 Complete - Split Bills Service Logic  
+   feat: Phase 3 Complete - Split Bills UI Screens
+   ```
+5. **Push ONCE** - All phase changes together
 
-### Version Tag Format:
-
-- **Major release:** `v3.0.0` (Breaking changes, major features)
-- **Minor release:** `v2.4.0` (New features, no breaking changes)
-- **Patch release:** `v2.3.1` (Bug fixes, minor improvements)
-
----
-
-## 🔧 Manual Build Trigger
-
-**When user wants to test during development:**
-
-1. Go to GitHub Actions tab
-2. Select "Build Flutter APK" workflow
-3. Click "Run workflow" button
-4. Select branch (usually `main`)
-5. Click green "Run workflow" button
-6. Wait 10-15 minutes for build
-7. Download APK from Artifacts
-
-**Use manual builds for:**
-- Testing after phase completion
-- Quick verification during development
-- Testing specific commits
+#### When to Make Individual Commits
+- **Bug fixes** - One commit per bug fix
+- **Documentation updates** - Can be separate
+- **Small tweaks** - After user testing, minor adjustments
+- **Emergency hotfixes** - Critical production issues
 
 ---
 
-## 📅 Development Phases Example
+## 🏗️ Build Trigger Rules
 
-### Typical Feature Development:
+### Current Workflow Configuration
+Location: `.github/workflows/build-apk.yml`
 
-**Phase 1: Backend/Models** (1 commit)
-- Create all model files
-- Create all service files
-- Add dependencies
-- Push: "feat: Feature Name - Phase 1 Backend Complete"
+**Builds ONLY trigger on:**
+1. **Version Tags** - `v*.*.*` (e.g., v2.3.1, v2.4.0)
+2. **Manual Trigger** - Via GitHub Actions UI
 
-**Phase 2: UI Screens** (1 commit)
-- Create all screen files
-- Create all widget files
-- Push: "feat: Feature Name - Phase 2 UI Complete"
+**Builds DO NOT trigger on:**
+- Regular commits to main
+- Code updates during development
+- Documentation changes
+- Any normal pushes
 
-**Phase 3: Integration** (1 commit)
-- Update navigation
-- Connect screens to services
-- Add to main app flow
-- Push: "feat: Feature Name - Phase 3 Integration Complete"
+### When to Create Version Tags
 
-**Phase 4: Testing & Fixes** (1 commit)
-- Fix all build errors
-- Fix all runtime issues
-- Push: "feat: Feature Name - Phase 4 Complete & Ready"
+**Only create version tags when:**
+1. ✅ All phases for the version are complete
+2. ✅ User has tested and approved the functionality
+3. ✅ User explicitly says: "Ready to release" or "Build final APK"
+4. ✅ PROGRESS.md shows feature is marked complete
+5. ✅ No known critical bugs
 
-**Total:** 4 commits for entire feature, NOT 20+ commits for individual files
+**How to create version tags:**
+```bash
+# After all changes are committed and pushed
+git tag v2.3.1
+git push origin v2.3.1
+```
+
+**Tag naming convention:**
+- Major release: `v3.0.0` (Breaking changes, major features)
+- Minor release: `v2.4.0` (New features, no breaking changes)
+- Patch release: `v2.3.1` (Bug fixes, small improvements)
 
 ---
 
-## 📝 Commit Message Format
+## 📋 Phase-Based Development Process
 
-### For Phase Completions:
-```
-feat: <Feature Name> - Phase <X> Complete
+### Example: Adding Split Bills Feature
 
-<Bullet points of what was added/changed>
-- Item 1
-- Item 2
-- Item 3
-```
+**Phase 1: Core Models**
+- Create `models/split_bill.dart`
+- Create `models/participant.dart`
+- Create `models/contact.dart`
+- Create `models/group.dart`
+- **ONE COMMIT:** "feat: Phase 1 Complete - Split Bills Core Models"
+- **ONE PUSH**
 
-### For Bug Fixes:
-```
-fix: <Brief description>
+**Phase 2: Service Logic**
+- Create `services/split_bill_service.dart`
+- Create `services/contact_service.dart`
+- Update `services/local_storage_service.dart`
+- **ONE COMMIT:** "feat: Phase 2 Complete - Split Bills Service Logic"
+- **ONE PUSH**
 
-<Details of what was fixed>
-```
+**Phase 3: UI Screens**
+- Create `screens/split_bills_screen.dart`
+- Create `screens/create_split_bill_screen.dart`
+- Create `screens/bill_details_screen.dart`
+- Create `screens/contacts_screen.dart`
+- Create `screens/groups_screen.dart`
+- **ONE COMMIT:** "feat: Phase 3 Complete - Split Bills UI Screens"
+- **ONE PUSH**
 
-### For Documentation:
-```
-docs: <What was documented>
+**Phase 4: Integration & Fixes**
+- Update navigation in `home_screen_v2.dart`
+- Fix any build errors
+- Update `pubspec.yaml` if needed
+- **ONE COMMIT:** "feat: Phase 4 Complete - Split Bills Integration"
+- **ONE PUSH**
 
-<Details>
-```
+**After All Phases:** User tests → Approves → Create `v2.3.1` tag → Auto-builds APK
 
-### For Build/CI Changes:
-```
-ci: <What was changed in workflow>
+---
 
-<Details>
+## 🧪 Testing Workflow
+
+### During Development
+1. **User can request early APK** - Manually trigger build from Actions tab
+2. **User tests phase** - Provides feedback
+3. **Fix issues** - Make fixes as needed (can be individual commits for bug fixes)
+4. **Continue to next phase** - Once user approves
+
+### Final Testing
+1. **All phases complete**
+2. **User says "Ready to test"**
+3. **Manual build trigger** OR **version tag** created
+4. **User downloads APK** from GitHub Actions artifacts
+5. **User tests thoroughly**
+6. **User approves** OR **reports issues**
+7. **If approved:** Tag as official release version
+
+---
+
+## 📝 Documentation Requirements
+
+### Always Update These Files
+
+**PROGRESS.md** - After EVERY phase completion:
+- Mark phase as complete ✅
+- Update status percentages
+- Add completion timestamps
+- Document any known issues
+- Update roadmap if needed
+
+**Commit Messages** - Use conventional commits:
+- `feat:` - New features
+- `fix:` - Bug fixes
+- `docs:` - Documentation
+- `refactor:` - Code refactoring
+- `test:` - Testing
+- `ci:` - CI/CD changes
+- `chore:` - Maintenance
+
+---
+
+## 🚀 Release Checklist
+
+Before creating a version tag:
+
+- [ ] All planned phases complete
+- [ ] PROGRESS.md updated
+- [ ] No syntax errors (all files compile)
+- [ ] User has tested early APK (if applicable)
+- [ ] User explicitly approved for release
+- [ ] Version number decided (major.minor.patch)
+- [ ] Commit message follows convention
+- [ ] All changes pushed to main
+
+**Then and only then:**
+```bash
+git tag v2.X.X
+git push origin v2.X.X
 ```
 
 ---
 
-## ⚡ GitHub Actions Configuration
+## 🤖 For AI Assistants
 
-### Current Setup:
+### When Starting Work on This Project
 
-**File:** `.github/workflows/build-apk.yml`
+1. **Read this file FIRST** - Understand the workflow
+2. **Check PROGRESS.md** - See what's already done
+3. **Ask user:** "Which phase/feature should I work on?"
+4. **Plan the phase:** List all files that need updating
+5. **Execute:** Make ALL changes needed for the phase
+6. **Commit ONCE:** With clear phase completion message
+7. **Update PROGRESS.md** - Mark phase complete
+8. **Ask user:** "Phase X complete. Test now or continue to Phase Y?"
 
-**Triggers:**
-```yaml
-on:
-  push:
-    tags:
-      - 'v*.*.*'  # Only version tags
-  workflow_dispatch:  # Manual trigger
-```
+### Never Forget
 
-**This means:**
-- ✅ Regular pushes to `main` do NOT trigger builds
-- ✅ Only version tags trigger automatic builds
-- ✅ Manual trigger always available from Actions tab
-
-**DO NOT change this configuration** unless explicitly discussed with the user!
-
----
-
-## 📊 Benefits of This Approach
-
-### For the Project:
-- ✅ **Clean git history** - Easy to see what was done when
-- ✅ **Saves CI minutes** - No wasted builds
-- ✅ **Clear milestones** - Each commit is meaningful
-- ✅ **Easy rollback** - Can revert entire phases if needed
-- ✅ **Professional** - Industry standard practice
-
-### For Development:
-- ✅ **Efficient testing** - Test complete phases, not fragments
-- ✅ **Less noise** - No spam from incomplete work
-- ✅ **Better tracking** - PROGRESS.md aligns with commits
-- ✅ **Clearer communication** - Know exactly what's done
+- ⚠️ **1 Phase = 1 Commit = 1 Push**
+- ⚠️ **Never auto-create version tags** - User must approve
+- ⚠️ **Always batch file updates** per logical phase
+- ⚠️ **Update PROGRESS.md** after every phase
+- ⚠️ **Wait for user approval** before tagging releases
 
 ---
 
-## 👁️ For AI Assistants: Quick Reference
+## 📊 Success Metrics
 
-**Before making ANY commits, ask yourself:**
+**Good Workflow:**
+- Clean commit history (5-10 commits per major feature)
+- Clear phase boundaries
+- User can test at any phase
+- Easy to rollback if needed
+- Organized GitHub Actions history
 
-1. **Is this a complete phase?**
-   - Yes → Proceed with commit
-   - No → Continue working, don't commit yet
-
-2. **Are ALL files for this phase ready?**
-   - Yes → Proceed with commit
-   - No → Finish remaining files first
-
-3. **Is this a version release?**
-   - Yes → Create version tag
-   - No → Regular commit only
-
-4. **Does user want to test now?**
-   - Yes → Tell them to manually trigger build
-   - No → Continue with next phase
-
-**Remember:** 
-- Phase = Multiple files = ONE commit
-- NOT: File = ONE commit
+**Bad Workflow:**
+- 50+ commits for one feature
+- Unclear what each commit does
+- APK builds on every tiny change
+- Wasted GitHub Actions minutes
+- Confused project state
 
 ---
 
-## 📞 Contact & Questions
+## 🎯 Current Project Status
 
-If there are any questions about this workflow:
-1. Refer to this document first
-2. Check PROGRESS.md for current status
-3. Ask user for clarification if needed
-
-**This document is the source of truth for development workflow!**
+**Active Version:** v2.3.1 (Split Bills - In Development)  
+**Last Phase Completed:** Phase 4 - Integration & Build Fixes  
+**Next Action:** User testing → If approved → Tag v2.3.1  
+**Check:** PROGRESS.md for detailed status
 
 ---
 
-*This workflow ensures efficient development, clean git history, and optimal use of GitHub Actions resources.*
+## 📞 Questions?
+
+If unsure about:
+- Whether to commit now or wait
+- If a phase is complete
+- When to trigger builds
+- Version numbering
+
+**Always ask the user first!**
+
+---
+
+**Remember:** This workflow exists to:
+- ✅ Save GitHub Actions minutes
+- ✅ Keep commit history clean
+- ✅ Make testing easier
+- ✅ Allow rollbacks per phase
+- ✅ Track progress clearly
+
+**Follow these rules strictly!**
