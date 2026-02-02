@@ -28,9 +28,10 @@ class Wallet {
         'createdAt': Timestamp.fromDate(createdAt),
       };
 
-  factory Wallet.fromFirestore(Map<String, dynamic> data, String id) {
+  factory Wallet.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data()!;
     return Wallet(
-      id: id,
+      id: doc.id,
       name: data['name'] ?? '',
       type: data['type'] ?? 'cash',
       balance: (data['balance'] as num?)?.toDouble() ?? 0.0,
