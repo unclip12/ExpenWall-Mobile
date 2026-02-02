@@ -1,15 +1,15 @@
 # ExpenWall Mobile - Development Progress
 
-**Last Updated:** February 2, 2026, 11:30 PM IST  
+**Last Updated:** February 2, 2026, 11:55 PM IST  
 **Current Version:** v2.3.0 (Recurring Bills Complete)  
-**Next Version:** v2.3.1 (Split Bills - Phase 1 & 2 Complete)
+**Next Version:** v2.3.1 (Split Bills - Phase 3 Complete! 🎊)
 
 ---
 
-## 📊 Overall Status: 80% Complete
+## 📊 Overall Status: 85% Complete
 
 ```
-██████████████████░░░░ 80%
+█████████████████████▓░░ 85%
 ```
 
 ---
@@ -66,28 +66,11 @@
 - ✅ **Next occurrence calculation** - Automatic date math
 - ✅ **Badge auto-refresh** - Every 30 seconds
 
-#### Files Created/Updated
-```
-Created:
-- lib/models/recurring_rule.dart
-- lib/models/recurring_notification.dart
-- lib/services/recurring_bill_service.dart
-- lib/screens/notification_center_screen.dart
-- lib/screens/create_recurring_rule_screen.dart
-- RECURRING_BILLS_GUIDE.md
-
-Updated:
-- lib/services/local_storage_service.dart
-- lib/screens/recurring_bills_screen.dart (already had full implementation)
-- lib/screens/home_screen_v2.dart (bell icon + badge)
-- lib/screens/add_transaction_screen_v2.dart (duplicate detection)
-```
-
 **Status:** ✅ **FULLY FUNCTIONAL - READY FOR TESTING**
 
 ---
 
-## 💚 v2.3.1 - Split Bills (In Progress - Phases 1 & 2 Complete!)
+## 💚 v2.3.1 - Split Bills ✅ **PHASE 3 COMPLETE!**
 
 ### ✅ **Phase 1: Contacts & Groups System** (Complete)
 
@@ -113,8 +96,6 @@ Updated:
 - lib/models/contact.dart
 - lib/models/group.dart
 - lib/services/contact_service.dart
-Updated:
-- lib/services/local_storage_service.dart (already had methods)
 ```
 
 ### ✅ **Phase 2: SplitBill Core Logic** (Complete)
@@ -172,59 +153,118 @@ Updated:
 - lib/models/split_bill.dart
 - lib/models/participant.dart
 - lib/services/split_bill_service.dart
-Updated:
-- lib/services/local_storage_service.dart (already had methods)
 ```
 
-### ⏳ **Phase 3: UI Screens** (Next)
+### ✅ **Phase 3: UI Screens** ✅ **COMPLETE!**
+
+#### Contacts Screen (`contacts_screen.dart`)
+- ✅ List all contacts with search
+- ✅ Add/edit/delete contacts
+- ✅ Phone number & email fields
+- ✅ Avatar with first letter
+- ✅ Import from phone (placeholder)
+- ✅ Empty state with CTA
+- ✅ Form validation
+
+#### Groups Screen (`groups_screen.dart`)
+- ✅ List all groups
+- ✅ Create/edit/delete groups
+- ✅ Manage members (add/remove)
+- ✅ Multi-select member picker
+- ✅ View group details
+- ✅ Member count display
+- ✅ Empty state
+
+#### Create Split Bill Screen (`create_split_bill_screen.dart`)
+- ✅ Title, description, amount input
+- ✅ Add items (optional with quantity)
+- ✅ Auto-calculate total from items
+- ✅ Select participants (contacts/groups tabs)
+- ✅ Group "Add All" button
+- ✅ Split type selector (equal/custom/percentage)
+- ✅ **Equal split** - Real-time per-person calculation
+- ✅ **Custom split** - Manual amount per person with validation
+- ✅ **Percentage split** - Percentage per person with 100% validation
+- ✅ Who paid selector dropdown
+- ✅ Notes field
+- ✅ Preview before save
+- ✅ Full form validation
+
+#### Split Bills List Screen (`split_bills_screen.dart`)
+- ✅ Pending/Settled tabs with badges
+- ✅ Total pending amount summary card
+- ✅ Bill cards with:
+  - ✅ Title & status badge
+  - ✅ Total amount & participant count
+  - ✅ Date & split type
+  - ✅ Progress bar for pending bills
+  - ✅ Paid count (X/Y paid)
+- ✅ Navigate to bill details
+- ✅ Quick access to contacts/groups
+- ✅ Pull to refresh
+- ✅ Empty states for both tabs
+- ✅ Create Bill FAB
+
+#### Bill Details Screen (`bill_details_screen.dart`)
+- ✅ Full bill information display
+- ✅ Status badge (pending/partially paid/settled)
+- ✅ Total amount & split type
+- ✅ Items breakdown (if any)
+- ✅ Participants list with status:
+  - ✅ Avatar with payment status icon
+  - ✅ Amount owed & paid
+  - ✅ "Mark Paid" button for pending
+  - ✅ Overpayment indicator
+- ✅ **Mark as Paid Flow:**
+  - ✅ Amount input dialog
+  - ✅ Auto-detect overpayment
+  - ✅ Small overpayment auto-ignore (₹1-2)
+  - ✅ Large overpayment dialog
+  - ✅ User choice: "I owe them" vs "Gift/Credit"
+- ✅ WhatsApp share button (top bar)
+- ✅ Delete bill option
+- ✅ Pull to refresh
+- ✅ Notes display
+
+**Files Created:**
+```
+- lib/screens/contacts_screen.dart (480 lines)
+- lib/screens/groups_screen.dart (490 lines)
+- lib/screens/create_split_bill_screen.dart (770 lines)
+- lib/screens/split_bills_screen.dart (370 lines)
+- lib/screens/bill_details_screen.dart (590 lines)
+
+Total: 2,700+ lines of UI code!
+```
+
+### ⏳ **Phase 4: Integration & Polish** (Next - Final Step!)
 
 **What's Needed:**
-- [ ] Contacts screen (list, add, edit, delete)
-- [ ] Groups screen (list, add, edit, manage members)
-- [ ] Create Split Bill screen
-  - [ ] Title, description, amount, items
-  - [ ] Select participants (from contacts/groups)
-  - [ ] Split type selector
-  - [ ] Split calculator UI
-  - [ ] Preview before save
-- [ ] Split Bills list screen
-  - [ ] Pending/Settled tabs
-  - [ ] Bill cards with status
-  - [ ] Filter by contact
-- [ ] Bill details screen
-  - [ ] Full bill info
-  - [ ] Mark participant as paid
-  - [ ] Overpayment dialog
-  - [ ] WhatsApp share button
+- [ ] Add `share_plus` package to pubspec.yaml
+- [ ] Update SplitBillsScreen placeholder in navigation
+- [ ] Add contacts import from phone (permissions setup)
+- [ ] Test all flows:
+  - [ ] Create contacts & groups
+  - [ ] Create split bills (all 3 types)
+  - [ ] Mark as paid
+  - [ ] Handle overpayments
+  - [ ] WhatsApp share
+  - [ ] Delete operations
 - [ ] Balance summary screen (optional)
-  - [ ] Who owes you
-  - [ ] Who you owe
-  - [ ] Total balance
+- [ ] Link contacts to transaction merchant field (optional)
 
-**Estimated Time:** 3-4 hours
-
-### ⏳ **Phase 4: Integration & Polish** (After Phase 3)
-
-**What's Needed:**
-- [ ] Link contacts to transaction merchant field
-- [ ] Add "Split Bill" option in transaction details
-- [ ] WhatsApp share integration (share package)
-- [ ] Temporary group member removal (for single bill)
-- [ ] Testing all split scenarios
-- [ ] Balance reminder notifications (optional)
-
-**Estimated Time:** 1-2 hours
+**Estimated Time:** 1-2 hours (mostly testing)
 
 ---
 
 ## 📅 Roadmap
 
-### v2.3.1 - Split Bills (Priority 1)
-**Target:** February 3-4, 2026
+### v2.3.1 - Split Bills (Priority 1) 🔥
+**Target:** February 3, 2026 ✅ **ALMOST DONE!**
 - ✅ Phase 1: Contacts & Groups (Complete)
 - ✅ Phase 2: SplitBill Core Logic (Complete)
-- [ ] Phase 3: UI Screens (Next - 3-4 hours)
-- [ ] Phase 4: Integration & Polish (Final - 1-2 hours)
+- ✅ Phase 3: UI Screens (Complete)
+- [ ] Phase 4: Integration & Testing (1-2 hours remaining)
 
 ### v2.4.0 - Analytics & Insights (Priority 2)
 **Target:** February 2026
@@ -271,7 +311,9 @@ Updated:
 
 ## 🐛 Known Issues
 
-**None currently!** Fresh release.
+**Split Bills:**
+- ⚠️ WhatsApp share requires `share_plus` package (needs to be added to pubspec.yaml)
+- ⚠️ Phone contacts import not implemented (permissions required)
 
 **Report issues:**
 1. Open GitHub issue
@@ -283,49 +325,27 @@ Updated:
 
 ## 🎯 Testing Status
 
-### v2.2.0 Features
-- ✅ Navigation tested
-- ✅ Money animations tested
-- ✅ Buying List tested
-- ✅ Cravings tested
-- ✅ Edit transaction bug verified fixed
-
-### v2.3.0 Features (Recurring Bills)
-**Need to test:**
-- [ ] Create recurring rule
-- [ ] Edit recurring rule
-- [ ] Delete recurring rule
-- [ ] Pause/reactivate rule
-- [ ] All 4 notification actions
-- [ ] Duplicate detection dialog
-- [ ] Smart linking
-- [ ] Various frequencies (daily, weekly, monthly, yearly, custom)
-- [ ] Next occurrence calculation accuracy
-- [ ] Bell badge count updates
-- [ ] Data persistence after restart
-- [ ] Income recurring (salary)
-- [ ] Monthly total calculation
-
-**Testing Guide:** See `RECURRING_BILLS_GUIDE.md` - Section: Testing Guide
-
 ### v2.3.1 Features (Split Bills)
-**Backend Complete - Awaiting UI:**
-- ✅ Contact & Group models
-- ✅ SplitBill & Participant models
-- ✅ All service methods
-- [ ] UI screens (Phase 3)
-- [ ] WhatsApp integration (Phase 4)
+**Backend Complete - UI Complete - Testing Required:**
+- ✅ All models created
+- ✅ All services implemented
+- ✅ All UI screens built
+- [ ] Integration testing
+- [ ] Flow testing (create → pay → settle)
+- [ ] Edge case testing
+- [ ] Share functionality
+- [ ] Data persistence
 
 ---
 
 ## 📈 Statistics
 
 ### Code Metrics
-- **Total Files:** 55+
-- **Lines of Code:** ~18,000+
+- **Total Files:** 60+
+- **Lines of Code:** ~21,000+
 - **Models:** 16 (4 new: Contact, Group, SplitBill, Participant)
 - **Services:** 8 (2 new: ContactService, SplitBillService)
-- **Screens:** 18 (awaiting 5 more)
+- **Screens:** 23 (5 new split bills screens)
 - **Widgets:** 15+
 
 ### Features by Version
@@ -333,9 +353,9 @@ Updated:
 - **v2.1.0:** Google Drive sync, themes (8 features)
 - **v2.2.0:** Navigation, animations, 4 screens (12 features)
 - **v2.3.0:** Recurring Bills (15 features)
-- **v2.3.1:** Split Bills (8 features backend, 12 more planned)
+- **v2.3.1:** Split Bills (25+ features backend + UI)
 
-**Total Features:** 53+ (backend), 65+ (with UI)
+**Total Features:** 70+
 
 ---
 
@@ -440,7 +460,7 @@ Updated:
 
 ## 🎯 Completion Checklist
 
-### Core Features (92% Complete)
+### Core Features (93% Complete)
 - ✅ Transaction tracking
 - ✅ Budget management
 - ✅ Categories & subcategories
@@ -452,12 +472,12 @@ Updated:
 - ✅ Buying List
 - ✅ Cravings
 - ✅ Recurring Bills
-- 🔴 Split Bills (backend 60%, UI pending)
+- 🟢 Split Bills (98% - integration pending)
 - ⏳ Analytics dashboard
 - ⏳ PDF reports
 - ⏳ Receipt OCR
 
-### Quality (80% Complete)
+### Quality (82% Complete)
 - ✅ Error handling
 - ✅ Loading states
 - ✅ Empty states
@@ -467,14 +487,14 @@ Updated:
 - ⏳ Integration tests
 - ⏳ Performance testing
 
-### Documentation (87% Complete)
+### Documentation (90% Complete)
 - ✅ README
 - ✅ PROGRESS.md
 - ✅ VERSION_HISTORY.md
 - ✅ TESTING guides
 - ✅ RELEASE_NOTES
 - ✅ RECURRING_BILLS_GUIDE.md
-- ⏳ SPLIT_BILLS_GUIDE.md (after UI complete)
+- ⏳ SPLIT_BILLS_GUIDE.md (after testing)
 - ⏳ API documentation
 - ⏳ User manual
 
@@ -485,8 +505,8 @@ Updated:
 - ✅ **Feb 1, 2026** - v2.2.0 Released (Navigation & Features)
 - ✅ **Feb 2, 2026** - v2.3.0 Recurring Bills Complete! 🎊
 - ✅ **Feb 2, 2026, 11:30 PM** - Split Bills Phase 1 & 2 Complete! 💚
-- 🎯 **Feb 3, 2026** - v2.3.1 Split Bills UI (Phase 3) Target
-- 🎯 **Feb 4, 2026** - v2.3.1 Split Bills Complete Target
+- ✅ **Feb 2, 2026, 11:55 PM** - Split Bills Phase 3 Complete! 🎊
+- 🎯 **Feb 3, 2026** - v2.3.1 Split Bills Complete & Released!
 - 🎯 **Feb 15, 2026** - v2.4.0 Analytics Target
 - 🎯 **March 1, 2026** - v2.5.0 PDF Reports Target
 - 🎯 **March 15, 2026** - v2.6.0 Receipt OCR Target
@@ -512,10 +532,10 @@ This is a personal project, but feedback is welcome!
 
 ---
 
-**Current Focus:** 🔥 **Split Bills Phase 3: UI Screens**
+**Current Focus:** 🔥 **Split Bills Phase 4: Integration & Testing**
 
-**Status:** 💚 **Phase 1 & 2 Complete - Building UI Next!**
+**Status:** 🎊 **Phase 3 Complete - 98% Feature Complete!**
 
 ---
 
-*Last Updated: February 2, 2026, 11:30 PM IST*
+*Last Updated: February 2, 2026, 11:55 PM IST*
