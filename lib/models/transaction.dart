@@ -93,6 +93,10 @@ class Transaction {
   final List<String>? tags;
   final bool isRecurring;
   final String? recurringId;
+  
+  // Receipt OCR fields (Phase 5)
+  final String? receiptImagePath;
+  final Map<String, dynamic>? receiptData;
 
   Transaction({
     required this.id,
@@ -112,6 +116,8 @@ class Transaction {
     this.tags,
     this.isRecurring = false,
     this.recurringId,
+    this.receiptImagePath,
+    this.receiptData,
   });
 
   Map<String, dynamic> toFirestore() => {
@@ -131,6 +137,8 @@ class Transaction {
         'tags': tags,
         'isRecurring': isRecurring,
         'recurringId': recurringId,
+        'receiptImagePath': receiptImagePath,
+        'receiptData': receiptData,
       };
 
   factory Transaction.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -153,6 +161,8 @@ class Transaction {
       tags: (data['tags'] as List?)?.cast<String>(),
       isRecurring: data['isRecurring'] ?? false,
       recurringId: data['recurringId'],
+      receiptImagePath: data['receiptImagePath'],
+      receiptData: data['receiptData'] != null ? Map<String, dynamic>.from(data['receiptData']) : null,
     );
   }
 }
