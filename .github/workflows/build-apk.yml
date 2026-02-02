@@ -1,10 +1,12 @@
 name: Build Flutter APK
 
 on:
-  # Trigger on push to main branch
+  # Only trigger on version tags (v2.3.1, v2.4.0, etc.)
   push:
-    branches: [ main ]
-  # Allow manual trigger from Actions tab
+    tags:
+      - 'v*.*.*'  # Matches v2.3.1, v2.4.0, v3.0.0, etc.
+  
+  # Allow manual trigger from Actions tab when needed
   workflow_dispatch:
 
 jobs:
