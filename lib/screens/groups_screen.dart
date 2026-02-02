@@ -60,7 +60,6 @@ class _GroupsScreenState extends State<GroupsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Please add contacts first'),
-            action: SnackBarAction(label: 'Add', onPressed: null),
           ),
         );
       }
@@ -272,7 +271,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (group.description != null) ..[
+            if (group.description != null) ...,[
               Text(
                 group.description!,
                 style: TextStyle(color: Colors.grey[600]),
@@ -340,77 +339,79 @@ class _GroupsScreenState extends State<GroupsScreen> {
   }
 
   Widget _buildGroupCard(Group group) {
-    return GlassCard(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-          child: Icon(
-            Icons.group,
-            color: Theme.of(context).colorScheme.onSecondaryContainer,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassCard(
+        child: ListTile(
+          leading: CircleAvatar(
+            backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+            child: Icon(
+              Icons.group,
+              color: Theme.of(context).colorScheme.onSecondaryContainer,
+            ),
           ),
-        ),
-        title: Text(
-          group.name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('${group.memberCount} members'),
-            if (group.description != null)
-              Text(
-                group.description!,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12),
+          title: Text(
+            group.name,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${group.memberCount} members'),
+              if (group.description != null)
+                Text(
+                  group.description!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12),
+                ),
+            ],
+          ),
+          trailing: PopupMenuButton(
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'view',
+                child: Row(
+                  children: [
+                    Icon(Icons.visibility, size: 20),
+                    SizedBox(width: 8),
+                    Text('View'),
+                  ],
+                ),
               ),
-          ],
+              const PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit, size: 20),
+                    SizedBox(width: 8),
+                    Text('Edit'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete, size: 20, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Delete', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
+            onSelected: (value) {
+              if (value == 'view') {
+                _showGroupDetails(group);
+              } else if (value == 'edit') {
+                _showAddEditGroupDialog(group);
+              } else if (value == 'delete') {
+                _deleteGroup(group);
+              }
+            },
+          ),
+          onTap: () => _showGroupDetails(group),
         ),
-        trailing: PopupMenuButton(
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'view',
-              child: Row(
-                children: [
-                  Icon(Icons.visibility, size: 20),
-                  SizedBox(width: 8),
-                  Text('View'),
-                ],
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'edit',
-              child: Row(
-                children: [
-                  Icon(Icons.edit, size: 20),
-                  SizedBox(width: 8),
-                  Text('Edit'),
-                ],
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'delete',
-              child: Row(
-                children: [
-                  Icon(Icons.delete, size: 20, color: Colors.red),
-                  SizedBox(width: 8),
-                  Text('Delete', style: TextStyle(color: Colors.red)),
-                ],
-              ),
-            ),
-          ],
-          onSelected: (value) {
-            if (value == 'view') {
-              _showGroupDetails(group);
-            } else if (value == 'edit') {
-              _showAddEditGroupDialog(group);
-            } else if (value == 'delete') {
-              _deleteGroup(group);
-            }
-          },
-        ),
-        onTap: () => _showGroupDetails(group),
       ),
     );
   }
