@@ -1,12 +1,36 @@
 name: Build Flutter APK
 
+# 🚨 BUILD TRIGGER RULES - READ CAREFULLY!
+#
+# This workflow ONLY triggers on:
+#   1. Version tags (v2.3.1, v2.4.0, etc.) - For official releases
+#   2. Manual trigger from GitHub Actions UI - For testing
+#
+# This workflow DOES NOT trigger on:
+#   - Regular commits to main
+#   - Code updates during development  
+#   - Documentation changes
+#
+# WHY? To save GitHub Actions minutes and prevent unnecessary builds!
+#
+# For full workflow rules, see: DEVELOPMENT_WORKFLOW.md
+# 
+# When to create version tags:
+#   - All phases complete
+#   - User has tested and approved
+#   - User says "Ready to release"
+#
+# How to create version tags:
+#   git tag v2.3.1
+#   git push origin v2.3.1
+
 on:
   # Only trigger on version tags (v2.3.1, v2.4.0, etc.)
   push:
     tags:
       - 'v*.*.*'  # Matches v2.3.1, v2.4.0, v3.0.0, etc.
   
-  # Allow manual trigger from Actions tab when needed
+  # Allow manual trigger from Actions tab when needed for testing
   workflow_dispatch:
 
 jobs:
