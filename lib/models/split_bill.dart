@@ -1,5 +1,3 @@
-import 'package:uuid/uuid.dart';
-import 'package:flutter/material.dart';
 import 'participant.dart';
 
 enum SplitType {
@@ -8,55 +6,57 @@ enum SplitType {
   percentage,
 }
 
-enum SplitBillStatus {
+enum BillStatus {
   pending,
-  partiallySettled,
+  partiallyPaid,
   fullySettled,
 }
 
 class SplitBillItem {
   final String name;
-  final double amount;
+  final double price;
   final int quantity;
 
   SplitBillItem({
     required this.name,
-    required this.amount,
+    required this.price,
     this.quantity = 1,
   });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'name': name,
-      'amount': amount,
-      'quantity': quantity,
-    };
-  }
 
   factory SplitBillItem.fromJson(Map<String, dynamic> json) {
     return SplitBillItem(
       name: json['name'] as String,
-      amount: (json['amount'] as num).toDouble(),
+      price: (json['price'] as num).toDouble(),
       quantity: json['quantity'] as int? ?? 1,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'price': price,
+      'quantity': quantity,
+    };
+  }
+
+  double get total => price * quantity;
 }
 
 class SplitBill {
   final String id;
-  final String userId; // Creator of the bill
+  final String userId; // Creator's user ID
   final String title;
   final String? description;
   final double totalAmount;
-  final List<SplitBillItem>? items;
-  final String paidBy; // Contact ID or name of person who paid
-  final List<Participant> participants;
+  final List<SplitBillItem> items;
   final SplitType splitType;
+  final List<Participant> participants;
+  final String paidByContactId; // Who paid initially
+  final DateTime date;
   final DateTime createdAt;
-  final DateTime? settledAt;
-  final SplitBillStatus status;
+  final DateTime? updatedAt;
+  final BillStatus status;
   final String? notes;
-  final String? groupId; // If created from a group
 
   SplitBill({
     required this.id,
@@ -64,77 +64,39 @@ class SplitBill {
     required this.title,
     this.description,
     required this.totalAmount,
-    this.items,
-    required this.paidBy,
-    required this.participants,
+    required this.items,
     required this.splitType,
+    required this.participants,
+    required this.paidByContactId,
+    required this.date,
     required this.createdAt,
-    this.settledAt,
+    this.updatedAt,
     required this.status,
     this.notes,
-    this.groupId,
   });
 
-  factory SplitBill.create({
-    required String userId,
-    required String title,
-    String? description,
-    required double totalAmount,
-    List<SplitBillItem>? items,
-    required String paidBy,
-    required List<Participant> participants,
-    required SplitType splitType,
-    String? notes,
-    String? groupId,
-  }) {
+  factory SplitBill.fromJson(Map<String, dynamic> json) {
     return SplitBill(
-      id: const Uuid().v4(),
-      userId: userId,
-      title: title,
-      description: description,
-      totalAmount: totalAmount,
-      items: items,
-      paidBy: paidBy,
-      participants: participants,
-      splitType: splitType,
-      createdAt: DateTime.now(),
-      status: SplitBillStatus.pending,
-      notes: notes,
-      groupId: groupId,
-    );
-  }
-
-  SplitBill copyWith({
-    String? id,
-    String? userId,
-    String? title,
-    String? description,
-    double? totalAmount,
-    List<SplitBillItem>? items,
-    String? paidBy,
-    List<Participant>? participants,
-    SplitType? splitType,
-    DateTime? createdAt,
-    DateTime? settledAt,
-    SplitBillStatus? status,
-    String? notes,
-    String? groupId,
-  }) {
-    return SplitBill(
-      id: id ?? this.id,
-      userId: userId ?? this.userId,
-      title: title ?? this.title,
-      description: description ?? this.description,
-      totalAmount: totalAmount ?? this.totalAmount,
-      items: items ?? this.items,
-      paidBy: paidBy ?? this.paidBy,
-      participants: participants ?? this.participants,
-      splitType: splitType ?? this.splitType,
-      createdAt: createdAt ?? this.createdAt,
-      settledAt: settledAt ?? this.settledAt,
-      status: status ?? this.status,
-      notes: notes ?? this.notes,
-      groupId: groupId ?? this.groupId,
+      id: json['id'] as String,
+      userId: json['userId'] as String,
+      title: json['title'] as String,
+      description: json['description'] as String?,
+      totalAmount: (json['totalAmount'] as num).toDouble(),
+      items: (json['items'] as List)
+          .map((item) => SplitBillItem.fromJson(item))
+          .toList(),
+      splitType: SplitType.values.byName(json['splitType'] as String),
+      participants: (json['participants'] as List)
+          .map((p) => Participant.fromJson(p))
+          .toList(),
+      paidByContactId: json['paidByContactId'] as String,
+      date: DateTime.parse(json['date'] as String),
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'] as String)
+          : null,
+      status: BillStatus.values.byName(json['status'] as String),
+      notes: json['notes'] as String?,
     );
   }
 
@@ -145,57 +107,71 @@ class SplitBill {
       'title': title,
       'description': description,
       'totalAmount': totalAmount,
-      'items': items?.map((i) => i.toJson()).toList(),
-      'paidBy': paidBy,
-      'participants': participants.map((p) => p.toJson()).toList(),
+      'items': items.map((item) => item.toJson()).toList(),
       'splitType': splitType.name,
+      'participants': participants.map((p) => p.toJson()).toList(),
+      'paidByContactId': paidByContactId,
+      'date': date.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
-      'settledAt': settledAt?.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
       'status': status.name,
       'notes': notes,
-      'groupId': groupId,
     };
   }
 
-  factory SplitBill.fromJson(Map<String, dynamic> json) {
+  SplitBill copyWith({
+    String? id,
+    String? userId,
+    String? title,
+    String? description,
+    double? totalAmount,
+    List<SplitBillItem>? items,
+    SplitType? splitType,
+    List<Participant>? participants,
+    String? paidByContactId,
+    DateTime? date,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    BillStatus? status,
+    String? notes,
+  }) {
     return SplitBill(
-      id: json['id'] as String,
-      userId: json['userId'] as String,
-      title: json['title'] as String,
-      description: json['description'] as String?,
-      totalAmount: (json['totalAmount'] as num).toDouble(),
-      items: (json['items'] as List?)?.map((i) => SplitBillItem.fromJson(i)).toList(),
-      paidBy: json['paidBy'] as String,
-      participants: (json['participants'] as List)
-          .map((p) => Participant.fromJson(p))
-          .toList(),
-      splitType: SplitType.values.byName(json['splitType'] as String),
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      settledAt: json['settledAt'] != null
-          ? DateTime.parse(json['settledAt'] as String)
-          : null,
-      status: SplitBillStatus.values.byName(json['status'] as String),
-      notes: json['notes'] as String?,
-      groupId: json['groupId'] as String?,
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      totalAmount: totalAmount ?? this.totalAmount,
+      items: items ?? this.items,
+      splitType: splitType ?? this.splitType,
+      participants: participants ?? this.participants,
+      paidByContactId: paidByContactId ?? this.paidByContactId,
+      date: date ?? this.date,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? DateTime.now(),
+      status: status ?? this.status,
+      notes: notes ?? this.notes,
     );
   }
 
   // Helper methods
+  int get totalPaidCount =>
+      participants.where((p) => p.hasPaid).length;
+
   int get totalParticipants => participants.length;
 
-  int get paidCount => participants.where((p) => p.hasPaid).length;
+  double get totalAmountPaid =>
+      participants.where((p) => p.hasPaid).fold(0.0, (sum, p) => sum + p.amountPaid);
 
-  int get pendingCount => participants.where((p) => !p.hasPaid).length;
+  double get totalAmountPending =>
+      totalAmount - totalAmountPaid;
 
-  double get totalPaid {
-    return participants.where((p) => p.hasPaid).fold(0.0, (sum, p) => sum + p.shareAmount);
-  }
+  bool get isFullySettled => status == BillStatus.fullySettled;
 
-  double get totalPending {
-    return participants.where((p) => !p.hasPaid).fold(0.0, (sum, p) => sum + p.shareAmount);
-  }
+  List<Participant> get pendingParticipants =>
+      participants.where((p) => !p.hasPaid).toList();
 
-  bool get isFullySettled => status == SplitBillStatus.fullySettled;
+  List<Participant> get paidParticipants =>
+      participants.where((p) => p.hasPaid).toList();
 
   String getSplitTypeText() {
     switch (splitType) {
@@ -208,30 +184,21 @@ class SplitBill {
     }
   }
 
-  Color getStatusColor() {
-    switch (status) {
-      case SplitBillStatus.pending:
-        return Colors.orange;
-      case SplitBillStatus.partiallySettled:
-        return Colors.blue;
-      case SplitBillStatus.fullySettled:
-        return Colors.green;
-    }
-  }
-
   String getStatusText() {
     switch (status) {
-      case SplitBillStatus.pending:
+      case BillStatus.pending:
         return 'Pending';
-      case SplitBillStatus.partiallySettled:
-        return 'Partially Settled';
-      case SplitBillStatus.fullySettled:
-        return 'Fully Settled';
+      case BillStatus.partiallyPaid:
+        return 'Partially Paid';
+      case BillStatus.fullySettled:
+        return 'Settled';
     }
   }
 
   @override
-  String toString() => 'SplitBill(id: $id, title: $title, total: $totalAmount)';
+  String toString() {
+    return 'SplitBill(id: $id, title: $title, total: ₹$totalAmount, participants: ${participants.length}, status: ${status.name})';
+  }
 
   @override
   bool operator ==(Object other) {
