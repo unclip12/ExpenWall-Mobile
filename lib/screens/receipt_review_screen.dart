@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/receipt_ocr_service.dart';
 import '../services/item_recognition_service.dart';
+import '../services/local_storage_service.dart';
 import '../widgets/glass_card.dart';
 
 /// Screen for reviewing and editing OCR results from receipt
@@ -24,6 +25,7 @@ class ReceiptReviewScreen extends StatefulWidget {
 class _ReceiptReviewScreenState extends State<ReceiptReviewScreen> {
   final ReceiptOCRService _ocrService = ReceiptOCRService();
   final ItemRecognitionService _itemRecognizer = ItemRecognitionService();
+  final LocalStorageService _localStorageService = LocalStorageService();
   
   ExtractedReceipt? _receipt;
   bool _isProcessing = true;
@@ -256,7 +258,7 @@ class _ReceiptReviewScreenState extends State<ReceiptReviewScreen> {
     });
   }
 
-  /// Save receipt data and create transaction
+  /// Save receipt data and create transaction (Phase 5 Integration)
   Future<void> _saveReceipt() async {
     if (_receipt == null) return;
 
@@ -326,40 +328,94 @@ class _ReceiptReviewScreenState extends State<ReceiptReviewScreen> {
       if (confirm != true) return;
     }
 
-    // TODO: Integrate with transaction creation (Phase 5)
-    // Prepare data structure
-    final receiptData = {
-      'merchant': _merchantController.text,
-      'amount': double.parse(_amountController.text),
-      'date': _selectedDate!.toIso8601String(),
-      'items': _editableItems
-          .map((item) => {
-                'name': item.name,
-                'price': item.price,
-                'quantity': item.quantity,
-                'category': item.category,
-                'subcategory': item.subcategory,
-              })
-          .toList(),
-      'imagePath': widget.imagePath,
-      'confidence': _receipt!.confidence,
-    };
-
-    print('Receipt data ready for Phase 5: $receiptData');
-
+    // Show loading
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('✅ Receipt saved! (Transaction creation in Phase 5)'),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
+        content: Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            ),
+            SizedBox(width: 12),
+            Text('Saving receipt image...'),
+          ],
+        ),
+        duration: Duration(seconds: 3),
       ),
     );
 
-    // Return to previous screen
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (mounted) {
-      Navigator.pop(context);
-      Navigator.pop(context);
+    try {
+      // Save receipt image to local storage
+      final savedImagePath = await _localStorageService.saveReceiptImage(
+        widget.userId,
+        widget.imagePath,
+      );
+
+      if (savedImagePath == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('⚠️ Failed to save receipt image'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Prepare receipt data structure for Transaction model
+      final receiptData = {
+        'merchant': _merchantController.text,
+        'amount': double.parse(_amountController.text),
+        'date': _selectedDate!.toIso8601String(),
+        'items': _editableItems
+            .map((item) => {
+                  'name': item.name,
+                  'price': item.price,
+                  'quantity': item.quantity,
+                  'category': item.category,
+                  'subcategory': item.subcategory,
+                })
+            .toList(),
+        'confidence': _receipt!.confidence,
+        'rawText': _receipt!.rawText,
+      };
+
+      // Return data to caller (for Add Transaction screen auto-fill)
+      final result = {
+        'receiptImagePath': savedImagePath,
+        'receiptData': receiptData,
+        'merchant': _merchantController.text,
+        'amount': double.parse(_amountController.text),
+        'date': _selectedDate!,
+        'items': _editableItems,
+      };
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✅ Receipt saved successfully!'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Navigate back with receipt data
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted) {
+        Navigator.pop(context); // Close review screen
+        Navigator.pop(context, result); // Close camera screen and return data
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Error saving receipt: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
