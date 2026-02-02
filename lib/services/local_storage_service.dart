@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image/image.dart' as img;
 import '../models/transaction.dart' as models;
 import '../models/budget.dart';
 import '../models/product.dart';
@@ -45,7 +46,124 @@ class LocalStorageService {
     return File('${dir.path}/${filename}_$userId.json');
   }
 
-  // TRANSACTIONS
+  // =========================================================================
+  // RECEIPT IMAGE STORAGE (Phase 5)
+  // =========================================================================
+
+  /// Get receipts directory for a user
+  Future<Directory> _getReceiptsDirectory(String userId) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final receiptsDir = Directory('${appDir.path}/receipts/$userId');
+    if (!await receiptsDir.exists()) {
+      await receiptsDir.create(recursive: true);
+    }
+    return receiptsDir;
+  }
+
+  /// Compress image to reduce file size
+  Future<File> _compressImage(String imagePath, String targetPath) async {
+    try {
+      // Read original image
+      final originalFile = File(imagePath);
+      final originalBytes = await originalFile.readAsBytes();
+      
+      // Decode image
+      final image = img.decodeImage(originalBytes);
+      if (image == null) {
+        // If decode fails, just copy original
+        await originalFile.copy(targetPath);
+        return File(targetPath);
+      }
+
+      // Resize if too large (max 1920px width)
+      img.Image resized = image;
+      if (image.width > 1920) {
+        resized = img.copyResize(image, width: 1920);
+      }
+
+      // Compress as JPEG with 85% quality
+      final compressedBytes = img.encodeJpg(resized, quality: 85);
+
+      // Write compressed image
+      final compressedFile = File(targetPath);
+      await compressedFile.writeAsBytes(compressedBytes);
+
+      return compressedFile;
+    } catch (e) {
+      print('Error compressing image: $e');
+      // Fallback: copy original
+      await File(imagePath).copy(targetPath);
+      return File(targetPath);
+    }
+  }
+
+  /// Save receipt image to local storage
+  /// Returns the relative path to the saved image
+  Future<String?> saveReceiptImage(String userId, String imagePath) async {
+    try {
+      final receiptsDir = await _getReceiptsDirectory(userId);
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = '$timestamp.jpg';
+      final targetPath = '${receiptsDir.path}/$fileName';
+
+      // Compress and save image
+      await _compressImage(imagePath, targetPath);
+
+      // Return relative path (without full system path for portability)
+      return 'receipts/$userId/$fileName';
+    } catch (e) {
+      print('Error saving receipt image: $e');
+      return null;
+    }
+  }
+
+  /// Get receipt image file from relative path
+  Future<File?> getReceiptImage(String relativePath) async {
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final file = File('${appDir.path}/$relativePath');
+      if (await file.exists()) {
+        return file;
+      }
+      return null;
+    } catch (e) {
+      print('Error getting receipt image: $e');
+      return null;
+    }
+  }
+
+  /// Delete receipt image
+  Future<bool> deleteReceiptImage(String relativePath) async {
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final file = File('${appDir.path}/$relativePath');
+      if (await file.exists()) {
+        await file.delete();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error deleting receipt image: $e');
+      return false;
+    }
+  }
+
+  /// Clear all receipt images for a user
+  Future<void> clearReceiptImages(String userId) async {
+    try {
+      final receiptsDir = await _getReceiptsDirectory(userId);
+      if (await receiptsDir.exists()) {
+        await receiptsDir.delete(recursive: true);
+      }
+    } catch (e) {
+      print('Error clearing receipt images: $e');
+    }
+  }
+
+  // =========================================================================
+  // TRANSACTIONS (Updated for Phase 5)
+  // =========================================================================
+  
   Future<void> saveTransactions(String userId, List<models.Transaction> transactions) async {
     try {
       final file = await _getUserFile(userId, _transactionsFile);
@@ -78,6 +196,8 @@ class LocalStorageService {
         'tags': t.tags,
         'isRecurring': t.isRecurring,
         'recurringId': t.recurringId,
+        'receiptImagePath': t.receiptImagePath,
+        'receiptData': t.receiptData,
       }).toList();
       
       await file.writeAsString(jsonEncode(jsonList));
@@ -131,6 +251,10 @@ class LocalStorageService {
         tags: (json['tags'] as List?)?.cast<String>(),
         isRecurring: json['isRecurring'] ?? false,
         recurringId: json['recurringId'],
+        receiptImagePath: json['receiptImagePath'],
+        receiptData: json['receiptData'] != null 
+            ? Map<String, dynamic>.from(json['receiptData']) 
+            : null,
       )).toList();
     } catch (e) {
       print('Error loading transactions from local storage: $e');
@@ -527,6 +651,9 @@ class LocalStorageService {
           await file.delete();
         }
       }
+      
+      // Clear receipt images
+      await clearReceiptImages(userId);
       
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_lastSyncKey);
