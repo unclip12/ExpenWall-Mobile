@@ -9,6 +9,8 @@ import '../models/wallet.dart';
 import '../models/merchant_rule.dart';
 import '../models/recurring_rule.dart';
 import '../models/recurring_notification.dart';
+import '../models/contact.dart';
+import '../models/group.dart';
 
 class LocalStorageService {
   static const String _transactionsFile = 'transactions';
@@ -19,6 +21,8 @@ class LocalStorageService {
   static const String _pendingOpsFile = 'pending_operations';
   static const String _recurringRulesFile = 'recurring_rules';
   static const String _recurringNotificationsFile = 'recurring_notifications';
+  static const String _contactsFile = 'contacts';
+  static const String _groupsFile = 'groups';
   
   static const String _lastSyncKey = 'last_sync_timestamp';
   static const String _userIdKey = 'cached_user_id';
@@ -330,6 +334,66 @@ class LocalStorageService {
     }
   }
 
+  // CONTACTS
+  Future<void> saveContacts(String userId, List<Contact> contacts) async {
+    try {
+      final file = await _getUserFile(userId, _contactsFile);
+      final jsonList = contacts.map((c) => c.toJson()).toList();
+      
+      await file.writeAsString(jsonEncode(jsonList));
+      await _updateLastSync();
+    } catch (e) {
+      print('Error saving contacts to local storage: $e');
+    }
+  }
+
+  Future<List<Contact>> loadContacts(String userId) async {
+    try {
+      final file = await _getUserFile(userId, _contactsFile);
+      if (!await file.exists()) {
+        return [];
+      }
+      
+      final jsonString = await file.readAsString();
+      final List<dynamic> jsonList = jsonDecode(jsonString);
+      
+      return jsonList.map((json) => Contact.fromJson(json)).toList();
+    } catch (e) {
+      print('Error loading contacts from local storage: $e');
+      return [];
+    }
+  }
+
+  // GROUPS
+  Future<void> saveGroups(String userId, List<Group> groups) async {
+    try {
+      final file = await _getUserFile(userId, _groupsFile);
+      final jsonList = groups.map((g) => g.toJson()).toList();
+      
+      await file.writeAsString(jsonEncode(jsonList));
+      await _updateLastSync();
+    } catch (e) {
+      print('Error saving groups to local storage: $e');
+    }
+  }
+
+  Future<List<Group>> loadGroups(String userId) async {
+    try {
+      final file = await _getUserFile(userId, _groupsFile);
+      if (!await file.exists()) {
+        return [];
+      }
+      
+      final jsonString = await file.readAsString();
+      final List<dynamic> jsonList = jsonDecode(jsonString);
+      
+      return jsonList.map((json) => Group.fromJson(json)).toList();
+    } catch (e) {
+      print('Error loading groups from local storage: $e');
+      return [];
+    }
+  }
+
   // PENDING OPERATIONS QUEUE
   Future<void> addPendingOperation(String userId, Map<String, dynamic> operation) async {
     try {
@@ -420,6 +484,8 @@ class LocalStorageService {
         _pendingOpsFile,
         _recurringRulesFile,
         _recurringNotificationsFile,
+        _contactsFile,
+        _groupsFile,
       ];
       
       for (final filename in files) {
