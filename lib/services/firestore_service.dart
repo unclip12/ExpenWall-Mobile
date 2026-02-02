@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/transaction.dart';
+import '../models/transaction.dart' as models;
 import '../models/merchant_rule.dart';
 import '../models/wallet.dart';
 import '../models/budget.dart';
@@ -9,7 +9,7 @@ class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   // TRANSACTIONS
-  Stream<List<Transaction>> subscribeToTransactions(String userId) {
+  Stream<List<models.Transaction>> subscribeToTransactions(String userId) {
     return _db
         .collection('users')
         .doc(userId)
@@ -17,11 +17,11 @@ class FirestoreService {
         .orderBy('date', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => Transaction.fromFirestore(doc.data(), doc.id))
+            .map((doc) => models.Transaction.fromFirestore(doc.data(), doc.id))
             .toList());
   }
 
-  Future<void> addTransaction(Transaction transaction) async {
+  Future<void> addTransaction(models.Transaction transaction) async {
     final userId = transaction.userId ?? '';
     if (userId.isEmpty) return;
     
@@ -33,7 +33,7 @@ class FirestoreService {
         .set(transaction.toFirestore());
   }
 
-  Future<void> updateTransaction(String userId, Transaction transaction) async {
+  Future<void> updateTransaction(String userId, models.Transaction transaction) async {
     await _db
         .collection('users')
         .doc(userId)
