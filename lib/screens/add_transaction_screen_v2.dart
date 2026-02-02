@@ -6,6 +6,7 @@ import '../widgets/glass_card.dart';
 import '../utils/category_icons.dart';
 import '../services/local_storage_service.dart';
 import '../services/recurring_bill_service.dart';
+import 'receipt_camera_screen.dart';
 
 class AddTransactionScreenV2 extends StatefulWidget {
   final Function(Transaction) onSave;
@@ -197,6 +198,19 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
         _type = mostRecent.type;
       });
     }
+  }
+
+  /// Open receipt camera scanner
+  Future<void> _openReceiptScanner() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ReceiptCameraScreen(
+          userId: widget.userId,
+        ),
+      ),
+    );
+    // TODO: Handle returned receipt data in Phase 5
   }
 
   Future<void> _handleSubmit() async {
@@ -403,7 +417,18 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
               onPressed: () => setState(() => _showItemsForm = false),
               icon: const Icon(Icons.arrow_back),
               label: const Text('Back'),
+            )
+          else
+            // Receipt Scanner Button
+            IconButton(
+              onPressed: _openReceiptScanner,
+              icon: const Icon(Icons.document_scanner),
+              tooltip: 'Scan Receipt',
+              style: IconButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              ),
             ),
+          const SizedBox(width: 8),
         ],
       ),
       body: FadeTransition(
@@ -434,9 +459,24 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Merchant / Shop / Person',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Merchant / Shop / Person',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                ),
+                // Quick scan button
+                TextButton.icon(
+                  onPressed: _openReceiptScanner,
+                  icon: const Icon(Icons.document_scanner, size: 18),
+                  label: const Text('Scan'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             TextFormField(
