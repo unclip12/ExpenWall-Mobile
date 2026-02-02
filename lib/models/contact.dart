@@ -1,94 +1,134 @@
 import 'package:uuid/uuid.dart';
 
+enum ContactSource {
+  manual,
+  phone,
+}
+
 class Contact {
   final String id;
   final String userId;
   final String name;
-  final String? phoneNumber;
+  final String? phone;
   final String? email;
+  final String? notes;
+  final ContactSource source;
   final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? updatedAt;
 
   Contact({
     required this.id,
     required this.userId,
     required this.name,
-    this.phoneNumber,
+    this.phone,
     this.email,
+    this.notes,
+    this.source = ContactSource.manual,
     required this.createdAt,
-    required this.updatedAt,
+    this.updatedAt,
   });
 
-  // Create new contact
   factory Contact.create({
     required String userId,
     required String name,
-    String? phoneNumber,
+    String? phone,
     String? email,
+    String? notes,
+    ContactSource source = ContactSource.manual,
   }) {
-    final now = DateTime.now();
     return Contact(
       id: const Uuid().v4(),
       userId: userId,
       name: name,
-      phoneNumber: phoneNumber,
+      phone: phone,
       email: email,
-      createdAt: now,
-      updatedAt: now,
+      notes: notes,
+      source: source,
+      createdAt: DateTime.now(),
     );
   }
 
-  // Copy with updated fields
   Contact copyWith({
+    String? id,
+    String? userId,
     String? name,
-    String? phoneNumber,
+    String? phone,
     String? email,
+    String? notes,
+    ContactSource? source,
+    DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
     return Contact(
-      id: id,
-      userId: userId,
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
       name: name ?? this.name,
-      phoneNumber: phoneNumber ?? this.phoneNumber,
+      phone: phone ?? this.phone,
       email: email ?? this.email,
-      createdAt: createdAt,
-      updatedAt: DateTime.now(),
+      notes: notes ?? this.notes,
+      source: source ?? this.source,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
-  // JSON serialization
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'userId': userId,
-        'name': name,
-        'phoneNumber': phoneNumber,
-        'email': email,
-        'createdAt': createdAt.toIso8601String(),
-        'updatedAt': updatedAt.toIso8601String(),
-      };
-
-  factory Contact.fromJson(Map<String, dynamic> json) => Contact(
-        id: json['id'] as String,
-        userId: json['userId'] as String,
-        name: json['name'] as String,
-        phoneNumber: json['phoneNumber'] as String?,
-        email: json['email'] as String?,
-        createdAt: DateTime.parse(json['createdAt'] as String),
-        updatedAt: DateTime.parse(json['updatedAt'] as String),
-      );
-
-  // Display helpers
-  String get displayName => name;
-  
-  String get displayInfo {
-    if (phoneNumber != null && phoneNumber!.isNotEmpty) {
-      return phoneNumber!;
-    }
-    if (email != null && email!.isNotEmpty) {
-      return email!;
-    }
-    return '';
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'userId': userId,
+      'name': name,
+      'phone': phone,
+      'email': email,
+      'notes': notes,
+      'source': source.name,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
+    };
   }
 
-  bool get hasPhoneNumber => phoneNumber != null && phoneNumber!.isNotEmpty;
-  bool get hasEmail => email != null && email!.isNotEmpty;
+  factory Contact.fromJson(Map<String, dynamic> json) {
+    return Contact(
+      id: json['id'] as String,
+      userId: json['userId'] as String,
+      name: json['name'] as String,
+      phone: json['phone'] as String?,
+      email: json['email'] as String?,
+      notes: json['notes'] as String?,
+      source: ContactSource.values.firstWhere(
+        (e) => e.name == json['source'],
+        orElse: () => ContactSource.manual,
+      ),
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'] as String)
+          : null,
+    );
+  }
+
+  String get displayName => name;
+
+  String get initials {
+    final parts = name.trim().split(' ');
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
+  }
+
+  String get displayInfo {
+    if (phone != null && phone!.isNotEmpty) return phone!;
+    if (email != null && email!.isNotEmpty) return email!;
+    return 'No contact info';
+  }
+
+  @override
+  String toString() => 'Contact(id: $id, name: $name)';
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Contact && other.id == id;
+  }
+
+  @override
+  int get hashCode => id.hashCode;
 }
