@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../widgets/glass_card.dart';
-import '../models/product.dart';
 
 class BuyingListScreen extends StatefulWidget {
   const BuyingListScreen({super.key});
@@ -9,26 +8,13 @@ class BuyingListScreen extends StatefulWidget {
   State<BuyingListScreen> createState() => _BuyingListScreenState();
 }
 
-class _BuyingListScreenState extends State<BuyingListScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animController;
-  final List<ShoppingItem> _items = [];
+class _BuyingListScreenState extends State<BuyingListScreen> {
+  final List<BuyingListItem> _items = [];
   final _itemController = TextEditingController();
   final _priceController = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    _animController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    _animController.forward();
-  }
-
-  @override
   void dispose() {
-    _animController.dispose();
     _itemController.dispose();
     _priceController.dispose();
     super.dispose();
@@ -38,9 +24,9 @@ class _BuyingListScreenState extends State<BuyingListScreen>
     if (_itemController.text.trim().isEmpty) return;
 
     setState(() {
-      _items.add(ShoppingItem(
+      _items.add(BuyingListItem(
         name: _itemController.text.trim(),
-        price: double.tryParse(_priceController.text) ?? 0,
+        estimatedPrice: double.tryParse(_priceController.text) ?? 0,
         isPurchased: false,
       ));
       _itemController.clear();
@@ -48,13 +34,13 @@ class _BuyingListScreenState extends State<BuyingListScreen>
     });
   }
 
-  void _toggleItem(int index) {
+  void _togglePurchased(int index) {
     setState(() {
-      _items[index] = ShoppingItem(
+      _items[index] = BuyingListItem(
         name: _items[index].name,
-        price: _items[index].price,
+        estimatedPrice: _items[index].estimatedPrice,
         isPurchased: !_items[index].isPurchased,
-      );
+      });
     });
   }
 
@@ -68,223 +54,187 @@ class _BuyingListScreenState extends State<BuyingListScreen>
   Widget build(BuildContext context) {
     final unpurchased = _items.where((i) => !i.isPurchased).toList();
     final purchased = _items.where((i) => i.isPurchased).toList();
-    final totalAmount = unpurchased.fold(0.0, (sum, item) => sum + item.price);
+    final totalEstimate = _items.fold<double>(0, (sum, item) => sum + item.estimatedPrice);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: FadeTransition(
-        opacity: _animController,
-        child: Column(
-          children: [
-            // Stats Card
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: GlassCard(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildStat('To Buy', unpurchased.length.toString(), Icons.shopping_cart),
-                    Container(width: 1, height: 40, color: Colors.grey[300]),
-                    _buildStat('Done', purchased.length.toString(), Icons.check_circle),
-                    Container(width: 1, height: 40, color: Colors.grey[300]),
-                    _buildStat('Total', '₹${totalAmount.toStringAsFixed(0)}', Icons.currency_rupee),
-                  ],
-                ),
-              ),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          // Summary Card
+          GlassCard(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildSummaryItem('Items', _items.length.toString(), Icons.shopping_cart),
+                Container(width: 1, height: 40, color: Colors.grey[300]),
+                _buildSummaryItem('Estimate', '₹${totalEstimate.toStringAsFixed(0)}', Icons.currency_rupee),
+                Container(width: 1, height: 40, color: Colors.grey[300]),
+                _buildSummaryItem('Bought', purchased.length.toString(), Icons.check_circle),
+              ],
             ),
+          ),
+          const SizedBox(height: 20),
 
-            // Add Item Input
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: GlassCard(
-                padding: const EdgeInsets.all(16),
-                child: Row(
+          // Add Item Form
+          GlassCard(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Add to Shopping List',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                Row(
                   children: [
                     Expanded(
-                      flex: 3,
+                      flex: 2,
                       child: TextField(
                         controller: _itemController,
                         decoration: const InputDecoration(
                           hintText: 'Item name',
-                          border: InputBorder.none,
-                          prefixIcon: Icon(Icons.list_alt),
+                          prefixIcon: Icon(Icons.add_shopping_cart),
                         ),
                         textCapitalization: TextCapitalization.words,
-                        onSubmitted: (_) => _addItem(),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                     Expanded(
-                      flex: 2,
                       child: TextField(
                         controller: _priceController,
                         decoration: const InputDecoration(
-                          hintText: '₹ Price',
-                          border: InputBorder.none,
+                          hintText: 'Price',
+                          prefixText: '₹',
                         ),
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        onSubmitted: (_) => _addItem(),
+                        keyboardType: TextInputType.number,
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.add_circle, size: 32),
-                      color: Theme.of(context).colorScheme.primary,
+                    const SizedBox(width: 12),
+                    ElevatedButton(
                       onPressed: _addItem,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Shopping List
-            Expanded(
-              child: _items.isEmpty
-                  ? _buildEmptyState()
-                  : ListView(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                      children: [
-                        if (unpurchased.isNotEmpty) ...
-                          _buildSection('To Buy', unpurchased, false),
-                        if (purchased.isNotEmpty) ...
-                          _buildSection('Purchased', purchased, true),
-                      ],
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  List<Widget> _buildSection(String title, List<ShoppingItem> items, bool isPurchased) {
-    return [
-      Padding(
-        padding: const EdgeInsets.only(bottom: 12, top: 8),
-        child: Text(
-          title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      ...items.map((item) {
-        final index = _items.indexOf(item);
-        return _buildShoppingItem(item, index, isPurchased);
-      }).toList(),
-      const SizedBox(height: 16),
-    ];
-  }
-
-  Widget _buildShoppingItem(ShoppingItem item, int index, bool isPurchased) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Dismissible(
-        key: Key(item.name + index.toString()),
-        direction: DismissDirection.endToStart,
-        background: Container(
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.only(right: 20),
-          decoration: BoxDecoration(
-            color: Colors.red,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const Icon(Icons.delete, color: Colors.white),
-        ),
-        onDismissed: (_) => _deleteItem(index),
-        child: GlassCard(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Checkbox(
-                value: item.isPurchased,
-                onChanged: (_) => _toggleItem(index),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.name,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        decoration: isPurchased ? TextDecoration.lineThrough : null,
-                        color: isPurchased ? Colors.grey : null,
-                      ),
-                    ),
-                    if (item.price > 0)
-                      Text(
-                        '₹${item.price.toStringAsFixed(2)}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                          decoration: isPurchased ? TextDecoration.lineThrough : null,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.all(16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
+                      child: const Icon(Icons.add),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Unpurchased Items
+          if (unpurchased.isNotEmpty) ..[
+            const Text(
+              'To Buy',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            ...unpurchased.asMap().entries.map((entry) {
+              final index = _items.indexOf(entry.value);
+              return _buildItemCard(entry.value, index);
+            }).toList(),
+            const SizedBox(height: 24),
+          ],
+
+          // Purchased Items
+          if (purchased.isNotEmpty) ..[
+            const Text(
+              'Purchased',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            ...purchased.asMap().entries.map((entry) {
+              final index = _items.indexOf(entry.value);
+              return _buildItemCard(entry.value, index);
+            }).toList(),
+          ],
+
+          if (_items.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  children: [
+                    Icon(Icons.shopping_bag_outlined, size: 80, color: Colors.grey[400]),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Your shopping list is empty',
+                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                    ),
                   ],
                 ),
               ),
-              if (isPurchased)
-                Icon(Icons.check_circle, color: Colors.green[600]),
-            ],
-          ),
-        ),
+            ),
+
+          const SizedBox(height: 100),
+        ],
       ),
     );
   }
 
-  Widget _buildStat(String label, String value, IconData icon) {
+  Widget _buildSummaryItem(String label, String value, IconData icon) {
     return Column(
       children: [
-        Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+        Icon(icon, color: Theme.of(context).colorScheme.primary),
         const SizedBox(height: 8),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         Text(
           label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
+          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
         ),
       ],
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildItemCard(BuyingListItem item, int index) {
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Row(
         children: [
-          Icon(Icons.shopping_cart_outlined, size: 80, color: Colors.grey[400]),
-          const SizedBox(height: 16),
-          Text(
-            'Your shopping list is empty',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[600],
+          Checkbox(
+            value: item.isPurchased,
+            onChanged: (_) => _togglePurchased(index),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    decoration: item.isPurchased ? TextDecoration.lineThrough : null,
+                    color: item.isPurchased ? Colors.grey : null,
+                  ),
+                ),
+                if (item.estimatedPrice > 0)
+                  Text(
+                    '₹${item.estimatedPrice.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                      decoration: item.isPurchased ? TextDecoration.lineThrough : null,
+                    ),
+                  ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Add items you plan to buy',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
-            ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            onPressed: () => _deleteItem(index),
           ),
         ],
       ),
@@ -292,14 +242,14 @@ class _BuyingListScreenState extends State<BuyingListScreen>
   }
 }
 
-class ShoppingItem {
+class BuyingListItem {
   final String name;
-  final double price;
+  final double estimatedPrice;
   final bool isPurchased;
 
-  ShoppingItem({
+  BuyingListItem({
     required this.name,
-    required this.price,
+    required this.estimatedPrice,
     required this.isPurchased,
   });
 }

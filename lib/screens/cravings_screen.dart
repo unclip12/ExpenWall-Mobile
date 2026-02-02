@@ -8,96 +8,40 @@ class CravingsScreen extends StatefulWidget {
   State<CravingsScreen> createState() => _CravingsScreenState();
 }
 
-class _CravingsScreenState extends State<CravingsScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animController;
-  final List<Craving> _cravings = [];
+class _CravingsScreenState extends State<CravingsScreen> {
+  final List<CravingItem> _cravings = [];
   final _nameController = TextEditingController();
   final _notesController = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    _animController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    _animController.forward();
-  }
-
-  @override
   void dispose() {
-    _animController.dispose();
     _nameController.dispose();
     _notesController.dispose();
     super.dispose();
   }
 
-  void _showAddCravingDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Craving'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Place/Item Name',
-                hintText: 'e.g., New Restaurant, PlayStation 5',
-              ),
-              textCapitalization: TextCapitalization.words,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _notesController,
-              decoration: const InputDecoration(
-                labelText: 'Notes (Optional)',
-                hintText: 'Why you want this...',
-              ),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (_nameController.text.trim().isNotEmpty) {
-                setState(() {
-                  _cravings.add(Craving(
-                    name: _nameController.text.trim(),
-                    notes: _notesController.text.trim().isEmpty
-                        ? null
-                        : _notesController.text.trim(),
-                    addedDate: DateTime.now(),
-                    isDone: false,
-                  ));
-                });
-                _nameController.clear();
-                _notesController.clear();
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
+  void _addCraving() {
+    if (_nameController.text.trim().isEmpty) return;
+
+    setState(() {
+      _cravings.add(CravingItem(
+        name: _nameController.text.trim(),
+        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+        isDone: false,
+        addedDate: DateTime.now(),
+      ));
+      _nameController.clear();
+      _notesController.clear();
+    });
   }
 
-  void _toggleCraving(int index) {
+  void _toggleDone(int index) {
     setState(() {
-      _cravings[index] = Craving(
+      _cravings[index] = CravingItem(
         name: _cravings[index].name,
         notes: _cravings[index].notes,
-        addedDate: _cravings[index].addedDate,
         isDone: !_cravings[index].isDone,
-        completedDate: !_cravings[index].isDone ? DateTime.now() : null,
+        addedDate: _cravings[index].addedDate,
       );
     });
   }
@@ -110,221 +54,219 @@ class _CravingsScreenState extends State<CravingsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final pending = _cravings.where((c) => !c.isDone).toList();
-    final done = _cravings.where((c) => c.isDone).toList();
+    final active = _cravings.where((c) => !c.isDone).toList();
+    final completed = _cravings.where((c) => c.isDone).toList();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: FadeTransition(
-        opacity: _animController,
-        child: Column(
-          children: [
-            // Stats
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: GlassCard(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          // Summary Card
+          GlassCard(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildSummaryItem('Total', _cravings.length.toString(), Icons.favorite),
+                Container(width: 1, height: 40, color: Colors.grey[300]),
+                _buildSummaryItem('Active', active.length.toString(), Icons.restaurant),
+                Container(width: 1, height: 40, color: Colors.grey[300]),
+                _buildSummaryItem('Tried', completed.length.toString(), Icons.check_circle),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Add Craving Form
+          GlassCard(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Add New Craving',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    hintText: 'Place or dish name',
+                    prefixIcon: Icon(Icons.restaurant_menu),
+                  ),
+                  textCapitalization: TextCapitalization.words,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _notesController,
+                  decoration: const InputDecoration(
+                    hintText: 'Notes (optional)',
+                    prefixIcon: Icon(Icons.note),
+                  ),
+                  maxLines: 2,
+                  textCapitalization: TextCapitalization.sentences,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: _addCraving,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add Craving'),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Active Cravings
+          if (active.isNotEmpty) ..[
+            const Text(
+              'Want to Try',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            ...active.asMap().entries.map((entry) {
+              final index = _cravings.indexOf(entry.value);
+              return _buildCravingCard(entry.value, index);
+            }).toList(),
+            const SizedBox(height: 24),
+          ],
+
+          // Completed Cravings
+          if (completed.isNotEmpty) ..[
+            const Text(
+              'Tried & Tested',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            ...completed.asMap().entries.map((entry) {
+              final index = _cravings.indexOf(entry.value);
+              return _buildCravingCard(entry.value, index);
+            }).toList(),
+          ],
+
+          if (_cravings.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(40),
+                child: Column(
                   children: [
-                    _buildStat('Wishlist', pending.length.toString(), Icons.favorite_border),
-                    Container(width: 1, height: 40, color: Colors.grey[300]),
-                    _buildStat('Tried', done.length.toString(), Icons.check_circle_outline),
+                    Icon(Icons.restaurant_outlined, size: 80, color: Colors.grey[400]),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No cravings yet',
+                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Add places or dishes you want to try!',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                    ),
                   ],
                 ),
               ),
             ),
 
-            // List
-            Expanded(
-              child: _cravings.isEmpty
-                  ? _buildEmptyState()
-                  : ListView(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                      children: [
-                        if (pending.isNotEmpty) ..._buildSection('Wishlist 🔥', pending, false),
-                        if (done.isNotEmpty) ..._buildSection('Tried ✅', done, true),
-                      ],
-                    ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddCravingDialog,
-        child: const Icon(Icons.add),
+          const SizedBox(height: 100),
+        ],
       ),
     );
   }
 
-  List<Widget> _buildSection(String title, List<Craving> cravings, bool isDone) {
-    return [
-      Padding(
-        padding: const EdgeInsets.only(bottom: 12, top: 8),
-        child: Text(
-          title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+  Widget _buildSummaryItem(String label, String value, IconData icon) {
+    return Column(
+      children: [
+        Icon(icon, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-      ),
-      ...cravings.map((craving) {
-        final index = _cravings.indexOf(craving);
-        return _buildCravingCard(craving, index, isDone);
-      }).toList(),
-      const SizedBox(height: 16),
-    ];
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+        ),
+      ],
+    );
   }
 
-  Widget _buildCravingCard(Craving craving, int index, bool isDone) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Dismissible(
-        key: Key(craving.name + index.toString()),
-        direction: DismissDirection.endToStart,
-        background: Container(
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.only(right: 20),
-          decoration: BoxDecoration(
-            color: Colors.red,
-            borderRadius: BorderRadius.circular(20),
+  Widget _buildCravingCard(CravingItem item, int index) {
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Checkbox(
+            value: item.isDone,
+            onChanged: (_) => _toggleDone(index),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
           ),
-          child: const Icon(Icons.delete, color: Colors.white),
-        ),
-        onDismissed: (_) => _deleteCraving(index),
-        child: GlassCard(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Checkbox(
-                value: craving.isDone,
-                onChanged: (_) => _toggleCraving(index),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    decoration: item.isDone ? TextDecoration.lineThrough : null,
+                    color: item.isDone ? Colors.grey : null,
+                  ),
                 ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      craving.name,
+                if (item.notes != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      item.notes!,
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        decoration: isDone ? TextDecoration.lineThrough : null,
-                        color: isDone ? Colors.grey : null,
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                        decoration: item.isDone ? TextDecoration.lineThrough : null,
                       ),
                     ),
-                    if (craving.notes != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          craving.notes!,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        isDone
-                            ? 'Tried ${_formatDate(craving.completedDate!)}'
-                            : 'Added ${_formatDate(craving.addedDate)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[500],
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
+                const SizedBox(height: 4),
+                Text(
+                  'Added ${_formatDate(item.addedDate)}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                 ),
-              ),
-              if (isDone)
-                Icon(Icons.check_circle, color: Colors.green[600]),
-            ],
+              ],
+            ),
           ),
-        ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            onPressed: () => _deleteCraving(index),
+          ),
+        ],
       ),
     );
   }
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();
-    final diff = now.difference(date).inDays;
-    if (diff == 0) return 'today';
-    if (diff == 1) return 'yesterday';
-    if (diff < 7) return '$diff days ago';
+    final diff = now.difference(date);
+
+    if (diff.inDays == 0) return 'today';
+    if (diff.inDays == 1) return 'yesterday';
+    if (diff.inDays < 7) return '${diff.inDays} days ago';
+    if (diff.inDays < 30) return '${(diff.inDays / 7).floor()} weeks ago';
     return '${date.day}/${date.month}/${date.year}';
-  }
-
-  Widget _buildStat(String label, String value, IconData icon) {
-    return Column(
-      children: [
-        Icon(icon, size: 24, color: Theme.of(context).colorScheme.primary),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.favorite_border, size: 80, color: Colors.grey[400]),
-          const SizedBox(height: 16),
-          Text(
-            'No cravings yet',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Add places or items you want to try',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 
-class Craving {
+class CravingItem {
   final String name;
   final String? notes;
-  final DateTime addedDate;
   final bool isDone;
-  final DateTime? completedDate;
+  final DateTime addedDate;
 
-  Craving({
+  CravingItem({
     required this.name,
     this.notes,
-    required this.addedDate,
     required this.isDone,
-    this.completedDate,
+    required this.addedDate,
   });
 }
