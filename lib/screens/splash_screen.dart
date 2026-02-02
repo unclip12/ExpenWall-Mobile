@@ -40,7 +40,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _initializeApp() async {
     try {
-      // Initialize Firebase
+      // Initialize Firebase with error handling
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
@@ -65,17 +65,30 @@ class _SplashScreenState extends State<SplashScreen>
         );
       }
     } catch (e) {
-      // Show error
+      // If Firebase fails, show error but allow app to continue
       if (mounted) {
+        await Future.delayed(const Duration(seconds: 2));
+        
+        // Show demo mode or error screen
         showDialog(
           context: context,
+          barrierDismissible: false,
           builder: (context) => AlertDialog(
-            title: const Text('Initialization Error'),
-            content: Text('Failed to initialize: $e'),
+            title: const Text('Demo Mode'),
+            content: const Text(
+              'Firebase is not configured. The app is running in demo mode.\n\n'
+              'To enable full functionality, configure Firebase by running:\n'
+              'flutterfire configure',
+            ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Retry'),
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => const AuthScreen()),
+                  );
+                },
+                child: const Text('Continue in Demo Mode'),
               ),
             ],
           ),

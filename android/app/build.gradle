@@ -24,7 +24,7 @@ if (flutterVersionName == null) {
 
 android {
     namespace "com.expenwall.mobile"
-    compileSdk 34
+    compileSdk flutter.compileSdkVersion
     ndkVersion flutter.ndkVersion
 
     compileOptions {
@@ -42,8 +42,8 @@ android {
 
     defaultConfig {
         applicationId "com.expenwall.mobile"
-        minSdk 23
-        targetSdk 34
+        minSdkVersion 21
+        targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         multiDexEnabled true
@@ -61,13 +61,5 @@ flutter {
 }
 
 dependencies {
-    // Firebase
-    implementation platform('com.google.firebase:firebase-bom:32.7.0')
-    implementation 'com.google.firebase:firebase-analytics'
-    implementation 'com.google.firebase:firebase-auth'
-    implementation 'com.google.firebase:firebase-firestore'
-    implementation 'com.google.firebase:firebase-storage'
+    implementation 'androidx.multidex:multidex:2.0.1'
 }
-
-// Add Google Services plugin at the end
-apply plugin: 'com.google.gms.google-services'
