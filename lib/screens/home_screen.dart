@@ -12,7 +12,6 @@ import '../models/wallet.dart';
 import '../models/merchant_rule.dart';
 import '../models/budget.dart';
 import '../models/product.dart';
-import '../services/firestore_service.dart';
 import '../services/local_storage_service.dart';
 import '../widgets/sync_indicator.dart';
 
@@ -25,7 +24,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
-  final _firestoreService = FirestoreService();
   final _localStorageService = LocalStorageService();
   
   List<models.Transaction> _transactions = [];
@@ -56,8 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
 
-      // Optional: Firebase sync can be added here if needed
-      // For now, app works 100% offline with optional Google Drive sync via Settings
+      // App works 100% offline with optional Google Drive sync via Settings
     } catch (e) {
       print('Error initializing data: $e');
       if (mounted) {
@@ -76,7 +73,6 @@ class _HomeScreenState extends State<HomeScreen> {
       final budgets = await _localStorageService.loadBudgets(_userId);
       final products = await _localStorageService.loadProducts(_userId);
       final rules = await _localStorageService.loadRules(_userId);
-      // Wallets will be added later if needed
       
       if (mounted) {
         setState(() {
@@ -92,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Add transaction (local-first, then sync)
+  // Add transaction (local-first)
   Future<void> _addTransaction(models.Transaction transaction) async {
     final txWithUserId = models.Transaction(
       id: transaction.id,
@@ -115,25 +111,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Save to local storage
     await _localStorageService.saveTransactions(_userId, _transactions);
-
-    // Try to sync to Firebase if connected (optional)
-    try {
-      setState(() => _isSyncing = true);
-      await _firestoreService.addTransaction(txWithUserId);
-      setState(() => _isSyncing = false);
-    } catch (e) {
-      print('Failed to sync transaction to Firebase: $e');
-      // Add to pending operations queue
-      await _localStorageService.addPendingOperation(_userId, {
-        'type': 'create',
-        'entity': 'transaction',
-        'payload': txWithUserId.toFirestore(),
-      });
-      setState(() => _isSyncing = false);
-    }
   }
 
-  // Delete transaction (local-first, then sync)
+  // Delete transaction (local-first)
   Future<void> _deleteTransaction(String id) async {
     // Remove from local list immediately
     setState(() {
@@ -142,21 +122,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Save to local storage
     await _localStorageService.saveTransactions(_userId, _transactions);
-
-    // Try to sync to Firebase
-    try {
-      setState(() => _isSyncing = true);
-      await _firestoreService.deleteTransaction(_userId, id);
-      setState(() => _isSyncing = false);
-    } catch (e) {
-      print('Failed to delete from Firebase: $e');
-      await _localStorageService.addPendingOperation(_userId, {
-        'type': 'delete',
-        'entity': 'transaction',
-        'payload': {'id': id},
-      });
-      setState(() => _isSyncing = false);
-    }
   }
 
   // Add budget (local-first)
@@ -174,15 +139,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     await _localStorageService.saveBudgets(_userId, _budgets);
-
-    try {
-      setState(() => _isSyncing = true);
-      await _firestoreService.addBudget(budgetWithUserId);
-      setState(() => _isSyncing = false);
-    } catch (e) {
-      print('Failed to sync budget: $e');
-      setState(() => _isSyncing = false);
-    }
   }
 
   // Delete budget (local-first)
@@ -192,15 +148,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     await _localStorageService.saveBudgets(_userId, _budgets);
-
-    try {
-      setState(() => _isSyncing = true);
-      await _firestoreService.deleteBudget(_userId, id);
-      setState(() => _isSyncing = false);
-    } catch (e) {
-      print('Failed to delete budget from Firebase: $e');
-      setState(() => _isSyncing = false);
-    }
   }
 
   List<Widget> get _screens => [
