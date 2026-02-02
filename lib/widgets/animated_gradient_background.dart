@@ -2,63 +2,35 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 
 class AnimatedGradientBackground extends StatefulWidget {
-  final Widget child;
   final List<Color> colors;
+  final Widget child;
 
   const AnimatedGradientBackground({
     super.key,
-    required this.child,
     required this.colors,
+    required this.child,
   });
 
   @override
-  State<AnimatedGradientBackground> createState() =>
-      _AnimatedGradientBackgroundState();
+  State<AnimatedGradientBackground> createState() => _AnimatedGradientBackgroundState();
 }
 
-class _AnimatedGradientBackgroundState
-    extends State<AnimatedGradientBackground>
-    with TickerProviderStateMixin {
-  late AnimationController _waveController;
-  late AnimationController _symbolController;
-  late List<FloatingSymbol> _symbols;
-  final Random _random = Random();
+class _AnimatedGradientBackgroundState extends State<AnimatedGradientBackground>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
-
-    // Wave animation
-    _waveController = AnimationController(
+    _controller = AnimationController(
       duration: const Duration(seconds: 8),
       vsync: this,
     )..repeat();
-
-    // Symbol floating animation
-    _symbolController = AnimationController(
-      duration: const Duration(seconds: 20),
-      vsync: this,
-    )..repeat();
-
-    // Initialize floating symbols
-    _symbols = List.generate(8, (index) {
-      return FloatingSymbol(
-        x: _random.nextDouble(),
-        y: _random.nextDouble(),
-        speedX: (_random.nextDouble() - 0.5) * 0.1,
-        speedY: -0.05 - _random.nextDouble() * 0.1, // Upward movement
-        size: 30 + _random.nextDouble() * 40,
-        opacity: 0.03 + _random.nextDouble() * 0.07,
-        rotation: _random.nextDouble() * 360,
-        rotationSpeed: (_random.nextDouble() - 0.5) * 45,
-      );
-    });
   }
 
   @override
   void dispose() {
-    _waveController.dispose();
-    _symbolController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -66,210 +38,174 @@ class _AnimatedGradientBackgroundState
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Animated gradient waves
+        // Animated gradient background
         AnimatedBuilder(
-          animation: _waveController,
+          animation: _controller,
           builder: (context, child) {
-            return CustomPaint(
-              painter: WaveGradientPainter(
-                colors: widget.colors,
-                animation: _waveController.value,
+            return Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: widget.colors,
+                  stops: [
+                    0.0,
+                    0.3 + (sin(_controller.value * 2 * pi) * 0.1),
+                    0.7 + (cos(_controller.value * 2 * pi) * 0.1),
+                    1.0,
+                  ],
+                ),
               ),
-              size: Size.infinite,
             );
           },
         ),
-
-        // Floating rupee symbols
-        AnimatedBuilder(
-          animation: _symbolController,
-          builder: (context, child) {
-            return CustomPaint(
-              painter: FloatingSymbolsPainter(
-                symbols: _symbols,
-                progress: _symbolController.value,
-              ),
-              size: Size.infinite,
-            );
-          },
-        ),
-
-        // Content with smart text visibility
-        SmartTextVisibility(
-          colors: widget.colors,
-          waveProgress: _waveController.value,
-          child: widget.child,
-        ),
+        // Floating currency symbols
+        const FloatingCurrencySymbols(),
+        // Child content
+        widget.child,
       ],
     );
   }
 }
 
-class WaveGradientPainter extends CustomPainter {
-  final List<Color> colors;
-  final double animation;
-
-  WaveGradientPainter({
-    required this.colors,
-    required this.animation,
-  });
+class FloatingCurrencySymbols extends StatefulWidget {
+  const FloatingCurrencySymbols({super.key});
 
   @override
-  void paint(Canvas canvas, Size size) {
-    // Create multiple gradient layers with wave effect
-    for (int i = 0; i < 3; i++) {
-      final offset = (animation + i * 0.33) % 1.0;
-      final gradient = LinearGradient(
-        begin: Alignment(
-          cos((offset * 2 * pi) - pi / 2),
-          sin((offset * 2 * pi) - pi / 2),
-        ),
-        end: Alignment(
-          -cos((offset * 2 * pi) - pi / 2),
-          -sin((offset * 2 * pi) - pi / 2),
-        ),
-        colors: colors,
-      );
+  State<FloatingCurrencySymbols> createState() => _FloatingCurrencySymbolsState();
+}
 
-      final paint = Paint()
-        ..shader = gradient.createShader(Rect.fromLTWH(0, 0, size.width, size.height))
-        ..blendMode = i == 0 ? BlendMode.src : BlendMode.overlay;
+class _FloatingCurrencySymbolsState extends State<FloatingCurrencySymbols>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late List<CurrencyParticle> _particles;
+  final Random _random = Random();
 
-      canvas.drawRect(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        paint,
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(seconds: 30),
+      vsync: this,
+    )..repeat();
+
+    // Generate floating particles
+    _particles = List.generate(15, (index) {
+      return CurrencyParticle(
+        x: _random.nextDouble(),
+        y: _random.nextDouble(),
+        speed: 0.01 + _random.nextDouble() * 0.02,
+        size: 20 + _random.nextDouble() * 30,
+        opacity: 0.03 + _random.nextDouble() * 0.05,
+        symbol: _random.nextBool() ? '₹' : '💰',
       );
-    }
+    });
   }
 
   @override
-  bool shouldRepaint(WaveGradientPainter oldDelegate) {
-    return oldDelegate.animation != animation;
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return CustomPaint(
+          painter: CurrencyPainter(
+            particles: _particles,
+            progress: _controller.value,
+          ),
+          size: Size.infinite,
+        );
+      },
+    );
   }
 }
 
-class FloatingSymbol {
+class CurrencyParticle {
   final double x;
   final double y;
-  final double speedX;
-  final double speedY;
+  final double speed;
   final double size;
   final double opacity;
-  final double rotation;
-  final double rotationSpeed;
+  final String symbol;
 
-  FloatingSymbol({
+  CurrencyParticle({
     required this.x,
     required this.y,
-    required this.speedX,
-    required this.speedY,
+    required this.speed,
     required this.size,
     required this.opacity,
-    required this.rotation,
-    required this.rotationSpeed,
+    required this.symbol,
   });
 }
 
-class FloatingSymbolsPainter extends CustomPainter {
-  final List<FloatingSymbol> symbols;
+class CurrencyPainter extends CustomPainter {
+  final List<CurrencyParticle> particles;
   final double progress;
 
-  FloatingSymbolsPainter({
-    required this.symbols,
+  CurrencyPainter({
+    required this.particles,
     required this.progress,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (var symbol in symbols) {
-      // Calculate position with wrapping
-      var x = ((symbol.x + symbol.speedX * progress) % 1.0) * size.width;
-      var y = ((symbol.y + symbol.speedY * progress) % 1.0) * size.height;
-
-      // Calculate rotation
-      final currentRotation = symbol.rotation + symbol.rotationSpeed * progress;
+    for (var particle in particles) {
+      // Calculate floating position
+      final yPos = ((particle.y + (progress * particle.speed)) % 1.0) * size.height;
+      final xOffset = sin(progress * 3.14 * 2 + particle.x * 10) * 20;
+      final xPos = particle.x * size.width + xOffset;
 
       // Draw symbol
-      canvas.save();
-      canvas.translate(x, y);
-      canvas.rotate(currentRotation * pi / 180);
-
       final textPainter = TextPainter(
         text: TextSpan(
-          text: '₹', // Indian Rupee symbol
+          text: particle.symbol,
           style: TextStyle(
-            fontSize: symbol.size,
-            color: Colors.white.withOpacity(symbol.opacity),
+            fontSize: particle.size,
+            color: Colors.white.withOpacity(particle.opacity),
             fontWeight: FontWeight.bold,
           ),
         ),
         textDirection: TextDirection.ltr,
       );
-
       textPainter.layout();
       textPainter.paint(
         canvas,
-        Offset(-textPainter.width / 2, -textPainter.height / 2),
+        Offset(xPos - textPainter.width / 2, yPos),
       );
-
-      canvas.restore();
     }
   }
 
   @override
-  bool shouldRepaint(FloatingSymbolsPainter oldDelegate) {
-    return oldDelegate.progress != progress;
-  }
+  bool shouldRepaint(CurrencyPainter oldDelegate) => true;
 }
 
-class SmartTextVisibility extends StatefulWidget {
-  final Widget child;
-  final List<Color> colors;
-  final double waveProgress;
+// Smart text color helper
+class SmartText extends StatelessWidget {
+  final String text;
+  final TextStyle? style;
+  final Color backgroundColor;
 
-  const SmartTextVisibility({
+  const SmartText(
+    this.text, {
     super.key,
-    required this.child,
-    required this.colors,
-    required this.waveProgress,
+    this.style,
+    required this.backgroundColor,
   });
 
   @override
-  State<SmartTextVisibility> createState() => _SmartTextVisibilityState();
-}
-
-class _SmartTextVisibilityState extends State<SmartTextVisibility> {
-  @override
   Widget build(BuildContext context) {
-    // Calculate average brightness of background
-    final avgBrightness = _calculateAverageBrightness(widget.colors);
+    // Calculate luminance to determine if background is light or dark
+    final luminance = backgroundColor.computeLuminance();
+    final textColor = luminance > 0.5 ? Colors.black : Colors.white;
 
-    // Apply theme based on background brightness
-    final textColor = avgBrightness > 0.5 ? Colors.black87 : Colors.white;
-
-    return Theme(
-      data: Theme.of(context).copyWith(
-        textTheme: Theme.of(context).textTheme.apply(
-              bodyColor: textColor,
-              displayColor: textColor,
-            ),
-        iconTheme: IconThemeData(
-          color: textColor,
-        ),
-      ),
-      child: widget.child,
+    return Text(
+      text,
+      style: (style ?? const TextStyle()).copyWith(color: textColor),
     );
-  }
-
-  double _calculateAverageBrightness(List<Color> colors) {
-    double totalBrightness = 0;
-    for (var color in colors) {
-      final brightness = (color.red * 0.299 +
-              color.green * 0.587 +
-              color.blue * 0.114) /
-          255;
-      totalBrightness += brightness;
-    }
-    return totalBrightness / colors.length;
   }
 }
