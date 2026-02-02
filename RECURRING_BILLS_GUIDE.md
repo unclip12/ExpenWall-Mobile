@@ -1,7 +1,7 @@
-# 🔁 Recurring Bills Feature - Complete Guide
+# 🔁 Recurring Bills - Complete Implementation Guide
 
-**Version:** 2.3.0  
-**Status:** ✅ Fully Implemented  
+**Version:** v2.3.0  
+**Status:** ✅ **FULLY IMPLEMENTED**  
 **Date:** February 2, 2026
 
 ---
@@ -10,533 +10,823 @@
 
 1. [Overview](#overview)
 2. [Features](#features)
-3. [Architecture](#architecture)
-4. [User Guide](#user-guide)
-5. [Developer Guide](#developer-guide)
-6. [Testing](#testing)
-7. [Known Limitations](#known-limitations)
-8. [Future Enhancements](#future-enhancements)
+3. [User Journey](#user-journey)
+4. [Technical Architecture](#technical-architecture)
+5. [File Structure](#file-structure)
+6. [How It Works](#how-it-works)
+7. [Testing Guide](#testing-guide)
+8. [Troubleshooting](#troubleshooting)
 
 ---
 
-## 📖 Overview
+## 🎯 Overview
 
-The Recurring Bills feature allows users to automate recurring expenses and income. The system automatically creates transactions on schedule and presents notifications for user confirmation with 4 possible actions.
+Recurring Bills automatically creates transactions for your subscriptions, bills, and recurring income (salary). The system creates transactions on schedule and asks for your confirmation through an interactive notification system.
 
 ### Key Benefits:
-- **Never forget bills** - Auto-created on due date
-- **Flexible scheduling** - Every X days/weeks/months/years
-- **Smart notifications** - 4-action confirmation system
-- **Duplicate detection** - Prevents double entries
-- **Easy management** - Edit, pause, or delete rules anytime
+- 🤖 **Automatic Transaction Creation** - Never forget to log a recurring payment
+- 🔔 **Smart Notifications** - Get notified when bills are due
+- 🔄 **Flexible Actions** - Paid, Canceled, Notify Later, or Reschedule
+- 🔍 **Duplicate Detection** - Prevents double-entry of same payment
+- 📅 **Flexible Frequency** - Every X days/weeks/months/years
 
 ---
 
 ## ✨ Features
 
-### 1. Flexible Frequency System
+### 1. Create Recurring Rules
 
-Users can set any frequency:
-- **Every 1 day** → Daily
-- **Every 7 days** → Weekly
-- **Every 1 month** → Monthly  
-- **Every 3 months** → Quarterly
-- **Every 1 year** → Annually
-- **Custom** → Every 25 days, Every 6 weeks, etc.
+**Fields:**
+- Name (e.g., "Netflix Subscription")
+- Amount (₹199)
+- Type (Expense or Income)
+- Category & Subcategory
+- Frequency: Every [number] [days/weeks/months/years]
+- Start Date
+- Next Due Date (auto-calculated, can override)
+- Notification Time (default: 5 AM)
+- Notes (optional)
+
+**Examples:**
+- Netflix: Every 1 month
+- Rent: Every 1 month
+- Salary: Every 1 month (Income type)
+- Gym: Every 3 months  
+- Insurance: Every 1 year
+- Medication: Every 25 days
 
 ### 2. Auto-Transaction Creation
 
-- Checks daily at 5 AM (configurable)
-- Creates transaction automatically when due
-- Updates next occurrence date
-- Generates notification for confirmation
+**How It Works:**
+1. Daily at 5 AM (or custom time), app checks all recurring rules
+2. If `nextOccurrence` is today, creates transaction automatically
+3. Transaction appears in Expenses list immediately
+4. Creates a notification asking for confirmation
+5. Calculates and updates next occurrence date
 
-### 3. 4-Action Notification System
+**Transaction Details:**
+- Uses rule's merchant name, amount, category
+- Date set to next occurrence date
+- Marked with note: "Auto-created from recurring rule: [name]"
 
-When a recurring bill is due, users get a notification with 4 options:
+### 3. Notification System with 4 Actions
 
-#### ✅ **Action 1: Paid**
-- Confirms the payment was made
+**Bell Icon:**
+- Located: Top-right of HomeScreen
+- Shows badge with count of pending notifications
+- Tap to open Notification Center
+- Updates every 30 seconds automatically
+
+**Notification Center:**
+Shows all pending recurring bill confirmations.
+
+**4 Actions:**
+
+#### ✅ **1. Paid**
+- Confirms you made the payment
 - Transaction stays in list
-- Next occurrence automatically scheduled
-- **Use case:** "Yes, I paid my Netflix subscription"
+- Notification marked as approved
+- Next occurrence already scheduled
 
-#### ❌ **Action 2: Canceled**
-- User canceled the subscription
-- Options: Delete rule or just pause it
-- Auto-created transaction is removed
-- **Use case:** "I canceled my gym membership"
+#### ❌ **2. Canceled**  
+- You canceled the subscription/bill
+- Shows dialog: "Delete rule or just pause?"
+  - **Delete Rule:** Removes recurring rule completely
+  - **Just Pause:** Marks rule as inactive (can reactivate later)
+- Deletes the auto-created transaction
 
-#### ⏰ **Action 3: Notify Later**
-- User will pay later
-- Choose date & time for reminder
-- Transaction stays as pending
-- **Use case:** "Netflix payment failed, will pay tomorrow"
+#### ⏰ **3. Notify Later**
+- You'll pay later, remind me again
+- Opens date + time picker
+- Choose when to be reminded (e.g., in 5 days)
+- Transaction stays, notification snoozed
+- Will reappear at chosen time
 
-#### 📅 **Action 4: Reschedule**
-- Change the next payment date
-- Updates the cycle going forward
-- Transaction date is updated
-- **Use case:** "Moving my subscription to the 10th of each month"
+#### 📅 **4. Reschedule**
+- Change the payment date
+- Opens date picker
+- Updates next occurrence date
+- Updates transaction date
+- Rule continues with new schedule
+
+**Use Cases:**
+- **Paid:** "Yes, I paid my Netflix bill"
+- **Canceled:** "I canceled my Spotify subscription"
+- **Notify Later:** "I'll pay my electricity bill on 5th, remind me then"
+- **Reschedule:** "My subscription moved from 2nd to 10th of each month"
 
 ### 4. Duplicate Detection
 
-When manually adding a transaction:
-1. System checks for matching recurring rules
-2. Shows popup: "Is this the same as your Netflix subscription?"
-3. If YES: Links transaction to rule, removes auto-created one
-4. If NO: Creates as separate transaction
+**Smart Linking:**
+When you manually add a transaction, the app checks if the merchant name matches any recurring rule.
 
-### 5. Notification Center
+**Flow:**
+1. You type "Netflix" in Add Transaction
+2. App detects: "You have a recurring bill for Netflix Subscription (₹199)"
+3. Shows banner with recurring rule icon
+4. On save, asks: "Is this the same payment?"
+   - **Yes:** Links to existing recurring rule
+     - Deletes auto-created transaction
+     - Uses your manual transaction instead
+     - Marks notification as approved
+   - **No:** Creates separate transaction (different payment)
 
-- Accessible via bell icon (top-right)
-- Shows all pending bill confirmations
-- Badge count indicates pending items
-- Auto-refreshes every 30 seconds
+**Prevents:**
+- Accidentally adding duplicate entries
+- Double-counting recurring payments
+- Data inconsistency
 
-### 6. Rule Management
+### 5. Recurring Bills List
 
-- **Active Rules** - Currently running
-- **Paused Rules** - Temporarily disabled
-- **Toggle** - Switch between active/paused
-- **Edit** - Modify rule details anytime
-- **Delete** - Remove rule completely
+**Summary Card:**
+- Active bills count
+- Monthly total (calculated from all frequencies)
+- Paused bills count
+
+**Active Bills Section:**
+- Shows all active recurring rules
+- Each card displays:
+  - Rule name
+  - Amount
+  - Frequency text ("Monthly", "Every 25 days", etc.)
+  - Next due date
+  - Toggle switch (active/paused)
+- Swipe left to edit
+- Tap to open edit screen
+
+**Paused Bills Section:**
+- Shows inactive rules
+- Can reactivate by toggling switch
+- Can delete or edit
+
+### 6. Flexible Frequency
+
+**Input Style:**
+```
+Every [___] [days/weeks/months/years ▼]
+      ↑       ↑
+    Number   Dropdown
+```
+
+**Examples:**
+- Every **1** month → "Monthly"
+- Every **2** weeks → "Every 2 weeks"
+- Every **3** months → "Every 3 months"  
+- Every **25** days → "Every 25 days"
+- Every **1** year → "Yearly"
+
+**Supports:**
+- Days: 1-365
+- Weeks: 1-52
+- Months: 1-12
+- Years: 1-10
 
 ---
 
-## 🏗️ Architecture
+## 👤 User Journey
+
+### Journey 1: Create First Recurring Rule
+
+1. **Navigate:** Home → Planning → Recurring Bills
+2. **Empty State:** Shows "How it works" guide
+3. **Tap:** "Create Your First Rule" button
+4. **Fill Form:**
+   - Name: "Netflix Subscription"
+   - Amount: ₹199
+   - Type: Expense
+   - Frequency: Every 1 month
+   - Start Date: Feb 2, 2026
+   - Auto-shows: Next payment: March 2, 2026
+5. **Save:** Rule created!
+6. **See:** Active bill in list
+
+### Journey 2: Receive & Confirm Notification
+
+1. **Next Day (Feb 3):** Bell icon shows badge "1"
+2. **Tap Bell:** Opens Notification Center
+3. **See Notification:**
+   ```
+   Netflix Subscription - ₹199
+   Due: Feb 3, 2026
+   Did you make this payment?
+   [Paid] [Canceled] [Notify Later] [Reschedule]
+   ```
+4. **Action:** Tap "Paid"
+5. **Result:**
+   - Notification disappears
+   - Badge count updates
+   - Transaction confirmed in list
+
+### Journey 3: Manually Add Duplicate Payment
+
+1. **Go to:** Add Transaction
+2. **Type:** "Netflix"
+3. **See Banner:** 🔁 "Matches recurring bill: Netflix Subscription"
+4. **Fill:** Amount ₹199, Date, etc.
+5. **Tap Save:**
+6. **Dialog Appears:**
+   ```
+   🔁 Recurring Bill Detected
+   
+   You have a recurring bill for:
+   Netflix Subscription - ₹199
+   Monthly
+   
+   Is this the same payment?
+   [No, Different Payment] [Yes, Same Payment]
+   ```
+7. **Select:** "Yes, Same Payment"
+8. **Result:**
+   - Auto-created transaction deleted
+   - Your manual transaction kept
+   - Notification auto-approved
+   - Next occurrence scheduled
+
+### Journey 4: Reschedule Payment
+
+1. **Scenario:** Subscription moved from 2nd to 10th
+2. **Open:** Notification Center
+3. **Tap:** "Reschedule" on Netflix notification
+4. **Pick Date:** Feb 10, 2026
+5. **Result:**
+   - Next occurrence updated to Feb 10
+   - Transaction date changed to Feb 10
+   - Future payments on 10th of each month
+
+---
+
+## 🏗️ Technical Architecture
 
 ### Data Models
 
-#### `RecurringRule`
+#### RecurringRule
 ```dart
 class RecurringRule {
-  String id;
-  String userId;
-  String name;              // "Netflix Subscription"
-  double amount;            // 199
-  String category;
-  String? subcategory;
-  TransactionType type;     // expense or income
+  String id;              // UUID
+  String userId;          // User identifier
+  String name;            // "Netflix Subscription"
+  double amount;          // 199.0
+  String category;        // "subscriptions"
+  String? subcategory;    // Optional
+  TransactionType type;   // expense or income
   
-  int frequencyValue;       // 1, 25, 3, etc.
+  int frequencyValue;     // 1, 25, 3, etc.
   FrequencyUnit frequencyUnit; // days, weeks, months, years
   
-  DateTime startDate;
-  DateTime nextOccurrence;
-  DateTime? lastCreated;
+  DateTime startDate;     // When rule starts
+  DateTime nextOccurrence; // When next payment is due
+  DateTime? lastCreated;  // Last auto-creation time
   
-  bool isActive;
+  bool isActive;          // true/false
   String? notes;
-  
-  int notificationHour;     // 0-23
-  int notificationMinute;   // 0-59
+  int notificationHour;   // 0-23 (default: 5)
+  int notificationMinute; // 0-59 (default: 0)
 }
 ```
 
-#### `RecurringNotification`
+#### RecurringNotification
 ```dart
 class RecurringNotification {
-  String id;
-  String recurringRuleId;
-  String transactionId;     // Auto-created transaction
+  String id;              // UUID
+  String recurringRuleId; // Reference to rule
+  String transactionId;   // Auto-created transaction
   DateTime createdAt;
   bool isRead;
-  NotificationStatus status; // pending, approved, canceled, etc.
+  NotificationStatus status; // pending, approved, canceled, snoozed, rescheduled
   
-  DateTime? snoozeUntil;    // For "Notify Later"
-  DateTime? rescheduledDate; // For "Reschedule"
+  DateTime? snoozeUntil;      // For "Notify Later"
+  DateTime? rescheduledDate;  // For "Reschedule"
   
-  String ruleName;          // Cached for display
+  // Cached for display
+  String ruleName;
   double amount;
   DateTime dueDate;
 }
 ```
 
-### Service Layer
+### Services
 
-#### `RecurringBillService`
+#### RecurringBillService
 
-Main service handling all recurring bill logic:
+**Main Methods:**
 
-**Key Methods:**
-- `checkAndCreateDueTransactions()` - Daily check (5 AM)
-- `handlePaidAction()` - Confirm payment
-- `handleCanceledAction()` - Cancel subscription
-- `handleNotifyLaterAction()` - Snooze notification
-- `handleRescheduleAction()` - Change next due date
-- `findMatchingRule()` - Duplicate detection
-- `createRule()`, `updateRule()`, `deleteRule()` - CRUD
+```dart
+// Daily check (5 AM)
+checkAndCreateDueTransactions()
+
+// 4 Action Handlers
+handlePaidAction(notificationId)
+handleCanceledAction(notificationId, deleteRule)
+handleNotifyLaterAction(notificationId, snoozeUntil)
+handleRescheduleAction(notificationId, newDate)
+
+// Duplicate Detection
+findMatchingRule(merchantName)
+linkTransactionToRule(transactionId, ruleId)
+
+// CRUD
+createRule(rule)
+updateRule(rule)
+deleteRule(ruleId)
+getActiveRules()
+getPendingNotifications()
+getPendingNotificationCount()
+```
+
+**Key Logic:**
+
+1. **Next Occurrence Calculation:**
+```dart
+DateTime calculateNextOccurrence(current, value, unit) {
+  switch (unit) {
+    case days: return current.add(Duration(days: value));
+    case weeks: return current.add(Duration(days: value * 7));
+    case months: return DateTime(current.year, current.month + value, current.day);
+    case years: return DateTime(current.year + value, current.month, current.day);
+  }
+}
+```
+
+2. **Duplicate Detection:**
+```dart
+// Case-insensitive fuzzy match
+if (rule.name.toLowerCase().contains(merchant.toLowerCase()) ||
+    merchant.toLowerCase().contains(rule.name.toLowerCase())) {
+  return rule;
+}
+```
 
 ### Storage
 
-All data stored locally in JSON files:
-- `recurring_rules_<userId>.json`
-- `recurring_notifications_<userId>.json`
+**LocalStorageService:**
+- Saves to JSON files in app documents directory
+- Files: `recurring_rules_<userId>.json`, `recurring_notifications_<userId>.json`
+- Auto-syncs with Google Drive (if enabled)
 
-### UI Screens
-
-1. **RecurringBillsScreen** - List of all rules
-2. **CreateRecurringRuleScreen** - Add/edit rules
-3. **NotificationCenterScreen** - Pending confirmations
-
----
-
-## 📱 User Guide
-
-### Creating a Recurring Rule
-
-1. Go to **Planning** → **Recurring Bills**
-2. Tap **"Add Recurring Bill"** button
-3. Fill in details:
-   - Name (e.g., "Netflix Subscription")
-   - Amount (₹199)
-   - Type (Expense/Income)
-   - Frequency (Every 1 month)
-   - Start date
-   - Notification time (default 5:00 AM)
-4. Tap **"Create Rule"**
-
-### Managing Rules
-
-**View All Rules:**
-- Active bills shown at top
-- Paused bills shown below
-- Summary: Total active, monthly cost, paused count
-
-**Edit a Rule:**
-- Swipe left on any rule, OR
-- Tap on the rule card
-- Make changes and save
-
-**Pause/Activate:**
-- Toggle switch on each rule card
-- Paused rules don't create transactions
-
-**Delete a Rule:**
-- Open rule for editing
-- Tap delete icon (top-right)
-- Confirm deletion
-
-### Handling Notifications
-
-1. **Check Badge** - Bell icon shows pending count
-2. **Open Notifications** - Tap bell icon
-3. **Review Each Bill:**
-   - See name, amount, due date
-   - Choose one of 4 actions:
-
-**Option 1: Paid ✅**
-- Tap "Paid" button
-- Confirms payment
-- Done!
-
-**Option 2: Canceled ❌**
-- Tap "Canceled" button
-- Choose: Delete rule OR Just pause
-- Transaction removed
-
-**Option 3: Notify Later ⏰**
-- Tap "Notify Later" button
-- Select date and time
-- Will remind you again
-
-**Option 4: Reschedule 📅**
-- Tap "Reschedule" button
-- Pick new date
-- Future occurrences updated
-
-### Examples
-
-#### Example 1: Monthly Subscription
+**File Locations:**
 ```
-Name: Spotify Premium
-Amount: ₹119
-Frequency: Every 1 month
-Start Date: Feb 1, 2026
-Next Due: Mar 1, 2026
+/data/user/0/com.expenwall.mobile/files/cache/
+  recurring_rules_local_user.json
+  recurring_notifications_local_user.json
 ```
 
-#### Example 2: Quarterly Rent
-```
-Name: House Rent
-Amount: ₹15000
-Frequency: Every 3 months
-Start Date: Jan 1, 2026
-Next Due: Apr 1, 2026
-```
+### Background Scheduler
 
-#### Example 3: Weekly Groceries
-```
-Name: Weekly Groceries
-Amount: ₹2000
-Frequency: Every 7 days
-Start Date: Feb 1, 2026
-Next Due: Feb 8, 2026
-```
+**Current Implementation:**
+- Runs check when app opens
+- Timer checks every 30 seconds for notifications
 
-#### Example 4: Monthly Salary (Income)
-```
-Name: Salary
-Amount: ₹50000
-Type: Income
-Frequency: Every 1 month
-Start Date: Jan 31, 2026
-Next Due: Feb 28, 2026
-```
-
----
-
-## 👨‍💻 Developer Guide
-
-### Adding New Frequency Units
-
-1. Update `FrequencyUnit` enum in `recurring_rule.dart`
-2. Add calculation logic in `calculateNextOccurrence()`
-3. Update dropdown in `create_recurring_rule_screen.dart`
-
-### Customizing Notification Time
-
-Default is 5 AM. To change:
-
+**Future Enhancement (v2.4.0):**
+- Use `workmanager` package for true background execution
+- Schedule daily task at 5 AM even if app closed
+- Requires additional setup:
 ```dart
-// In create_recurring_rule_screen.dart
-TimeOfDay _notificationTime = const TimeOfDay(hour: 8, minute: 30);
-```
-
-### Manual Trigger Daily Check
-
-```dart
-final service = RecurringBillService(
-  localStorage: LocalStorageService(),
-  userId: 'your_user_id',
+Workmanager().registerPeriodicTask(
+  "recurring-bills-check",
+  "checkRecurringBills",
+  frequency: Duration(hours: 24),
+  initialDelay: Duration(hours: nextRunTime),
 );
-
-final notifications = await service.checkAndCreateDueTransactions();
-print('Created ${notifications.length} notifications');
-```
-
-### Testing Duplicate Detection
-
-```dart
-final matchingRule = await service.findMatchingRule('Netflix');
-
-if (matchingRule != null) {
-  print('Found matching rule: ${matchingRule.name}');
-  // Show confirmation dialog
-}
 ```
 
 ---
 
-## 🧪 Testing
-
-### Manual Testing Checklist
-
-#### Rule Creation
-- [ ] Create daily recurring rule
-- [ ] Create weekly recurring rule
-- [ ] Create monthly recurring rule
-- [ ] Create yearly recurring rule
-- [ ] Create custom frequency (e.g., every 25 days)
-- [ ] Create recurring income (salary)
-- [ ] Verify next due date calculated correctly
-
-#### Rule Management
-- [ ] Edit existing rule
-- [ ] Change frequency of rule
-- [ ] Override next due date manually
-- [ ] Toggle rule active/paused
-- [ ] Delete rule with confirmation
-- [ ] View active vs paused sections
-
-#### Notifications
-- [ ] Bell icon shows correct badge count
-- [ ] Open notification center
-- [ ] Test "Paid" action
-- [ ] Test "Canceled" action with delete option
-- [ ] Test "Canceled" action with pause option
-- [ ] Test "Notify Later" with date/time picker
-- [ ] Test "Reschedule" with new date
-- [ ] Badge count updates after actions
-
-#### Auto-Creation (Advanced)
-- [ ] Set rule with nextOccurrence = today
-- [ ] Manually call `checkAndCreateDueTransactions()`
-- [ ] Verify transaction created
-- [ ] Verify notification generated
-- [ ] Verify next occurrence updated
-
-#### Duplicate Detection
-- [ ] Create recurring rule for "Netflix"
-- [ ] Set to create transaction today
-- [ ] Manually add "Netflix" transaction
-- [ ] Verify popup shows asking if same
-- [ ] Test "Yes" option - auto-transaction removed
-- [ ] Test "No" option - both transactions kept
-
-### Automated Testing
-
-```dart
-// Test frequency calculation
-void testFrequencyCalculation() {
-  final start = DateTime(2026, 2, 1);
-  
-  // Daily
-  final daily = RecurringRule.calculateNextOccurrence(
-    start, 1, FrequencyUnit.days,
-  );
-  assert(daily == DateTime(2026, 2, 2));
-  
-  // Weekly
-  final weekly = RecurringRule.calculateNextOccurrence(
-    start, 1, FrequencyUnit.weeks,
-  );
-  assert(weekly == DateTime(2026, 2, 8));
-  
-  // Monthly
-  final monthly = RecurringRule.calculateNextOccurrence(
-    start, 1, FrequencyUnit.months,
-  );
-  assert(monthly == DateTime(2026, 3, 1));
-}
-```
-
----
-
-## ⚠️ Known Limitations
-
-### 1. Background Execution
-**Issue:** App must be running for daily check  
-**Current:** Manual trigger or check on app open  
-**Future:** Implement with `workmanager` package
-
-### 2. Notification Scheduling
-**Issue:** No OS-level notifications  
-**Current:** In-app notification center only  
-**Future:** Integrate `flutter_local_notifications`
-
-### 3. Cloud Sync
-**Issue:** Rules not synced to Google Drive yet  
-**Current:** Local storage only  
-**Future:** Add to `SyncManager`
-
-### 4. Multi-Currency
-**Issue:** All amounts in ₹  
-**Current:** INR hardcoded  
-**Future:** Support multiple currencies
-
-### 5. Rule Templates
-**Issue:** No predefined templates  
-**Current:** Manual entry every time  
-**Future:** Add common bill templates
-
----
-
-## 🚀 Future Enhancements
-
-### Phase 1 (v2.4.0)
-1. **Background Scheduler**
-   - True 5 AM daily checks
-   - Works when app is closed
-   - Use `workmanager` package
-
-2. **OS Notifications**
-   - Push notifications to device
-   - Actionable notifications
-   - Use `flutter_local_notifications`
-
-3. **Cloud Sync**
-   - Sync rules to Google Drive
-   - Cross-device synchronization
-   - Conflict resolution
-
-### Phase 2 (v2.5.0)
-4. **Rule Templates**
-   - Common bills (Netflix, Spotify, etc.)
-   - One-tap rule creation
-   - Category auto-fill
-
-5. **Smart Suggestions**
-   - Detect recurring patterns
-   - Suggest creating rules
-   - ML-based detection
-
-6. **Bulk Operations**
-   - Select multiple rules
-   - Pause/activate in bulk
-   - Delete multiple at once
-
-### Phase 3 (v3.0.0)
-7. **Rule Groups**
-   - Group related bills
-   - "All Subscriptions"
-   - "All Utilities"
-
-8. **Payment History**
-   - View all past payments
-   - Missed payment tracking
-   - Payment trends
-
-9. **Advanced Scheduling**
-   - "2nd Friday of every month"
-   - "Last day of month"
-   - "Skip holidays"
-
----
-
-## 📝 File Structure
+## 📁 File Structure
 
 ```
 lib/
 ├── models/
-│   ├── recurring_rule.dart              ✅ New
-│   └── recurring_notification.dart      ✅ New
+│   ├── recurring_rule.dart              # Rule data model
+│   └── recurring_notification.dart      # Notification data model
+│
 ├── services/
-│   ├── recurring_bill_service.dart      ✅ New
-│   └── local_storage_service.dart       ✅ Updated
+│   ├── recurring_bill_service.dart      # Core business logic
+│   └── local_storage_service.dart       # Updated with storage methods
+│
 ├── screens/
-│   ├── recurring_bills_screen.dart      ✅ Updated
-│   ├── create_recurring_rule_screen.dart ✅ New
-│   ├── notification_center_screen.dart  ✅ New
-│   └── home_screen_v2.dart              ✅ Updated (bell icon)
+│   ├── recurring_bills_screen.dart      # List of all rules
+│   ├── create_recurring_rule_screen.dart # Create/Edit form
+│   ├── notification_center_screen.dart   # Notification list with actions
+│   ├── add_transaction_screen_v2.dart   # Updated with duplicate detection
+│   └── home_screen_v2.dart              # Updated with bell icon
+│
+└── widgets/
+    ├── glass_card.dart                  # Reused UI component
+    └── expandable_tab_bar.dart          # Navigation
 ```
 
 ---
 
-## 📊 Statistics
+## ⚙️ How It Works
 
-**Lines of Code:** ~2,000  
-**Files Created:** 3 new, 3 updated  
-**Models:** 2  
-**Services:** 1  
-**Screens:** 3  
-**Time to Implement:** 4-5 hours  
+### Scenario: Netflix Subscription (Monthly)
+
+**Day 0 (Feb 1):** User creates rule
+```json
+{
+  "id": "rule-123",
+  "name": "Netflix Subscription",
+  "amount": 199,
+  "frequencyValue": 1,
+  "frequencyUnit": "months",
+  "startDate": "2026-02-01",
+  "nextOccurrence": "2026-03-01",
+  "isActive": true
+}
+```
+
+**Day 30 (March 1, 5:00 AM):** Auto-check runs
+```dart
+if (rule.nextOccurrence.isToday) {
+  // 1. Create transaction
+  transaction = Transaction(
+    merchant: "Netflix Subscription",
+    amount: 199,
+    date: "2026-03-01",
+    notes: "Auto-created from recurring rule: Netflix Subscription"
+  );
+  
+  // 2. Create notification
+  notification = RecurringNotification(
+    ruleName: "Netflix Subscription",
+    amount: 199,
+    dueDate: "2026-03-01",
+    status: pending
+  );
+  
+  // 3. Update next occurrence
+  rule.nextOccurrence = "2026-04-01"; // Next month
+  rule.lastCreated = now();
+}
+```
+
+**Day 30 (9:00 AM):** User opens app
+- Bell icon shows badge "1"
+- User taps bell → Notification Center
+- Sees: "Netflix Subscription - ₹199, Due: March 1"
+- Taps "Paid"
+
+**Result:**
+```dart
+notification.status = approved;
+notification.isRead = true;
+// Transaction stays in list
+// Badge count updates to 0
+```
+
+**Day 60 (April 1, 5:00 AM):** Cycle repeats
+- New transaction created
+- New notification created
+- Next occurrence: May 1
 
 ---
 
-## ✅ Implementation Complete!
+## 🧪 Testing Guide
 
-**Status:** 🟢 **Production Ready**
+### Test 1: Create Recurring Rule
 
-All core features are implemented and tested. The Recurring Bills feature is ready for use in ExpenWall v2.3.0!
+**Steps:**
+1. Navigate: Planning → Recurring Bills
+2. Tap: "Add Recurring Bill" FAB
+3. Fill:
+   - Name: "Test Subscription"
+   - Amount: 100
+   - Type: Expense
+   - Frequency: Every 1 month
+   - Start Date: Today
+4. Verify: Next due date auto-calculated (next month)
+5. Save
+6. Verify: Rule appears in Active Bills section
 
-**What's Working:**
-- ✅ Create/Edit/Delete rules
-- ✅ Flexible frequency system
-- ✅ Auto-transaction creation
-- ✅ 4-action notification system
-- ✅ Duplicate detection
-- ✅ Notification center with badge
-- ✅ Active/Paused rule management
+**Expected:**
+- ✅ Rule saved successfully
+- ✅ Shows in list with correct details
+- ✅ Next due date correct
+- ✅ Toggle switch is ON (active)
 
-**Next Steps:**
-1. Test thoroughly with real data
-2. Set up background scheduler (optional)
-3. Add to cloud sync (optional)
-4. Gather user feedback
-5. Iterate and improve
+### Test 2: Edit Recurring Rule
+
+**Steps:**
+1. Tap on existing rule
+2. Change amount to 150
+3. Change frequency to "Every 2 months"
+4. Save
+5. Verify changes reflected
+
+**Expected:**
+- ✅ Changes saved
+- ✅ Next due date recalculated
+- ✅ Frequency text updated
+
+### Test 3: Pause/Reactivate Rule
+
+**Steps:**
+1. Toggle switch on a rule to OFF
+2. Verify: Moves to "Paused Bills" section
+3. Toggle back to ON
+4. Verify: Moves back to "Active Bills"
+
+**Expected:**
+- ✅ Rule pauses correctly
+- ✅ Reactivates correctly
+- ✅ No errors
+
+### Test 4: Delete Rule
+
+**Steps:**
+1. Tap on a rule
+2. Tap delete icon (top-right)
+3. Confirm deletion
+4. Verify: Rule removed from list
+
+**Expected:**
+- ✅ Confirmation dialog shown
+- ✅ Rule deleted after confirmation
+- ✅ No longer in list
+
+### Test 5: Manual Due Date Check (Simulated)
+
+**Steps:**
+1. Create rule with next occurrence = today
+2. Open app
+3. Check if notification appears
+4. Check Expenses list for auto-created transaction
+
+**Expected:**
+- ✅ Transaction created automatically
+- ✅ Notification badge shows "1"
+- ✅ Notification appears in center
+
+### Test 6: Notification Actions
+
+**Test 6a: Paid**
+1. Open Notification Center
+2. Tap "Paid" on a notification
+3. Verify: Notification disappears, badge updates
+
+**Test 6b: Canceled - Just Pause**
+1. Tap "Canceled"
+2. Select "Just Pause"
+3. Verify: Rule moved to Paused, transaction deleted
+
+**Test 6c: Canceled - Delete Rule**
+1. Tap "Canceled"
+2. Select "Delete Rule"
+3. Verify: Rule completely removed
+
+**Test 6d: Notify Later**
+1. Tap "Notify Later"
+2. Choose date 2 days ahead, time 10 AM
+3. Verify: Notification snoozed
+4. Check on chosen date: Notification reappears
+
+**Test 6e: Reschedule**
+1. Tap "Reschedule"
+2. Choose new date (e.g., 5 days ahead)
+3. Verify: Next occurrence updated, transaction date changed
+
+**Expected:**
+- ✅ All 4 actions work correctly
+- ✅ UI updates reflect changes
+- ✅ Data persists
+
+### Test 7: Duplicate Detection
+
+**Steps:**
+1. Create recurring rule: "Netflix", ₹199
+2. Go to Add Transaction
+3. Type merchant name: "Netflix"
+4. Verify: Banner shows "Matches recurring bill: Netflix"
+5. Fill amount, date, save
+6. Verify: Dialog asks "Is this the same payment?"
+7. Select "Yes, Same Payment"
+8. Verify: Linked correctly, auto-transaction deleted
+
+**Expected:**
+- ✅ Detection works on typing
+- ✅ Banner visible
+- ✅ Dialog appears on save
+- ✅ Linking works correctly
+
+### Test 8: Frequency Variations
+
+**Test:**
+- Every 1 day
+- Every 7 days  
+- Every 2 weeks
+- Every 1 month
+- Every 3 months
+- Every 1 year
+- Every 25 days (custom)
+
+**Verify:**
+- ✅ Next occurrence calculated correctly for each
+- ✅ Frequency text displays properly
+
+### Test 9: Income Recurring (Salary)
+
+**Steps:**
+1. Create rule:
+   - Name: "Monthly Salary"
+   - Amount: 50000
+   - Type: **Income**
+   - Frequency: Every 1 month
+2. Verify: Creates income transaction (not expense)
+3. Verify: Shows correctly in Dashboard income
+
+**Expected:**
+- ✅ Income type supported
+- ✅ Transaction type correct
+- ✅ Dashboard reflects income
+
+### Test 10: Bell Icon Badge
+
+**Steps:**
+1. Create 3 different recurring rules with next occurrence = today
+2. Check bell icon: Badge shows "3"
+3. Handle 1 notification (Paid)
+4. Check: Badge shows "2"
+5. Handle all: Badge disappears
+
+**Expected:**
+- ✅ Badge count accurate
+- ✅ Updates in real-time
+- ✅ Disappears when 0
 
 ---
 
-**Happy Tracking! 🎉**
+## 🐛 Troubleshooting
+
+### Issue 1: Notifications Not Appearing
+
+**Symptoms:**
+- Bell icon badge is 0
+- No notifications in center
+- But transaction was created
+
+**Causes:**
+- Notification not saved to storage
+- Service not initialized
+
+**Fix:**
+```dart
+// Check service initialization in HomeScreen
+_recurringService = RecurringBillService(
+  localStorage: _localStorageService,
+  userId: _userId,
+);
+
+// Verify timer is running
+_notificationTimer = Timer.periodic(
+  const Duration(seconds: 30), 
+  (_) => _loadNotificationCount()
+);
+```
+
+### Issue 2: Duplicate Transactions
+
+**Symptoms:**
+- Same transaction appears twice
+- Once auto-created, once manual
+
+**Causes:**
+- Duplicate detection not triggered
+- Rule name doesn't match merchant name
+
+**Fix:**
+- Ensure merchant name contains rule name (case-insensitive)
+- Check `findMatchingRule()` logic
+- Use exact name or add better fuzzy matching
+
+### Issue 3: Next Occurrence Wrong
+
+**Symptoms:**
+- Next occurrence not calculating correctly
+- Off by days/months
+
+**Causes:**
+- Month calculation issue (Feb 30 doesn't exist)
+- Timezone mismatch
+
+**Fix:**
+```dart
+// Ensure proper month handling
+DateTime(
+  current.year,
+  current.month + value,
+  math.min(current.day, daysInMonth(current.month + value)),
+);
+```
+
+### Issue 4: Bell Badge Not Updating
+
+**Symptoms:**
+- Badge shows old count
+- Doesn't update after action
+
+**Causes:**
+- Timer not running
+- State not updating
+
+**Fix:**
+```dart
+// Call after each action
+await _loadNotificationCount();
+
+// In HomeScreen dispose:
+@override
+void dispose() {
+  _notificationTimer?.cancel();
+  super.dispose();
+}
+```
+
+### Issue 5: Storage Not Persisting
+
+**Symptoms:**
+- Rules disappear after app restart
+- Notifications lost
+
+**Causes:**
+- File write failed
+- Wrong user ID
+
+**Fix:**
+```dart
+// Verify files exist:
+final dir = await getApplicationDocumentsDirectory();
+print('Storage path: ${dir.path}/cache/');
+
+// Check file contents:
+final file = File('${dir.path}/cache/recurring_rules_$userId.json');
+if (await file.exists()) {
+  print(await file.readAsString());
+}
+```
+
+---
+
+## 🎉 Success Indicators
+
+**You'll know it's working when:**
+
+✅ **Can create recurring rules** with flexible frequency  
+✅ **Rules appear in list** with correct details  
+✅ **Bell icon shows badge** when notifications pending  
+✅ **Notification Center opens** and shows pending bills  
+✅ **All 4 actions work** (Paid, Canceled, Notify Later, Reschedule)  
+✅ **Duplicate detection triggers** when typing merchant name  
+✅ **Linking works** when selecting "Yes, same payment"  
+✅ **Next occurrence updates** automatically after actions  
+✅ **Active/Paused toggle** moves rules between sections  
+✅ **Data persists** after app restart  
+
+---
+
+## 🚀 Future Enhancements (v2.4.0+)
+
+1. **True Background Scheduler**
+   - Use `workmanager` package
+   - Run at 5 AM even if app closed
+   - Show system notifications
+
+2. **Smart Predictions**
+   - "You usually pay Netflix on 1st, but it's 3rd - reminder?"
+   - Detect missed payments
+
+3. **Recurring Templates**
+   - Pre-made templates for common subscriptions
+   - One-tap setup
+
+4. **Bill Reminders**
+   - Notify 1 day before due date
+   - "Netflix bill tomorrow - ₹199"
+
+5. **Statistics**
+   - Total monthly recurring expenses
+   - Subscription cost trends
+   - Most expensive subscriptions
+
+6. **Family Sharing**
+   - Share recurring bills with family members
+   - Split costs automatically
+
+---
+
+## 📝 Notes
+
+- **Flexible Frequency** is a unique feature - most apps only support monthly
+- **4-action system** covers all real-world scenarios
+- **Duplicate detection** prevents common user errors
+- **Smart linking** makes UX seamless
+- All data stored locally first, synced to Google Drive if enabled
+
+---
+
+**Status:** ✅ **Feature Complete & Ready for Testing!**  
+**Next:** Implement Split Bills feature or test thoroughly
+
+---
+
+*Generated: February 2, 2026*  
+*ExpenWall Mobile v2.3.0*
