@@ -98,7 +98,7 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
   // Toggle dark mode
   Future<void> _toggleDarkMode(bool value) async {
     setState(() => _isDarkMode = value);
-    await ExpenWallApp.of(context)?.toggleDarkMode(value);
+    await MyApp.of(context)?.toggleDarkMode(value);
     _showSnackBar(
       value ? 'Dark mode enabled' : 'Light mode enabled',
       Colors.grey,
@@ -108,7 +108,7 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
   // Change theme
   Future<void> _changeTheme(AppThemeType theme) async {
     setState(() => _currentTheme = theme);
-    await ExpenWallApp.of(context)?.changeTheme(theme);
+    await MyApp.of(context)?.changeTheme(theme);
     final themeName = ThemeService.themeMetadata[theme]!['name'];
     _showSnackBar('Theme changed to $themeName', Colors.green);
   }
@@ -1014,7 +1014,7 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Version 2.1.0 (Theme Update)',
+            'Version 2.3.1 (Split Bills Update)',
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[600],
