@@ -131,7 +131,7 @@ class _BuyingListScreenState extends State<BuyingListScreen> {
           const SizedBox(height: 24),
 
           // Unpurchased Items
-          if (unpurchased.isNotEmpty) ...[
+          if (unpurchased.isNotEmpty) ...<Widget>[
             const Text(
               'To Buy',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -145,7 +145,7 @@ class _BuyingListScreenState extends State<BuyingListScreen> {
           ],
 
           // Purchased Items
-          if (purchased.isNotEmpty) ...[
+          if (purchased.isNotEmpty) ...<Widget>[
             const Text(
               'Purchased',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -198,45 +198,48 @@ class _BuyingListScreenState extends State<BuyingListScreen> {
   }
 
   Widget _buildItemCard(BuyingListItem item, int index) {
-    return GlassCard(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Checkbox(
-            value: item.isPurchased,
-            onChanged: (_) => _togglePurchased(index),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    decoration: item.isPurchased ? TextDecoration.lineThrough : null,
-                    color: item.isPurchased ? Colors.grey : null,
-                  ),
-                ),
-                if (item.estimatedPrice > 0)
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassCard(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Checkbox(
+              value: item.isPurchased,
+              onChanged: (_) => _togglePurchased(index),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    '₹${item.estimatedPrice.toStringAsFixed(0)}',
+                    item.name,
                     style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                       decoration: item.isPurchased ? TextDecoration.lineThrough : null,
+                      color: item.isPurchased ? Colors.grey : null,
                     ),
                   ),
-              ],
+                  if (item.estimatedPrice > 0)
+                    Text(
+                      '₹${item.estimatedPrice.toStringAsFixed(0)}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                        decoration: item.isPurchased ? TextDecoration.lineThrough : null,
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.red),
-            onPressed: () => _deleteItem(index),
-          ),
-        ],
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              onPressed: () => _deleteItem(index),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -122,7 +122,7 @@ class _CravingsScreenState extends State<CravingsScreen> {
           const SizedBox(height: 24),
 
           // Active Cravings
-          if (active.isNotEmpty) ...[
+          if (active.isNotEmpty) ...<Widget>[
             const Text(
               'Want to Try',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -136,7 +136,7 @@ class _CravingsScreenState extends State<CravingsScreen> {
           ],
 
           // Completed Cravings
-          if (completed.isNotEmpty) ...[
+          if (completed.isNotEmpty) ...<Widget>[
             const Text(
               'Tried & Tested',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -194,53 +194,56 @@ class _CravingsScreenState extends State<CravingsScreen> {
   }
 
   Widget _buildCravingCard(CravingItem item, int index) {
-    return GlassCard(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Checkbox(
-            value: item.isDone,
-            onChanged: (_) => _toggleDone(index),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    decoration: item.isDone ? TextDecoration.lineThrough : null,
-                    color: item.isDone ? Colors.grey : null,
-                  ),
-                ),
-                if (item.notes != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      item.notes!,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                        decoration: item.isDone ? TextDecoration.lineThrough : null,
-                      ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassCard(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Checkbox(
+              value: item.isDone,
+              onChanged: (_) => _toggleDone(index),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      decoration: item.isDone ? TextDecoration.lineThrough : null,
+                      color: item.isDone ? Colors.grey : null,
                     ),
                   ),
-                const SizedBox(height: 4),
-                Text(
-                  'Added ${_formatDate(item.addedDate)}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                ),
-              ],
+                  if (item.notes != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        item.notes!,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                          decoration: item.isDone ? TextDecoration.lineThrough : null,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Added ${_formatDate(item.addedDate)}',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                  ),
+                ],
+              ),
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.red),
-            onPressed: () => _deleteCraving(index),
-          ),
-        ],
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              onPressed: () => _deleteCraving(index),
+            ),
+          ],
+        ),
       ),
     );
   }
