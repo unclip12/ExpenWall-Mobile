@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/transaction.dart';
+import '../models/recurring_rule.dart';
 import '../widgets/glass_card.dart';
 import '../utils/category_icons.dart';
 import '../services/local_storage_service.dart';
+import '../services/recurring_bill_service.dart';
 
 class AddTransactionScreenV2 extends StatefulWidget {
   final Function(Transaction) onSave;
@@ -29,6 +31,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
   final _notesController = TextEditingController();
   final _merchantFocusNode = FocusNode();
   final _localStorageService = LocalStorageService();
+  late final RecurringBillService _recurringService;
 
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
@@ -44,10 +47,16 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
   bool _showMerchantSuggestions = false;
   List<String> _merchantSuggestions = [];
   List<Transaction> _previousTransactions = [];
+  RecurringRule? _matchingRecurringRule;
 
   @override
   void initState() {
     super.initState();
+    _recurringService = RecurringBillService(
+      localStorage: _localStorageService,
+      userId: widget.userId,
+    );
+    
     _animController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
@@ -107,9 +116,13 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
       setState(() {
         _showMerchantSuggestions = false;
         _merchantSuggestions = [];
+        _matchingRecurringRule = null;
       });
       return;
     }
+
+    // Check for matching recurring rule
+    _checkForRecurringRule(query);
 
     // Get unique merchants from previous transactions
     final allMerchants = _previousTransactions
@@ -145,6 +158,19 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
     }
   }
 
+  Future<void> _checkForRecurringRule(String merchantName) async {
+    final matchingRule = await _recurringService.findMatchingRule(merchantName);
+    if (matchingRule != null) {
+      setState(() {
+        _matchingRecurringRule = matchingRule;
+      });
+    } else {
+      setState(() {
+        _matchingRecurringRule = null;
+      });
+    }
+  }
+
   void _onMerchantFocusChanged() {
     if (!_merchantFocusNode.hasFocus) {
       setState(() {
@@ -176,11 +202,26 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Check for recurring rule match before saving
+    if (_matchingRecurringRule != null) {
+      final isRecurringPayment = await _showRecurringRuleDialog();
+      
+      if (isRecurringPayment == null) return; // User canceled
+      
+      if (isRecurringPayment) {
+        // Link to recurring rule
+        await _linkToRecurringRule();
+        return;
+      }
+      // Otherwise, continue with normal transaction creation
+    }
+
     setState(() => _isSubmitting = true);
 
     try {
       final transaction = Transaction(
         id: widget.initialData?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        userId: widget.userId,
         merchant: _merchantController.text.trim(),
         amount: double.parse(_amountController.text),
         category: _category,
@@ -193,6 +234,148 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
       );
 
       await widget.onSave(transaction);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  Future<bool?> _showRecurringRuleDialog() async {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              Icons.repeat,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text('Recurring Bill Detected'),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'You have a recurring bill for:',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _matchingRecurringRule!.name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '₹${_matchingRecurringRule!.amount.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _matchingRecurringRule!.getFrequencyText(),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Is this the same payment?',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('No, Different Payment'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+            ),
+            child: const Text('Yes, Same Payment'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _linkToRecurringRule() async {
+    setState(() => _isSubmitting = true);
+
+    try {
+      final transaction = Transaction(
+        id: widget.initialData?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        userId: widget.userId,
+        merchant: _merchantController.text.trim(),
+        amount: double.parse(_amountController.text),
+        category: _category,
+        subcategory: _subcategory,
+        type: _type,
+        date: _selectedDate,
+        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+        items: _items.isEmpty ? null : _items,
+        currency: 'INR',
+      );
+
+      // Save transaction first
+      await widget.onSave(transaction);
+
+      // Link to recurring rule (this will delete auto-created transaction)
+      await _recurringService.linkTransactionToRule(
+        transaction.id,
+        _matchingRecurringRule!.id,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Linked to recurring bill'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.of(context).pop();
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -262,16 +445,54 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
               decoration: InputDecoration(
                 hintText: 'DMart, Rapido, Coffee Shop...',
                 prefixIcon: const Icon(Icons.storefront),
-                suffixIcon: _merchantController.text.isNotEmpty
+                suffixIcon: _matchingRecurringRule != null
                     ? Icon(
-                        Icons.auto_awesome,
+                        Icons.repeat,
                         color: Theme.of(context).colorScheme.primary,
                       )
-                    : null,
+                    : _merchantController.text.isNotEmpty
+                        ? Icon(
+                            Icons.auto_awesome,
+                            color: Theme.of(context).colorScheme.primary,
+                          )
+                        : null,
               ),
               textCapitalization: TextCapitalization.words,
               validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
             ),
+            // Recurring Rule Banner
+            if (_matchingRecurringRule != null)
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.repeat,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Matches recurring bill: ${_matchingRecurringRule!.name}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             // Autocomplete Suggestions
             if (_showMerchantSuggestions && _merchantSuggestions.isNotEmpty)
               Container(
