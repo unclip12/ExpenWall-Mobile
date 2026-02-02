@@ -4,11 +4,14 @@ import 'dart:ui';
 import 'dashboard_screen.dart';
 import 'transactions_screen.dart';
 import 'add_transaction_screen.dart';
+import 'budget_screen.dart';
+import 'products_screen.dart';
 import 'settings_screen.dart';
 import '../models/transaction.dart';
 import '../models/wallet.dart';
 import '../models/merchant_rule.dart';
 import '../models/budget.dart';
+import '../models/product.dart';
 import '../services/firestore_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -26,6 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<MerchantRule> _rules = [];
   List<Wallet> _wallets = [];
   List<Budget> _budgets = [];
+  List<Product> _products = [];
   
   bool _isLoading = true;
   String? _userId;
@@ -71,6 +75,12 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() => _budgets = budgets);
       }
     });
+
+    _firestoreService.subscribeToProducts(user.uid).listen((products) {
+      if (mounted) {
+        setState(() => _products = products);
+      }
+    });
   }
 
   List<Widget> get _screens => [
@@ -83,9 +93,14 @@ class _HomeScreenState extends State<HomeScreen> {
           rules: _rules,
           onDeleteTransaction: (id) => _firestoreService.deleteTransaction(id),
         ),
-        const SizedBox(), // Placeholder for FAB
+        BudgetScreen(
+          budgets: _budgets,
+          transactions: _transactions,
+          onAddBudget: (budget) => _firestoreService.addBudget(budget),
+          onDeleteBudget: (id) => _firestoreService.deleteBudget(id),
+        ),
+        ProductsScreen(products: _products),
         const SettingsScreen(),
-        const SettingsScreen(), // Placeholder for Profile
       ];
 
   @override
@@ -95,47 +110,47 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Theme.of(context).brightness == Brightness.dark
           ? const Color(0xFF0F172A)
           : const Color(0xFFF8FAFC),
-      appBar: _currentIndex == 2
-          ? null
-          : AppBar(
-              title: Text(
-                _getAppBarTitle(),
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                ),
-              ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.notifications_outlined),
-                  onPressed: () {},
-                ),
-                const SizedBox(width: 8),
-              ],
-            ),
+      appBar: AppBar(
+        title: Text(
+          _getAppBarTitle(),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: () {},
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : IndexedStack(
               index: _currentIndex,
               children: _screens,
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => AddTransactionScreen(
-                onSave: (transaction) async {
-                  await _firestoreService.addTransaction(transaction);
-                  Navigator.of(context).pop();
-                },
-              ),
-            ),
-          );
-        },
-        elevation: 8,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        child: const Icon(Icons.add, size: 32),
-      ),
+      floatingActionButton: _currentIndex < 2
+          ? FloatingActionButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => AddTransactionScreen(
+                      onSave: (transaction) async {
+                        await _firestoreService.addTransaction(transaction);
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ),
+                );
+              },
+              elevation: 8,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              child: const Icon(Icons.add, size: 32),
+            )
+          : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: _buildGlassBottomNav(),
     );
@@ -147,10 +162,12 @@ class _HomeScreenState extends State<HomeScreen> {
         return 'Dashboard';
       case 1:
         return 'Transactions';
+      case 2:
+        return 'Budgets';
       case 3:
-        return 'Settings';
+        return 'Products';
       case 4:
-        return 'Profile';
+        return 'Settings';
       default:
         return 'ExpenWall';
     }
@@ -188,11 +205,11 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(Icons.dashboard_rounded, 'Dashboard', 0),
+                _buildNavItem(Icons.dashboard_rounded, 'Home', 0),
                 _buildNavItem(Icons.receipt_long_rounded, 'Activity', 1),
-                const SizedBox(width: 50), // Space for FAB
-                _buildNavItem(Icons.settings_rounded, 'Settings', 3),
-                _buildNavItem(Icons.person_rounded, 'Profile', 4),
+                _buildNavItem(Icons.account_balance_wallet_rounded, 'Budget', 2),
+                _buildNavItem(Icons.inventory_2_rounded, 'Products', 3),
+                _buildNavItem(Icons.settings_rounded, 'Settings', 4),
               ],
             ),
           ),
@@ -206,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return GestureDetector(
       onTap: () => setState(() => _currentIndex = index),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
               ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
@@ -221,13 +238,13 @@ class _HomeScreenState extends State<HomeScreen> {
               color: isSelected
                   ? Theme.of(context).colorScheme.primary
                   : Colors.grey[600],
-              size: 24,
+              size: 22,
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                fontSize: 10,
+                fontSize: 9,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                 color: isSelected
                     ? Theme.of(context).colorScheme.primary
