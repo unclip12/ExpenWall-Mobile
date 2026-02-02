@@ -1,42 +1,42 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum WalletType { bank, cash, credit, digital }
-
 class Wallet {
   final String id;
-  final String? userId;
   final String name;
-  final WalletType type;
-  final String? color;
-  final DateTime? createdAt;
+  final String type;
+  final double balance;
+  final String? currency;
+  final bool isDefault;
+  final DateTime createdAt;
 
   Wallet({
     required this.id,
-    this.userId,
     required this.name,
     required this.type,
-    this.color,
-    this.createdAt,
+    required this.balance,
+    this.currency = 'INR',
+    this.isDefault = false,
+    required this.createdAt,
   });
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'userId': userId,
+  Map<String, dynamic> toFirestore() => {
         'name': name,
-        'type': type.name,
-        'color': color,
-        'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
+        'type': type,
+        'balance': balance,
+        'currency': currency,
+        'isDefault': isDefault,
+        'createdAt': Timestamp.fromDate(createdAt),
       };
 
-  factory Wallet.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  factory Wallet.fromFirestore(Map<String, dynamic> data, String id) {
     return Wallet(
-      id: doc.id,
-      userId: data['userId'],
-      name: data['name'],
-      type: WalletType.values.byName(data['type']),
-      color: data['color'],
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
+      id: id,
+      name: data['name'] ?? '',
+      type: data['type'] ?? 'cash',
+      balance: (data['balance'] as num?)?.toDouble() ?? 0.0,
+      currency: data['currency'] ?? 'INR',
+      isDefault: data['isDefault'] ?? false,
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 }
