@@ -7,6 +7,8 @@ import '../models/budget.dart';
 import '../models/product.dart';
 import '../models/wallet.dart';
 import '../models/merchant_rule.dart';
+import '../models/recurring_rule.dart';
+import '../models/recurring_notification.dart';
 
 class LocalStorageService {
   static const String _transactionsFile = 'transactions';
@@ -15,6 +17,8 @@ class LocalStorageService {
   static const String _walletsFile = 'wallets';
   static const String _rulesFile = 'rules';
   static const String _pendingOpsFile = 'pending_operations';
+  static const String _recurringRulesFile = 'recurring_rules';
+  static const String _recurringNotificationsFile = 'recurring_notifications';
   
   static const String _lastSyncKey = 'last_sync_timestamp';
   static const String _userIdKey = 'cached_user_id';
@@ -267,6 +271,65 @@ class LocalStorageService {
     }
   }
 
+  // RECURRING RULES
+  Future<void> saveRecurringRules(String userId, List<RecurringRule> rules) async {
+    try {
+      final file = await _getUserFile(userId, _recurringRulesFile);
+      final jsonList = rules.map((r) => r.toJson()).toList();
+      
+      await file.writeAsString(jsonEncode(jsonList));
+      await _updateLastSync();
+    } catch (e) {
+      print('Error saving recurring rules to local storage: $e');
+    }
+  }
+
+  Future<List<RecurringRule>> loadRecurringRules(String userId) async {
+    try {
+      final file = await _getUserFile(userId, _recurringRulesFile);
+      if (!await file.exists()) {
+        return [];
+      }
+      
+      final jsonString = await file.readAsString();
+      final List<dynamic> jsonList = jsonDecode(jsonString);
+      
+      return jsonList.map((json) => RecurringRule.fromJson(json)).toList();
+    } catch (e) {
+      print('Error loading recurring rules from local storage: $e');
+      return [];
+    }
+  }
+
+  // RECURRING NOTIFICATIONS
+  Future<void> saveRecurringNotifications(String userId, List<RecurringNotification> notifications) async {
+    try {
+      final file = await _getUserFile(userId, _recurringNotificationsFile);
+      final jsonList = notifications.map((n) => n.toJson()).toList();
+      
+      await file.writeAsString(jsonEncode(jsonList));
+    } catch (e) {
+      print('Error saving recurring notifications to local storage: $e');
+    }
+  }
+
+  Future<List<RecurringNotification>> loadRecurringNotifications(String userId) async {
+    try {
+      final file = await _getUserFile(userId, _recurringNotificationsFile);
+      if (!await file.exists()) {
+        return [];
+      }
+      
+      final jsonString = await file.readAsString();
+      final List<dynamic> jsonList = jsonDecode(jsonString);
+      
+      return jsonList.map((json) => RecurringNotification.fromJson(json)).toList();
+    } catch (e) {
+      print('Error loading recurring notifications from local storage: $e');
+      return [];
+    }
+  }
+
   // PENDING OPERATIONS QUEUE
   Future<void> addPendingOperation(String userId, Map<String, dynamic> operation) async {
     try {
@@ -355,6 +418,8 @@ class LocalStorageService {
         _walletsFile,
         _rulesFile,
         _pendingOpsFile,
+        _recurringRulesFile,
+        _recurringNotificationsFile,
       ];
       
       for (final filename in files) {
