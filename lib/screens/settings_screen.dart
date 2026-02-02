@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'dart:convert';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:file_picker/file_picker.dart';
 import '../services/google_drive_service.dart';
 import '../services/local_storage_service.dart';
+import '../services/sync_manager.dart';
 import '../widgets/glass_card.dart';
 import '../theme/app_theme.dart';
 import 'package:intl/intl.dart';
@@ -15,18 +21,32 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final GoogleDriveService _driveService = GoogleDriveService();
   final LocalStorageService _localStorage = LocalStorageService();
+  late SyncManager _syncManager;
   
   bool _isLoading = true;
   bool _isSyncing = false;
   bool _isSignedIn = false;
+  bool _autoSyncEnabled = false;
   String? _userEmail;
   DateTime? _lastBackupTime;
   String _userId = 'local_user';
+  int _syncInterval = 5;
 
   @override
   void initState() {
     super.initState();
+    _syncManager = SyncManager(
+      driveService: _driveService,
+      localStorage: _localStorage,
+      userId: _userId,
+    );
     _loadUserData();
+  }
+
+  @override
+  void dispose() {
+    _syncManager.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserData() async {
@@ -34,16 +54,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final cachedUserId = await _localStorage.getCachedUserId();
     if (cachedUserId != null) {
       _userId = cachedUserId;
+      _syncManager = SyncManager(
+        driveService: _driveService,
+        localStorage: _localStorage,
+        userId: _userId,
+      );
     }
+    
+    final autoSync = await _syncManager.isAutoSyncEnabled();
+    final interval = await _syncManager.getSyncInterval();
     
     setState(() {
       _isSignedIn = _driveService.isSignedIn;
       _userEmail = _driveService.userEmail;
+      _autoSyncEnabled = autoSync;
+      _syncInterval = interval;
       _isLoading = false;
     });
 
     if (_isSignedIn) {
       _loadLastBackupTime();
+      if (_autoSyncEnabled) {
+        _syncManager.startAutoSync();
+      }
     }
   }
 
@@ -75,19 +108,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _signOut() async {
+    await _syncManager.setAutoSync(false);
     await _driveService.signOut();
     setState(() {
       _isSignedIn = false;
       _userEmail = null;
       _lastBackupTime = null;
+      _autoSyncEnabled = false;
     });
     _showSnackBar('Signed out', Colors.grey);
+  }
+
+  Future<void> _toggleAutoSync(bool enabled) async {
+    await _syncManager.setAutoSync(enabled);
+    setState(() {
+      _autoSyncEnabled = enabled;
+    });
+    
+    if (enabled) {
+      _showSnackBar('Auto-sync enabled', Colors.green);
+      _syncManager.startAutoSync();
+    } else {
+      _showSnackBar('Auto-sync disabled', Colors.grey);
+    }
+  }
+
+  Future<void> _changeSyncInterval() async {
+    final intervals = [1, 5, 10, 15, 30, 60];
+    
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sync Interval'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: intervals.map((minutes) {
+            return RadioListTile<int>(
+              title: Text('$minutes ${minutes == 1 ? 'minute' : 'minutes'}'),
+              value: minutes,
+              groupValue: _syncInterval,
+              onChanged: (value) async {
+                if (value != null) {
+                  await _syncManager.setSyncInterval(value);
+                  setState(() => _syncInterval = value);
+                  Navigator.pop(context);
+                  _showSnackBar('Sync interval updated', Colors.green);
+                }
+              },
+            );
+          }).toList(),
+        ),
+      ),
+    );
   }
 
   Future<void> _backupNow() async {
     setState(() => _isSyncing = true);
     
-    final success = await _driveService.backupToCloud(_userId);
+    final success = await _syncManager.syncNow();
     
     setState(() => _isSyncing = false);
     
@@ -133,6 +211,105 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _showSnackBar('Restore successful! Restart app to see changes.', Colors.green);
     } else {
       _showSnackBar('Restore failed', Colors.red);
+    }
+  }
+
+  Future<void> _exportData() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final cacheDir = Directory('${appDir.path}/cache');
+      
+      // Collect all data files
+      final files = [
+        'transactions_$_userId.json',
+        'budgets_$_userId.json',
+        'products_$_userId.json',
+      ];
+      
+      Map<String, dynamic> exportData = {
+        'version': '2.0.0',
+        'exportDate': DateTime.now().toIso8601String(),
+        'userId': _userId,
+      };
+      
+      for (final fileName in files) {
+        final file = File('${cacheDir.path}/$fileName');
+        if (await file.exists()) {
+          final content = await file.readAsString();
+          final key = fileName.split('_').first;
+          exportData[key] = jsonDecode(content);
+        }
+      }
+      
+      // Create export file
+      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final exportFileName = 'ExpenWall_Backup_$timestamp.json';
+      final exportFile = File('${appDir.path}/$exportFileName');
+      await exportFile.writeAsString(jsonEncode(exportData));
+      
+      // Share the file
+      await Share.shareXFiles(
+        [XFile(exportFile.path)],
+        text: 'ExpenWall Backup - $timestamp',
+      );
+      
+      setState(() => _isLoading = false);
+      _showSnackBar('Data exported successfully', Colors.green);
+    } catch (e) {
+      setState(() => _isLoading = false);
+      _showSnackBar('Export failed: $e', Colors.red);
+    }
+  }
+
+  Future<void> _importData() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+      
+      if (result == null || result.files.isEmpty) return;
+      
+      setState(() => _isLoading = true);
+      
+      final file = File(result.files.first.path!);
+      final content = await file.readAsString();
+      final importData = jsonDecode(content);
+      
+      // Validate format
+      if (importData['version'] == null || importData['exportDate'] == null) {
+        throw Exception('Invalid backup file format');
+      }
+      
+      // Save imported data
+      final appDir = await getApplicationDocumentsDirectory();
+      final cacheDir = Directory('${appDir.path}/cache');
+      if (!await cacheDir.exists()) {
+        await cacheDir.create(recursive: true);
+      }
+      
+      if (importData['transactions'] != null) {
+        final transFile = File('${cacheDir.path}/transactions_$_userId.json');
+        await transFile.writeAsString(jsonEncode(importData['transactions']));
+      }
+      
+      if (importData['budgets'] != null) {
+        final budgetFile = File('${cacheDir.path}/budgets_$_userId.json');
+        await budgetFile.writeAsString(jsonEncode(importData['budgets']));
+      }
+      
+      if (importData['products'] != null) {
+        final prodFile = File('${cacheDir.path}/products_$_userId.json');
+        await prodFile.writeAsString(jsonEncode(importData['products']));
+      }
+      
+      setState(() => _isLoading = false);
+      _showSnackBar('Import successful! Restart app to see changes.', Colors.green);
+    } catch (e) {
+      setState(() => _isLoading = false);
+      _showSnackBar('Import failed: $e', Colors.red);
     }
   }
 
@@ -204,6 +381,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSignInCard()
         else
           _buildCloudBackupCard(),
+        
+        const SizedBox(height: 32),
+        
+        // Manual Backup Section
+        _buildSectionTitle('Manual Backup'),
+        const SizedBox(height: 12),
+        _buildManualBackupCard(),
         
         const SizedBox(height: 32),
         
@@ -290,8 +474,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               CircleAvatar(
                 backgroundColor: AppTheme.primaryPurple.withOpacity(0.2),
-                child: const Icon(
-                  Icons.cloud_done,
+                child: Icon(
+                  _autoSyncEnabled ? Icons.cloud_sync : Icons.cloud_done,
                   color: AppTheme.primaryPurple,
                 ),
               ),
@@ -324,7 +508,61 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+          
+          // Auto-sync toggle
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white.withOpacity(0.05)
+                  : Colors.black.withOpacity(0.03),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.sync,
+                  size: 20,
+                  color: _autoSyncEnabled ? AppTheme.primaryPurple : Colors.grey,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Auto-sync',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        _autoSyncEnabled
+                            ? 'Every $_syncInterval ${_syncInterval == 1 ? 'minute' : 'minutes'}'
+                            : 'Disabled',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_autoSyncEnabled)
+                  TextButton(
+                    onPressed: _changeSyncInterval,
+                    child: const Text('Change'),
+                  ),
+                Switch(
+                  value: _autoSyncEnabled,
+                  onChanged: _toggleAutoSync,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
           
           // Last Backup Time
           if (_lastBackupTime != null)
@@ -391,13 +629,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 12),
           
           // Delete Cloud Backup
-          TextButton.icon(
-            onPressed: _deleteCloudData,
-            icon: const Icon(Icons.delete_outline, size: 18),
-            label: const Text('Delete Cloud Backup'),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
+          Center(
+            child: TextButton.icon(
+              onPressed: _deleteCloudData,
+              icon: const Icon(Icons.delete_outline, size: 18),
+              label: const Text('Delete Cloud Backup'),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildManualBackupCard() {
+    return GlassCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Export/Import Data',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Backup your data to a file or restore from a previous backup.',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _exportData,
+                  icon: const Icon(Icons.upload_file, size: 18),
+                  label: const Text('Export'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _importData,
+                  icon: const Icon(Icons.download, size: 18),
+                  label: const Text('Import'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
