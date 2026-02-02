@@ -18,10 +18,13 @@ jobs:
           java-version: '17'
 
       - name: Make gradlew executable
-        run: chmod +x gradlew
+        run: |
+          cd android
+          chmod +x gradlew
 
       - name: Get SHA-1 from debug keystore
         run: |
+          cd android
           echo "========================================"
           echo "SHA-1 FINGERPRINTS FOR GOOGLE OAUTH"
           echo "========================================"
@@ -29,16 +32,4 @@ jobs:
           echo "========================================"
           echo "COPY THE SHA1 VALUE FROM ABOVE"
           echo "Look for 'SHA1:' under 'Variant: debug'"
-          echo "========================================"
-
-      - name: Also get default Android debug keystore SHA-1
-        run: |
-          echo "\n========================================"
-          echo "DEFAULT ANDROID DEBUG KEYSTORE SHA-1:"
-          echo "========================================"
-          if [ -f ~/.android/debug.keystore ]; then
-            keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep SHA1
-          else
-            echo "Default debug keystore not found (normal for GitHub Actions)"
-          fi
           echo "========================================"
