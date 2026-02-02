@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:ui';
 import 'dart:async';
 import 'dashboard_screen.dart';
@@ -37,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
   
   bool _isLoading = true;
   bool _isSyncing = false;
-  String _userId = 'local_user'; // Default local user ID
+  final String _userId = 'local_user'; // Default local user ID (no auth required!)
   String? _errorMessage;
 
   @override
@@ -48,19 +47,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _initializeData() async {
     try {
-      // STEP 1: Load from local storage immediately (instant load)
+      // OFFLINE-FIRST: Load from local storage immediately (instant load)
       await _loadLocalData();
       
-      setState(() {
-        _isLoading = false;
-      });
-
-      // STEP 2: Try to sync with Firebase in background (optional)
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        _userId = user.uid;
-        _startFirebaseSync();
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
+
+      // Optional: Firebase sync can be added here if needed
+      // For now, app works 100% offline with optional Google Drive sync via Settings
     } catch (e) {
       print('Error initializing data: $e');
       if (mounted) {
@@ -78,73 +75,21 @@ class _HomeScreenState extends State<HomeScreen> {
       final transactions = await _localStorageService.loadTransactions(_userId);
       final budgets = await _localStorageService.loadBudgets(_userId);
       final products = await _localStorageService.loadProducts(_userId);
-      // Rules and wallets will be added later
+      final rules = await _localStorageService.loadRules(_userId);
+      // Wallets will be added later if needed
       
       if (mounted) {
         setState(() {
           _transactions = transactions;
           _budgets = budgets;
           _products = products;
+          _rules = rules;
         });
       }
     } catch (e) {
       print('Error loading local data: $e');
+      // It's okay if there's no data yet (first launch)
     }
-  }
-
-  // Start Firebase sync in background (optional, doesn't block UI)
-  void _startFirebaseSync() {
-    setState(() => _isSyncing = true);
-
-    // Subscribe to Firebase updates
-    _firestoreService.subscribeToTransactions(_userId).listen(
-      (transactions) async {
-        if (mounted) {
-          setState(() {
-            _transactions = transactions;
-            _isSyncing = false;
-          });
-          // Save to local storage for next launch
-          await _localStorageService.saveTransactions(_userId, transactions);
-        }
-      },
-      onError: (error) {
-        print('Firebase sync error: $error');
-        if (mounted) {
-          setState(() => _isSyncing = false);
-        }
-      },
-    );
-
-    _firestoreService.subscribeToBudgets(_userId).listen(
-      (budgets) async {
-        if (mounted) {
-          setState(() => _budgets = budgets);
-          await _localStorageService.saveBudgets(_userId, budgets);
-        }
-      },
-      onError: (error) => print('Budgets sync error: $error'),
-    );
-
-    _firestoreService.subscribeToProducts(_userId).listen(
-      (products) async {
-        if (mounted) {
-          setState(() => _products = products);
-          await _localStorageService.saveProducts(_userId, products);
-        }
-      },
-      onError: (error) => print('Products sync error: $error'),
-    );
-
-    _firestoreService.subscribeToRules(_userId).listen(
-      (rules) async {
-        if (mounted) {
-          setState(() => _rules = rules);
-          await _localStorageService.saveRules(_userId, rules);
-        }
-      },
-      onError: (error) => print('Rules sync error: $error'),
-    );
   }
 
   // Add transaction (local-first, then sync)
@@ -171,7 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // Save to local storage
     await _localStorageService.saveTransactions(_userId, _transactions);
 
-    // Try to sync to Firebase if connected
+    // Try to sync to Firebase if connected (optional)
     try {
       setState(() => _isSyncing = true);
       await _firestoreService.addTransaction(txWithUserId);
