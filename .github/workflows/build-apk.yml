@@ -28,6 +28,19 @@ jobs:
         flutter-version: '3.24.3'
         channel: 'stable'
     
+    - name: 🔐 Inject Firebase Configuration
+      env:
+        FIREBASE_OPTIONS: ${{ secrets.FIREBASE_OPTIONS_DART }}
+        GOOGLE_SERVICES: ${{ secrets.GOOGLE_SERVICES_JSON }}
+      run: |
+        echo "📝 Injecting Firebase options..."
+        echo "$FIREBASE_OPTIONS" > lib/firebase_options.dart
+        
+        echo "📝 Injecting Google Services..."
+        echo "$GOOGLE_SERVICES" > android/app/google-services.json
+        
+        echo "✅ Firebase configuration injected successfully!"
+    
     - name: Install dependencies
       run: flutter pub get
     
@@ -60,3 +73,4 @@ jobs:
         echo "- Flutter Version: $(flutter --version | head -n 1)" >> $GITHUB_STEP_SUMMARY
         echo "- Build Date: $(date)" >> $GITHUB_STEP_SUMMARY
         echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- 🔐 Firebase: Configured from secrets" >> $GITHUB_STEP_SUMMARY
