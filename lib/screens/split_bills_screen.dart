@@ -4,7 +4,10 @@ import '../services/split_bill_service.dart';
 import '../services/contact_service.dart';
 import '../services/local_storage_service.dart';
 import '../widgets/glass_card.dart';
-import 'package:intl/intl.dart';
+import 'create_split_bill_screen.dart';
+import 'bill_details_screen.dart';
+import 'contacts_screen.dart';
+import 'groups_screen.dart';
 
 class SplitBillsScreen extends StatefulWidget {
   final String userId;
@@ -19,7 +22,7 @@ class _SplitBillsScreenState extends State<SplitBillsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late SplitBillService _splitBillService;
-  List<SplitBill> _allBills = [];
+
   List<SplitBill> _pendingBills = [];
   List<SplitBill> _settledBills = [];
   bool _isLoading = true;
@@ -49,19 +52,21 @@ class _SplitBillsScreenState extends State<SplitBillsScreen>
   Future<void> _loadBills() async {
     setState(() => _isLoading = true);
     try {
-      final bills = await _splitBillService.getAllBills();
+      final allBills = await _splitBillService.getAllBills();
+      final pending = allBills
+          .where((b) => b.status != BillStatus.fullySettled)
+          .toList();
+      final settled =
+          allBills.where((b) => b.status == BillStatus.fullySettled).toList();
       final totalPending = await _splitBillService.getTotalPendingAmount();
 
+      // Sort by date (newest first)
+      pending.sort((a, b) => b.date.compareTo(a.date));
+      settled.sort((a, b) => b.date.compareTo(a.date));
+
       setState(() {
-        _allBills = bills;
-        _pendingBills = bills
-            .where((b) => b.status != BillStatus.fullySettled)
-            .toList()
-          ..sort((a, b) => b.date.compareTo(a.date));
-        _settledBills = bills
-            .where((b) => b.status == BillStatus.fullySettled)
-            .toList()
-          ..sort((a, b) => b.date.compareTo(a.date));
+        _pendingBills = pending;
+        _settledBills = settled;
         _totalPending = totalPending;
         _isLoading = false;
       });
@@ -75,30 +80,6 @@ class _SplitBillsScreenState extends State<SplitBillsScreen>
     }
   }
 
-  void _navigateToDetails(SplitBill bill) async {
-    final result = await Navigator.pushNamed(
-      context,
-      '/split-bill-details',
-      arguments: {'billId': bill.id, 'userId': widget.userId},
-    );
-
-    if (result == true) {
-      _loadBills();
-    }
-  }
-
-  void _navigateToCreate() async {
-    final result = await Navigator.pushNamed(
-      context,
-      '/create-split-bill',
-      arguments: widget.userId,
-    );
-
-    if (result == true) {
-      _loadBills();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -106,10 +87,27 @@ class _SplitBillsScreenState extends State<SplitBillsScreen>
         title: const Text('Split Bills'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.contacts),
-            tooltip: 'Manage Contacts',
+            icon: const Icon(Icons.people),
+            tooltip: 'Contacts',
             onPressed: () {
-              Navigator.pushNamed(context, '/contacts', arguments: widget.userId);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ContactsScreen(userId: widget.userId),
+                ),
+              ).then((_) => _loadBills());
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.group),
+            tooltip: 'Groups',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => GroupsScreen(userId: widget.userId),
+                ),
+              ).then((_) => _loadBills());
             },
           ),
         ],
@@ -117,13 +115,32 @@ class _SplitBillsScreenState extends State<SplitBillsScreen>
           controller: _tabController,
           tabs: [
             Tab(
-              text: 'Pending (${_pendingBills.length})',
-              icon: const Icon(Icons.pending_actions),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Pending'),
+                  if (_pendingBills.isNotEmpty) ..[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.orange,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${_pendingBills.length}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
-            Tab(
-              text: 'Settled (${_settledBills.length})',
-              icon: const Icon(Icons.check_circle),
-            ),
+            const Tab(text: 'Settled'),
           ],
         ),
       ),
@@ -132,110 +149,99 @@ class _SplitBillsScreenState extends State<SplitBillsScreen>
           : Column(
               children: [
                 // Summary card
-                if (_pendingBills.isNotEmpty) _buildSummaryCard(),
+                if (_pendingBills.isNotEmpty)
+                  GlassCard(
+                    margin: const EdgeInsets.all(16),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Total Pending',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            '₹${_totalPending.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
 
-                // Tab views
+                // Tabs
                 Expanded(
                   child: TabBarView(
                     controller: _tabController,
                     children: [
-                      _buildBillsList(_pendingBills, isPending: true),
-                      _buildBillsList(_settledBills, isPending: false),
+                      _pendingBills.isEmpty
+                          ? _buildEmptyState('No pending bills', true)
+                          : _buildBillsList(_pendingBills),
+                      _settledBills.isEmpty
+                          ? _buildEmptyState('No settled bills', false)
+                          : _buildBillsList(_settledBills),
                     ],
                   ),
                 ),
               ],
             ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _navigateToCreate,
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  CreateSplitBillScreen(userId: widget.userId),
+            ),
+          ).then((created) {
+            if (created == true) _loadBills();
+          });
+        },
         icon: const Icon(Icons.add),
-        label: const Text('New Bill'),
+        label: const Text('Create Bill'),
       ),
     );
   }
 
-  Widget _buildSummaryCard() {
-    return GlassCard(
-      margin: const EdgeInsets.all(16),
-      child: Padding(
+  Widget _buildBillsList(List<SplitBill> bills) {
+    return RefreshIndicator(
+      onRefresh: _loadBills,
+      child: ListView.builder(
         padding: const EdgeInsets.all(16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildSummaryItem(
-              'Pending Bills',
-              '${_pendingBills.length}',
-              Icons.pending_actions,
-              Colors.orange,
-            ),
-            Container(
-              width: 1,
-              height: 40,
-              color: Colors.grey[300],
-            ),
-            _buildSummaryItem(
-              'Total Pending',
-              '₹${_totalPending.toStringAsFixed(2)}',
-              Icons.currency_rupee,
-              Colors.red,
-            ),
-          ],
-        ),
+        itemCount: bills.length,
+        itemBuilder: (context, index) => _buildBillCard(bills[index]),
       ),
-    );
-  }
-
-  Widget _buildSummaryItem(
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    return Column(
-      children: [
-        Icon(icon, color: color, size: 28),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBillsList(List<SplitBill> bills, {required bool isPending}) {
-    if (bills.isEmpty) {
-      return _buildEmptyState(isPending);
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: bills.length,
-      itemBuilder: (context, index) {
-        final bill = bills[index];
-        return _buildBillCard(bill);
-      },
     );
   }
 
   Widget _buildBillCard(SplitBill bill) {
-    final progressPercent = bill.totalAmountPaid / bill.totalAmount;
-
     return GlassCard(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: () => _navigateToDetails(bill),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BillDetailsScreen(
+                userId: widget.userId,
+                billId: bill.id,
+              ),
+            ),
+          ).then((_) => _loadBills());
+        },
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -254,60 +260,71 @@ class _SplitBillsScreenState extends State<SplitBillsScreen>
                       ),
                     ),
                   ),
-                  _buildStatusBadge(bill.status),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(bill.status),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      bill.getStatusText(),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(Icons.calendar_today, size: 14),
+                  const Icon(Icons.currency_rupee, size: 16),
                   const SizedBox(width: 4),
                   Text(
-                    DateFormat('dd MMM yyyy').format(bill.date),
-                    style: TextStyle(color: Colors.grey[600]),
+                    bill.totalAmount.toStringAsFixed(2),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(width: 16),
-                  const Icon(Icons.people, size: 14),
+                  const Icon(Icons.people, size: 16),
                   const SizedBox(width: 4),
-                  Text(
-                    '${bill.participants.length} people',
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
+                  Text('${bill.participants.length} people'),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
+                  const SizedBox(width: 4),
                   Text(
-                    '₹${bill.totalAmount.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green,
-                    ),
+                    _formatDate(bill.date),
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
+                  const SizedBox(width: 12),
+                  const Icon(Icons.splitscreen, size: 14, color: Colors.grey),
+                  const SizedBox(width: 4),
                   Text(
-                    '${bill.totalPaidCount}/${bill.totalParticipants} paid',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
-                    ),
+                    bill.getSplitTypeText(),
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
               ),
               if (bill.status != BillStatus.fullySettled) ..[
                 const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: progressPercent,
-                    minHeight: 6,
-                    backgroundColor: Colors.grey[300],
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      progressPercent >= 1.0 ? Colors.green : Colors.orange,
-                    ),
-                  ),
+                LinearProgressIndicator(
+                  value: bill.totalAmountPaid / bill.totalAmount,
+                  backgroundColor: Colors.grey[300],
+                  valueColor: const AlwaysStoppedAnimation(Colors.green),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${bill.totalPaidCount}/${bill.totalParticipants} paid',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
             ],
@@ -317,81 +334,56 @@ class _SplitBillsScreenState extends State<SplitBillsScreen>
     );
   }
 
-  Widget _buildStatusBadge(BillStatus status) {
-    Color color;
-    String text;
-    IconData icon;
-
-    switch (status) {
-      case BillStatus.pending:
-        color = Colors.orange;
-        text = 'Pending';
-        icon = Icons.pending;
-        break;
-      case BillStatus.partiallyPaid:
-        color = Colors.blue;
-        text = 'Partial';
-        icon = Icons.hourglass_half;
-        break;
-      case BillStatus.fullySettled:
-        color = Colors.green;
-        text = 'Settled';
-        icon = Icons.check_circle;
-        break;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+  Widget _buildEmptyState(String message, bool isPending) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 4),
+          Icon(
+            isPending ? Icons.receipt_long_outlined : Icons.check_circle_outline,
+            size: 80,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 16),
           Text(
-            text,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
+            message,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isPending
+                ? 'Create your first split bill'
+                : 'Completed bills will appear here',
+            style: TextStyle(color: Colors.grey[600]),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildEmptyState(bool isPending) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            isPending ? Icons.pending_actions : Icons.check_circle_outline,
-            size: 80,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            isPending ? 'No pending bills' : 'No settled bills yet',
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            isPending
-                ? 'Create a bill to split expenses with friends'
-                : 'Settled bills will appear here',
-            style: TextStyle(color: Colors.grey[600]),
-          ),
-        ],
-      ),
-    );
+  Color _getStatusColor(BillStatus status) {
+    switch (status) {
+      case BillStatus.pending:
+        return Colors.orange;
+      case BillStatus.partiallyPaid:
+        return Colors.blue;
+      case BillStatus.fullySettled:
+        return Colors.green;
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date).inDays;
+
+    if (diff == 0) return 'Today';
+    if (diff == 1) return 'Yesterday';
+    if (diff < 7) return '$diff days ago';
+
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${date.day} ${months[date.month - 1]}, ${date.year}';
   }
 }
