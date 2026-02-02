@@ -268,11 +268,11 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
   Widget _getSocialScreen() {
     switch (_socialSubTab) {
       case 0:
-        return const SplitBillsScreen();
+        return SplitBillsScreen(userId: _userId);
       case 1:
         return const CravingsScreen();
       default:
-        return const SplitBillsScreen();
+        return SplitBillsScreen(userId: _userId);
     }
   }
 

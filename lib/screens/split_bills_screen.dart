@@ -119,7 +119,7 @@ class _SplitBillsScreenState extends State<SplitBillsScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text('Pending'),
-                  if (_pendingBills.isNotEmpty) ..[
+                  if (_pendingBills.isNotEmpty) ...[
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -314,7 +314,7 @@ class _SplitBillsScreenState extends State<SplitBillsScreen>
                   ),
                 ],
               ),
-              if (bill.status != BillStatus.fullySettled) ..[
+              if (bill.status != BillStatus.fullySettled) ...[
                 const SizedBox(height: 8),
                 LinearProgressIndicator(
                   value: bill.totalAmountPaid / bill.totalAmount,

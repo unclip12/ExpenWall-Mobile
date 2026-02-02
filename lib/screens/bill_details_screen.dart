@@ -338,7 +338,7 @@ class _BillDetailsScreenState extends State<BillDetailsScreen> {
                         ),
                       ],
                     ),
-                    if (_bill!.description != null) ..[
+                    if (_bill!.description != null) ...[
                       const SizedBox(height: 8),
                       Text(
                         _bill!.description!,
@@ -371,7 +371,7 @@ class _BillDetailsScreenState extends State<BillDetailsScreen> {
             const SizedBox(height: 16),
 
             // Items
-            if (_bill!.items.isNotEmpty) ..[
+            if (_bill!.items.isNotEmpty) ...[
               GlassCard(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -435,7 +435,7 @@ class _BillDetailsScreenState extends State<BillDetailsScreen> {
             const SizedBox(height: 16),
 
             // Notes
-            if (_bill!.notes != null) ..[
+            if (_bill!.notes != null) ...[
               GlassCard(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
