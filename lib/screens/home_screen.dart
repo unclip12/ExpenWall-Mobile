@@ -91,13 +91,23 @@ class _HomeScreenState extends State<HomeScreen> {
         TransactionsScreen(
           transactions: _transactions,
           rules: _rules,
-          onDeleteTransaction: (id) => _firestoreService.deleteTransaction(id),
+          onDeleteTransaction: (id) => _firestoreService.deleteTransaction(_userId!, id),
         ),
         BudgetScreen(
           budgets: _budgets,
           transactions: _transactions,
-          onAddBudget: (budget) => _firestoreService.addBudget(budget),
-          onDeleteBudget: (id) => _firestoreService.deleteBudget(id),
+          onAddBudget: (budget) {
+            // Add userId to budget before saving
+            final budgetWithUserId = Budget(
+              id: budget.id,
+              userId: _userId,
+              category: budget.category,
+              amount: budget.amount,
+              period: budget.period,
+            );
+            _firestoreService.addBudget(budgetWithUserId);
+          },
+          onDeleteBudget: (id) => _firestoreService.deleteBudget(_userId!, id),
         ),
         ProductsScreen(products: _products),
         const SettingsScreen(),
@@ -139,7 +149,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   MaterialPageRoute(
                     builder: (_) => AddTransactionScreen(
                       onSave: (transaction) async {
-                        await _firestoreService.addTransaction(transaction);
+                        // Add userId to transaction
+                        final txWithUserId = Transaction(
+                          id: transaction.id,
+                          userId: _userId,
+                          merchant: transaction.merchant,
+                          amount: transaction.amount,
+                          category: transaction.category,
+                          subcategory: transaction.subcategory,
+                          type: transaction.type,
+                          date: transaction.date,
+                          notes: transaction.notes,
+                          items: transaction.items,
+                          currency: transaction.currency,
+                        );
+                        await _firestoreService.addTransaction(txWithUserId);
                         Navigator.of(context).pop();
                       },
                     ),
