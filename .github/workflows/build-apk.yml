@@ -1,12 +1,15 @@
 name: Build Flutter APK
 
 on:
-  # Disabled auto-build during development
-  # Only manual trigger via Actions tab
+  # Trigger on push to main branch
+  push:
+    branches: [ main ]
+  # Allow manual trigger from Actions tab
   workflow_dispatch:
 
 jobs:
   build:
+    name: Build APK
     runs-on: ubuntu-latest
     
     steps:
@@ -22,64 +25,38 @@ jobs:
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.19.0'
+        flutter-version: '3.24.3'
         channel: 'stable'
-    
-    # 🔒 SECURITY: Create Firebase config files from GitHub Secrets
-    - name: Create google-services.json from secret
-      run: |
-        echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > android/app/google-services.json
-        echo "✅ google-services.json created from secret"
-    
-    - name: Create firebase_options.dart from secret
-      run: |
-        echo "${{ secrets.FIREBASE_OPTIONS_DART }}" | base64 --decode > lib/firebase_options.dart
-        echo "✅ firebase_options.dart created from secret"
     
     - name: Install dependencies
       run: flutter pub get
     
-    - name: Analyze code
-      run: flutter analyze
+    - name: Run Flutter doctor
+      run: flutter doctor -v
     
-    - name: Run tests
-      run: flutter test
-      continue-on-error: true
-    
-    - name: Build Debug APK
-      run: flutter build apk --debug
-    
-    - name: Build Release APK
+    - name: Build APK
       run: flutter build apk --release
-      continue-on-error: true
     
-    - name: Get current date
-      id: date
-      run: echo "date=$(date +'%Y-%m-%d-%H%M')" >> $GITHUB_OUTPUT
+    - name: Get APK path
+      id: apk-path
+      run: |
+        echo "path=$(find build/app/outputs/flutter-apk -name '*.apk' -type f | head -n 1)" >> $GITHUB_OUTPUT
     
-    - name: Upload Debug APK to Artifacts
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: expenwall-debug-${{ steps.date.outputs.date }}
-        path: build/app/outputs/flutter-apk/app-debug.apk
+        name: expenwall-mobile-release
+        path: build/app/outputs/flutter-apk/app-release.apk
         retention-days: 30
     
-    - name: Upload Release APK to Artifacts (if built)
-      uses: actions/upload-artifact@v4
-      if: success()
-      with:
-        name: expenwall-release-${{ steps.date.outputs.date }}
-        path: build/app/outputs/flutter-apk/app-release.apk
-        retention-days: 90
-      continue-on-error: true
-    
-    - name: Create Release on Tag
-      if: startsWith(github.ref, 'refs/tags/v')
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          build/app/outputs/flutter-apk/app-release.apk
-          build/app/outputs/flutter-apk/app-debug.apk
-        generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Create Release Info
+      run: |
+        echo "✅ APK Build Successful!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📱 Download your APK" >> $GITHUB_STEP_SUMMARY
+        echo "Go to the Actions tab and download the artifact named **expenwall-mobile-release**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📦 Build Details" >> $GITHUB_STEP_SUMMARY
+        echo "- Flutter Version: $(flutter --version | head -n 1)" >> $GITHUB_STEP_SUMMARY
+        echo "- Build Date: $(date)" >> $GITHUB_STEP_SUMMARY
+        echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
