@@ -382,7 +382,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 : 'Try a different search',
             style: TextStyle(color: Colors.grey[600]),
           ),
-          if (_searchQuery.isEmpty) ...,[
+          if (_searchQuery.isEmpty) ...[
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () => _showAddEditContactDialog(),
