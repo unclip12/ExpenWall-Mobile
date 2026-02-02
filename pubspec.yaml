@@ -40,6 +40,10 @@ dependencies:
   shared_preferences: ^2.2.2
   path_provider: ^2.1.2
 
+  # File Operations
+  share_plus: ^10.0.3
+  file_picker: ^8.1.4
+
   # Utilities
   intl: ^0.19.0
   http: ^1.2.0
