@@ -18,6 +18,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
   List<Contact> _contacts = [];
   List<Contact> _filteredContacts = [];
   bool _isLoading = true;
+  String _searchQuery = '';
   final _searchController = TextEditingController();
 
   @override
@@ -28,7 +29,6 @@ class _ContactsScreenState extends State<ContactsScreen> {
       userId: widget.userId,
     );
     _loadContacts();
-    _searchController.addListener(_filterContacts);
   }
 
   @override
@@ -56,72 +56,71 @@ class _ContactsScreenState extends State<ContactsScreen> {
     }
   }
 
-  void _filterContacts() {
-    final query = _searchController.text.toLowerCase();
+  void _filterContacts(String query) {
     setState(() {
+      _searchQuery = query;
       if (query.isEmpty) {
         _filteredContacts = _contacts;
       } else {
         _filteredContacts = _contacts.where((contact) {
-          return contact.name.toLowerCase().contains(query) ||
+          return contact.name.toLowerCase().contains(query.toLowerCase()) ||
               (contact.phone?.contains(query) ?? false) ||
-              (contact.email?.toLowerCase().contains(query) ?? false);
+              (contact.email?.toLowerCase().contains(query.toLowerCase()) ??
+                  false);
         }).toList();
       }
     });
   }
 
-  Future<void> _showAddEditDialog({Contact? contact}) async {
-    final isEdit = contact != null;
+  Future<void> _showAddEditContactDialog([Contact? contact]) async {
     final nameController = TextEditingController(text: contact?.name);
     final phoneController = TextEditingController(text: contact?.phone);
     final emailController = TextEditingController(text: contact?.email);
     final formKey = GlobalKey<FormState>();
 
-    final result = await showDialog<bool>(
+    await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isEdit ? 'Edit Contact' : 'New Contact'),
+        title: Text(contact == null ? 'Add Contact' : 'Edit Contact'),
         content: Form(
           key: formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Name *',
-                    prefixIcon: Icon(Icons.person),
-                  ),
-                  textCapitalization: TextCapitalization.words,
-                  validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Name *',
+                  prefixIcon: Icon(Icons.person),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: phoneController,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone',
-                    prefixIcon: Icon(Icons.phone),
-                  ),
-                  keyboardType: TextInputType.phone,
+                textCapitalization: TextCapitalization.words,
+                validator: (v) =>
+                    v?.trim().isEmpty == true ? 'Name required' : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: phoneController,
+                decoration: const InputDecoration(
+                  labelText: 'Phone',
+                  prefixIcon: Icon(Icons.phone),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon: Icon(Icons.email),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  prefixIcon: Icon(Icons.email),
                 ),
-              ],
-            ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+            ],
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
@@ -129,7 +128,17 @@ class _ContactsScreenState extends State<ContactsScreen> {
               if (!formKey.currentState!.validate()) return;
 
               try {
-                if (isEdit) {
+                if (contact == null) {
+                  await _contactService.createContact(
+                    name: nameController.text.trim(),
+                    phone: phoneController.text.trim().isEmpty
+                        ? null
+                        : phoneController.text.trim(),
+                    email: emailController.text.trim().isEmpty
+                        ? null
+                        : emailController.text.trim(),
+                  );
+                } else {
                   await _contactService.updateContact(
                     contact.copyWith(
                       name: nameController.text.trim(),
@@ -141,45 +150,41 @@ class _ContactsScreenState extends State<ContactsScreen> {
                           : emailController.text.trim(),
                     ),
                   );
-                } else {
-                  await _contactService.createContact(
-                    name: nameController.text.trim(),
-                    phone: phoneController.text.trim().isEmpty
-                        ? null
-                        : phoneController.text.trim(),
-                    email: emailController.text.trim().isEmpty
-                        ? null
-                        : emailController.text.trim(),
-                  );
                 }
-                if (context.mounted) {
-                  Navigator.pop(context, true);
+
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(contact == null
+                          ? 'Contact added'
+                          : 'Contact updated'),
+                    ),
+                  );
+                  _loadContacts();
                 }
               } catch (e) {
-                if (context.mounted) {
+                if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Error: $e')),
                   );
                 }
               }
             },
-            child: Text(isEdit ? 'Update' : 'Add'),
+            child: const Text('Save'),
           ),
         ],
       ),
     );
-
-    if (result == true) {
-      _loadContacts();
-    }
   }
 
   Future<void> _deleteContact(Contact contact) async {
-    final confirmed = await showDialog<bool>(
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Contact'),
-        content: Text('Delete "${contact.name}"? This will also remove them from all groups.'),
+        content: Text(
+            'Are you sure you want to delete ${contact.name}? This will remove them from all groups.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -194,14 +199,14 @@ class _ContactsScreenState extends State<ContactsScreen> {
       ),
     );
 
-    if (confirmed == true) {
+    if (confirm == true) {
       try {
         await _contactService.deleteContact(contact.id);
-        _loadContacts();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Contact deleted')),
           );
+          _loadContacts();
         }
       } catch (e) {
         if (mounted) {
@@ -220,11 +225,15 @@ class _ContactsScreenState extends State<ContactsScreen> {
         title: const Text('Contacts'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.group),
-            tooltip: 'Manage Groups',
+            icon: const Icon(Icons.phone_android),
+            tooltip: 'Import from phone',
             onPressed: () {
-              // Navigate to groups screen
-              Navigator.pushNamed(context, '/groups', arguments: widget.userId);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                      'Phone contacts import requires additional permissions'),
+                ),
+              );
             },
           ),
         ],
@@ -239,11 +248,12 @@ class _ContactsScreenState extends State<ContactsScreen> {
               decoration: InputDecoration(
                 hintText: 'Search contacts...',
                 prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
+                suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear),
                         onPressed: () {
                           _searchController.clear();
+                          _filterContacts('');
                         },
                       )
                     : null,
@@ -251,18 +261,19 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
+              onChanged: _filterContacts,
             ),
           ),
 
-          // Contacts list
+          // Contact list
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredContacts.isEmpty
                     ? _buildEmptyState()
                     : ListView.builder(
-                        padding: const EdgeInsets.all(16),
                         itemCount: _filteredContacts.length,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
                         itemBuilder: (context, index) {
                           final contact = _filteredContacts[index];
                           return _buildContactCard(contact);
@@ -272,7 +283,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddEditDialog(),
+        onPressed: () => _showAddEditContactDialog(),
         child: const Icon(Icons.person_add),
       ),
     );
@@ -283,54 +294,37 @@ class _ContactsScreenState extends State<ContactsScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
           child: Text(
             contact.name[0].toUpperCase(),
             style: TextStyle(
+              color: Theme.of(context).colorScheme.onPrimaryContainer,
               fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary,
             ),
           ),
         ),
         title: Text(
           contact.name,
-          style: const TextStyle(fontWeight: FontWeight.w600),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (contact.phone != null)
-              Row(
-                children: [
-                  const Icon(Icons.phone, size: 14),
-                  const SizedBox(width: 4),
-                  Text(contact.phone!),
-                ],
-              ),
+              Text('📱 ${contact.phone}',
+                  style: const TextStyle(fontSize: 12)),
             if (contact.email != null)
-              Row(
-                children: [
-                  const Icon(Icons.email, size: 14),
-                  const SizedBox(width: 4),
-                  Text(contact.email!),
-                ],
-              ),
+              Text('✉️ ${contact.email}',
+                  style: const TextStyle(fontSize: 12)),
           ],
         ),
-        trailing: PopupMenuButton<String>(
-          onSelected: (value) {
-            if (value == 'edit') {
-              _showAddEditDialog(contact: contact);
-            } else if (value == 'delete') {
-              _deleteContact(contact);
-            }
-          },
+        trailing: PopupMenuButton(
           itemBuilder: (context) => [
             const PopupMenuItem(
               value: 'edit',
               child: Row(
                 children: [
-                  Icon(Icons.edit),
+                  Icon(Icons.edit, size: 20),
                   SizedBox(width: 8),
                   Text('Edit'),
                 ],
@@ -340,13 +334,20 @@ class _ContactsScreenState extends State<ContactsScreen> {
               value: 'delete',
               child: Row(
                 children: [
-                  Icon(Icons.delete, color: Colors.red),
+                  Icon(Icons.delete, size: 20, color: Colors.red),
                   SizedBox(width: 8),
                   Text('Delete', style: TextStyle(color: Colors.red)),
                 ],
               ),
             ),
           ],
+          onSelected: (value) {
+            if (value == 'edit') {
+              _showAddEditContactDialog(contact);
+            } else if (value == 'delete') {
+              _deleteContact(contact);
+            }
+          },
         ),
       ),
     );
@@ -358,27 +359,35 @@ class _ContactsScreenState extends State<ContactsScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.person_add_alt_1,
+            Icons.people_outline,
             size: 80,
             color: Colors.grey[400],
           ),
           const SizedBox(height: 16),
           Text(
-            _searchController.text.isEmpty
+            _searchQuery.isEmpty
                 ? 'No contacts yet'
                 : 'No contacts found',
             style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            _searchController.text.isEmpty
-                ? 'Add contacts to use in split bills'
+            _searchQuery.isEmpty
+                ? 'Add contacts for split bills'
                 : 'Try a different search',
             style: TextStyle(color: Colors.grey[600]),
           ),
+          if (_searchQuery.isEmpty) ..[
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () => _showAddEditContactDialog(),
+              icon: const Icon(Icons.person_add),
+              label: const Text('Add Contact'),
+            ),
+          ],
         ],
       ),
     );

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/contact.dart';
 import '../models/group.dart';
+import '../models/contact.dart';
 import '../services/contact_service.dart';
 import '../services/local_storage_service.dart';
 import '../widgets/glass_card.dart';
@@ -17,7 +17,6 @@ class GroupsScreen extends StatefulWidget {
 class _GroupsScreenState extends State<GroupsScreen> {
   late ContactService _contactService;
   List<Group> _groups = [];
-  List<Contact> _allContacts = [];
   bool _isLoading = true;
 
   @override
@@ -27,17 +26,15 @@ class _GroupsScreenState extends State<GroupsScreen> {
       localStorage: LocalStorageService(),
       userId: widget.userId,
     );
-    _loadData();
+    _loadGroups();
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadGroups() async {
     setState(() => _isLoading = true);
     try {
       final groups = await _contactService.getGroups();
-      final contacts = await _contactService.getContacts();
       setState(() {
         _groups = groups;
-        _allContacts = contacts;
         _isLoading = false;
       });
     } catch (e) {
@@ -50,24 +47,40 @@ class _GroupsScreenState extends State<GroupsScreen> {
     }
   }
 
-  Future<void> _showAddEditDialog({Group? group}) async {
-    final isEdit = group != null;
+  Future<void> _showAddEditGroupDialog([Group? group]) async {
     final nameController = TextEditingController(text: group?.name);
-    final descController = TextEditingController(text: group?.description);
+    final descriptionController =
+        TextEditingController(text: group?.description);
     final formKey = GlobalKey<FormState>();
-    final selectedMembers = Set<String>.from(group?.memberIds ?? []);
 
-    final result = await showDialog<bool>(
+    // Get all contacts
+    final allContacts = await _contactService.getContacts();
+    if (allContacts.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please add contacts first'),
+            action: SnackBarAction(label: 'Add', onPressed: null),
+          ),
+        );
+      }
+      return;
+    }
+
+    final selectedMembers =
+        Set<String>.from(group?.memberIds ?? []);
+
+    await showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(isEdit ? 'Edit Group' : 'New Group'),
-          content: Form(
-            key: formKey,
-            child: SingleChildScrollView(
+          title: Text(group == null ? 'Create Group' : 'Edit Group'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Form(
+              key: formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   TextFormField(
                     controller: nameController,
@@ -76,42 +89,52 @@ class _GroupsScreenState extends State<GroupsScreen> {
                       prefixIcon: Icon(Icons.group),
                     ),
                     textCapitalization: TextCapitalization.words,
-                    validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
+                    validator: (v) => v?.trim().isEmpty == true
+                        ? 'Name required'
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
-                    controller: descController,
+                    controller: descriptionController,
                     decoration: const InputDecoration(
-                      labelText: 'Description',
-                      prefixIcon: Icon(Icons.description),
+                      labelText: 'Description (Optional)',
+                      prefixIcon: Icon(Icons.notes),
                     ),
                     maxLines: 2,
                   ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Members',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  const SizedBox(height: 20),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Select Members (${selectedMembers.length})',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  if (_allContacts.isEmpty)
-                    const Text(
-                      'No contacts available. Add contacts first.',
-                      style: TextStyle(color: Colors.grey),
-                    )
-                  else
-                    Container(
+                  Flexible(
+                    child: Container(
                       constraints: const BoxConstraints(maxHeight: 200),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       child: ListView.builder(
                         shrinkWrap: true,
-                        itemCount: _allContacts.length,
+                        itemCount: allContacts.length,
                         itemBuilder: (context, index) {
-                          final contact = _allContacts[index];
-                          final isSelected = selectedMembers.contains(contact.id);
+                          final contact = allContacts[index];
+                          final isSelected =
+                              selectedMembers.contains(contact.id);
+
                           return CheckboxListTile(
-                            dense: true,
                             value: isSelected,
                             title: Text(contact.name),
-                            subtitle: contact.phone != null ? Text(contact.phone!) : null,
+                            subtitle: contact.phone != null
+                                ? Text(contact.phone!)
+                                : null,
                             onChanged: (checked) {
                               setDialogState(() {
                                 if (checked == true) {
@@ -125,68 +148,84 @@ class _GroupsScreenState extends State<GroupsScreen> {
                         },
                       ),
                     ),
+                  ),
                 ],
               ),
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => Navigator.pop(context),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: () async {
                 if (!formKey.currentState!.validate()) return;
 
+                if (selectedMembers.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please select at least one member'),
+                    ),
+                  );
+                  return;
+                }
+
                 try {
-                  if (isEdit) {
-                    await _contactService.updateGroup(
-                      group.copyWith(
-                        name: nameController.text.trim(),
-                        description: descController.text.trim().isEmpty
-                            ? null
-                            : descController.text.trim(),
-                        memberIds: selectedMembers.toList(),
-                      ),
-                    );
-                  } else {
+                  if (group == null) {
                     await _contactService.createGroup(
                       name: nameController.text.trim(),
                       memberIds: selectedMembers.toList(),
-                      description: descController.text.trim().isEmpty
+                      description: descriptionController.text.trim().isEmpty
                           ? null
-                          : descController.text.trim(),
+                          : descriptionController.text.trim(),
+                    );
+                  } else {
+                    await _contactService.updateGroup(
+                      group.copyWith(
+                        name: nameController.text.trim(),
+                        memberIds: selectedMembers.toList(),
+                        description:
+                            descriptionController.text.trim().isEmpty
+                                ? null
+                                : descriptionController.text.trim(),
+                      ),
                     );
                   }
-                  if (context.mounted) {
-                    Navigator.pop(context, true);
+
+                  if (mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            group == null ? 'Group created' : 'Group updated'),
+                      ),
+                    );
+                    _loadGroups();
                   }
                 } catch (e) {
-                  if (context.mounted) {
+                  if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Error: $e')),
                     );
                   }
                 }
               },
-              child: Text(isEdit ? 'Update' : 'Create'),
+              child: const Text('Save'),
             ),
           ],
         ),
       ),
     );
-
-    if (result == true) {
-      _loadData();
-    }
   }
 
   Future<void> _deleteGroup(Group group) async {
-    final confirmed = await showDialog<bool>(
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Group'),
-        content: Text('Delete group "${group.name}"?'),
+        content:
+            Text('Are you sure you want to delete "${group.name}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -201,14 +240,14 @@ class _GroupsScreenState extends State<GroupsScreen> {
       ),
     );
 
-    if (confirmed == true) {
+    if (confirm == true) {
       try {
         await _contactService.deleteGroup(group.id);
-        _loadData();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Group deleted')),
           );
+          _loadGroups();
         }
       } catch (e) {
         if (mounted) {
@@ -225,7 +264,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
 
     if (!mounted) return;
 
-    showDialog(
+    await showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(group.name),
@@ -238,26 +277,24 @@ class _GroupsScreenState extends State<GroupsScreen> {
                 group.description!,
                 style: TextStyle(color: Colors.grey[600]),
               ),
-              const Divider(),
+              const SizedBox(height: 16),
             ],
-            const Text(
-              'Members:',
-              style: TextStyle(fontWeight: FontWeight.w600),
+            Text(
+              'Members (${members.length})',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
             ),
             const SizedBox(height: 8),
-            if (members.isEmpty)
-              const Text('No members', style: TextStyle(color: Colors.grey))
-            else
-              ...members.map((contact) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.person, size: 16),
-                        const SizedBox(width: 8),
-                        Text(contact.name),
-                      ],
-                    ),
-                  )),
+            ...members.map((member) => ListTile(
+                  dense: true,
+                  leading: CircleAvatar(
+                    child: Text(member.name[0].toUpperCase()),
+                  ),
+                  title: Text(member.name),
+                  subtitle: member.phone != null ? Text(member.phone!) : null,
+                )),
           ],
         ),
         actions: [
@@ -268,7 +305,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _showAddEditDialog(group: group);
+              _showAddEditGroupDialog(group);
             },
             child: const Text('Edit'),
           ),
@@ -288,25 +325,15 @@ class _GroupsScreenState extends State<GroupsScreen> {
           : _groups.isEmpty
               ? _buildEmptyState()
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
                   itemCount: _groups.length,
+                  padding: const EdgeInsets.all(16),
                   itemBuilder: (context, index) {
                     final group = _groups[index];
                     return _buildGroupCard(group);
                   },
                 ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          if (_allContacts.isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Add contacts first before creating groups'),
-              ),
-            );
-          } else {
-            _showAddEditDialog();
-          }
-        },
+        onPressed: () => _showAddEditGroupDialog(),
         child: const Icon(Icons.group_add),
       ),
     );
@@ -317,52 +344,38 @@ class _GroupsScreenState extends State<GroupsScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: Theme.of(context).colorScheme.secondary.withOpacity(0.2),
+          backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
           child: Icon(
             Icons.group,
-            color: Theme.of(context).colorScheme.secondary,
+            color: Theme.of(context).colorScheme.onSecondaryContainer,
           ),
         ),
         title: Text(
           group.name,
-          style: const TextStyle(fontWeight: FontWeight.w600),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text('${group.memberCount} members'),
             if (group.description != null)
               Text(
                 group.description!,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12),
               ),
-            Row(
-              children: [
-                const Icon(Icons.people, size: 14),
-                const SizedBox(width: 4),
-                Text('${group.memberCount} members'),
-              ],
-            ),
           ],
         ),
-        trailing: PopupMenuButton<String>(
-          onSelected: (value) {
-            if (value == 'view') {
-              _showGroupDetails(group);
-            } else if (value == 'edit') {
-              _showAddEditDialog(group: group);
-            } else if (value == 'delete') {
-              _deleteGroup(group);
-            }
-          },
+        trailing: PopupMenuButton(
           itemBuilder: (context) => [
             const PopupMenuItem(
               value: 'view',
               child: Row(
                 children: [
-                  Icon(Icons.visibility),
+                  Icon(Icons.visibility, size: 20),
                   SizedBox(width: 8),
-                  Text('View Details'),
+                  Text('View'),
                 ],
               ),
             ),
@@ -370,7 +383,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
               value: 'edit',
               child: Row(
                 children: [
-                  Icon(Icons.edit),
+                  Icon(Icons.edit, size: 20),
                   SizedBox(width: 8),
                   Text('Edit'),
                 ],
@@ -380,13 +393,22 @@ class _GroupsScreenState extends State<GroupsScreen> {
               value: 'delete',
               child: Row(
                 children: [
-                  Icon(Icons.delete, color: Colors.red),
+                  Icon(Icons.delete, size: 20, color: Colors.red),
                   SizedBox(width: 8),
                   Text('Delete', style: TextStyle(color: Colors.red)),
                 ],
               ),
             ),
           ],
+          onSelected: (value) {
+            if (value == 'view') {
+              _showGroupDetails(group);
+            } else if (value == 'edit') {
+              _showAddEditGroupDialog(group);
+            } else if (value == 'delete') {
+              _deleteGroup(group);
+            }
+          },
         ),
         onTap: () => _showGroupDetails(group),
       ),
@@ -399,7 +421,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.group_add,
+            Icons.group_outlined,
             size: 80,
             color: Colors.grey[400],
           ),
@@ -407,14 +429,20 @@ class _GroupsScreenState extends State<GroupsScreen> {
           const Text(
             'No groups yet',
             style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Create groups for easy split bill management',
+            'Create groups for easy split bills',
             style: TextStyle(color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () => _showAddEditGroupDialog(),
+            icon: const Icon(Icons.group_add),
+            label: const Text('Create Group'),
           ),
         ],
       ),
