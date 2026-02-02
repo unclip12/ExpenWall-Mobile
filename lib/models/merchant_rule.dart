@@ -23,9 +23,10 @@ class MerchantRule {
         'createdAt': Timestamp.fromDate(createdAt),
       };
 
-  factory MerchantRule.fromFirestore(Map<String, dynamic> data, String id) {
+  factory MerchantRule.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data()!;
     return MerchantRule(
-      id: id,
+      id: doc.id,
       merchantPattern: data['merchantPattern'] ?? '',
       category: Category.values.firstWhere(
         (e) => e.label == data['category'],
