@@ -14,6 +14,7 @@ import '../models/merchant_rule.dart';
 import '../models/budget.dart';
 import '../models/product.dart';
 import '../services/firestore_service.dart';
+import '../widgets/sync_indicator.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -33,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Product> _products = [];
   
   bool _isLoading = true;
+  bool _isSyncing = false;
   String? _userId;
   String? _errorMessage;
 
@@ -55,6 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       setState(() {
         _userId = user.uid;
+        _isSyncing = true;
       });
 
       // Set a timeout to stop loading after 5 seconds
@@ -62,6 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (mounted && _isLoading) {
           setState(() {
             _isLoading = false;
+            _isSyncing = false;
           });
         }
       });
@@ -73,6 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
             setState(() {
               _transactions = transactions;
               _isLoading = false;
+              _isSyncing = false;
               _errorMessage = null;
             });
           }
@@ -82,6 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
           if (mounted) {
             setState(() {
               _isLoading = false;
+              _isSyncing = false;
               _errorMessage = 'Failed to load data. Please check your connection.';
             });
           }
@@ -128,6 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
+          _isSyncing = false;
           _errorMessage = 'Failed to initialize: $e';
         });
       }
@@ -167,9 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
-      backgroundColor: Theme.of(context).brightness == Brightness.dark
-          ? const Color(0xFF0F172A)
-          : const Color(0xFFF8FAFC),
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(
           _getAppBarTitle(),
@@ -179,6 +184,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         actions: [
+          // Sync indicator
+          if (_isSyncing || _errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: SyncDot(isSyncing: _isSyncing),
+            ),
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () {},
@@ -186,38 +197,49 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text(
-                        _errorMessage!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 16),
+      body: Stack(
+        children: [
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _errorMessage != null
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                          const SizedBox(height: 16),
+                          Text(
+                            _errorMessage!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                _isLoading = true;
+                                _errorMessage = null;
+                              });
+                              _initializeData();
+                            },
+                            child: const Text('Retry'),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 24),
-                      ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            _isLoading = true;
-                            _errorMessage = null;
-                          });
-                          _initializeData();
-                        },
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : IndexedStack(
-                  index: _currentIndex,
-                  children: _screens,
-                ),
+                    )
+                  : IndexedStack(
+                      index: _currentIndex,
+                      children: _screens,
+                    ),
+          
+          // Sync indicator overlay
+          SyncIndicator(
+            isSyncing: _isSyncing,
+            hasError: _errorMessage != null,
+            errorMessage: _errorMessage,
+          ),
+        ],
+      ),
       floatingActionButton: _currentIndex < 2 && !_isLoading && _errorMessage == null
           ? FloatingActionButton(
               onPressed: () {
@@ -225,6 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   MaterialPageRoute(
                     builder: (_) => AddTransactionScreen(
                       onSave: (transaction) async {
+                        setState(() => _isSyncing = true);
                         final txWithUserId = models.Transaction(
                           id: transaction.id,
                           userId: _userId,
@@ -239,6 +262,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           currency: transaction.currency,
                         );
                         await _firestoreService.addTransaction(txWithUserId);
+                        setState(() => _isSyncing = false);
                         if (context.mounted) {
                           Navigator.of(context).pop();
                         }
@@ -248,7 +272,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
               elevation: 8,
-              backgroundColor: Theme.of(context).colorScheme.primary,
               child: const Icon(Icons.add, size: 32),
             )
           : null,
