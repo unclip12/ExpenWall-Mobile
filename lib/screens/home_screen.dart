@@ -14,6 +14,7 @@ import '../models/merchant_rule.dart';
 import '../models/budget.dart';
 import '../models/product.dart';
 import '../services/firestore_service.dart';
+import '../services/local_storage_service.dart';
 import '../widgets/sync_indicator.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -26,6 +27,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   final _firestoreService = FirestoreService();
+  final _localStorageService = LocalStorageService();
   
   List<models.Transaction> _transactions = [];
   List<MerchantRule> _rules = [];
@@ -35,7 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
   
   bool _isLoading = true;
   bool _isSyncing = false;
-  String? _userId;
+  String _userId = 'local_user'; // Default local user ID
   String? _errorMessage;
 
   @override
@@ -46,98 +48,213 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _initializeData() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        setState(() {
-          _errorMessage = 'No user logged in';
-          _isLoading = false;
-        });
-        return;
-      }
-
+      // STEP 1: Load from local storage immediately (instant load)
+      await _loadLocalData();
+      
       setState(() {
+        _isLoading = false;
+      });
+
+      // STEP 2: Try to sync with Firebase in background (optional)
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
         _userId = user.uid;
-        _isSyncing = true;
-      });
-
-      // Set a timeout to stop loading after 5 seconds
-      Timer(const Duration(seconds: 5), () {
-        if (mounted && _isLoading) {
-          setState(() {
-            _isLoading = false;
-            _isSyncing = false;
-          });
-        }
-      });
-
-      // Subscribe to real-time updates with error handling
-      _firestoreService.subscribeToTransactions(user.uid).listen(
-        (transactions) {
-          if (mounted) {
-            setState(() {
-              _transactions = transactions;
-              _isLoading = false;
-              _isSyncing = false;
-              _errorMessage = null;
-            });
-          }
-        },
-        onError: (error) {
-          print('Error loading transactions: $error');
-          if (mounted) {
-            setState(() {
-              _isLoading = false;
-              _isSyncing = false;
-              _errorMessage = 'Failed to load data. Please check your connection.';
-            });
-          }
-        },
-      );
-
-      _firestoreService.subscribeToRules(user.uid).listen(
-        (rules) {
-          if (mounted) {
-            setState(() => _rules = rules);
-          }
-        },
-        onError: (error) => print('Error loading rules: $error'),
-      );
-
-      _firestoreService.subscribeToWallets(user.uid).listen(
-        (wallets) {
-          if (mounted) {
-            setState(() => _wallets = wallets);
-          }
-        },
-        onError: (error) => print('Error loading wallets: $error'),
-      );
-
-      _firestoreService.subscribeToBudgets(user.uid).listen(
-        (budgets) {
-          if (mounted) {
-            setState(() => _budgets = budgets);
-          }
-        },
-        onError: (error) => print('Error loading budgets: $error'),
-      );
-
-      _firestoreService.subscribeToProducts(user.uid).listen(
-        (products) {
-          if (mounted) {
-            setState(() => _products = products);
-          }
-        },
-        onError: (error) => print('Error loading products: $error'),
-      );
+        _startFirebaseSync();
+      }
     } catch (e) {
       print('Error initializing data: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _isSyncing = false;
-          _errorMessage = 'Failed to initialize: $e';
+          _errorMessage = 'Error loading data: $e';
         });
       }
+    }
+  }
+
+  // Load data from local storage (instant, offline-first)
+  Future<void> _loadLocalData() async {
+    try {
+      final transactions = await _localStorageService.loadTransactions(_userId);
+      final budgets = await _localStorageService.loadBudgets(_userId);
+      final products = await _localStorageService.loadProducts(_userId);
+      // Rules and wallets will be added later
+      
+      if (mounted) {
+        setState(() {
+          _transactions = transactions;
+          _budgets = budgets;
+          _products = products;
+        });
+      }
+    } catch (e) {
+      print('Error loading local data: $e');
+    }
+  }
+
+  // Start Firebase sync in background (optional, doesn't block UI)
+  void _startFirebaseSync() {
+    setState(() => _isSyncing = true);
+
+    // Subscribe to Firebase updates
+    _firestoreService.subscribeToTransactions(_userId).listen(
+      (transactions) async {
+        if (mounted) {
+          setState(() {
+            _transactions = transactions;
+            _isSyncing = false;
+          });
+          // Save to local storage for next launch
+          await _localStorageService.saveTransactions(_userId, transactions);
+        }
+      },
+      onError: (error) {
+        print('Firebase sync error: $error');
+        if (mounted) {
+          setState(() => _isSyncing = false);
+        }
+      },
+    );
+
+    _firestoreService.subscribeToBudgets(_userId).listen(
+      (budgets) async {
+        if (mounted) {
+          setState(() => _budgets = budgets);
+          await _localStorageService.saveBudgets(_userId, budgets);
+        }
+      },
+      onError: (error) => print('Budgets sync error: $error'),
+    );
+
+    _firestoreService.subscribeToProducts(_userId).listen(
+      (products) async {
+        if (mounted) {
+          setState(() => _products = products);
+          await _localStorageService.saveProducts(_userId, products);
+        }
+      },
+      onError: (error) => print('Products sync error: $error'),
+    );
+
+    _firestoreService.subscribeToRules(_userId).listen(
+      (rules) async {
+        if (mounted) {
+          setState(() => _rules = rules);
+          await _localStorageService.saveRules(_userId, rules);
+        }
+      },
+      onError: (error) => print('Rules sync error: $error'),
+    );
+  }
+
+  // Add transaction (local-first, then sync)
+  Future<void> _addTransaction(models.Transaction transaction) async {
+    final txWithUserId = models.Transaction(
+      id: transaction.id,
+      userId: _userId,
+      merchant: transaction.merchant,
+      amount: transaction.amount,
+      category: transaction.category,
+      subcategory: transaction.subcategory,
+      type: transaction.type,
+      date: transaction.date,
+      notes: transaction.notes,
+      items: transaction.items,
+      currency: transaction.currency,
+    );
+
+    // Add to local list immediately
+    setState(() {
+      _transactions.add(txWithUserId);
+    });
+
+    // Save to local storage
+    await _localStorageService.saveTransactions(_userId, _transactions);
+
+    // Try to sync to Firebase if connected
+    try {
+      setState(() => _isSyncing = true);
+      await _firestoreService.addTransaction(txWithUserId);
+      setState(() => _isSyncing = false);
+    } catch (e) {
+      print('Failed to sync transaction to Firebase: $e');
+      // Add to pending operations queue
+      await _localStorageService.addPendingOperation(_userId, {
+        'type': 'create',
+        'entity': 'transaction',
+        'payload': txWithUserId.toFirestore(),
+      });
+      setState(() => _isSyncing = false);
+    }
+  }
+
+  // Delete transaction (local-first, then sync)
+  Future<void> _deleteTransaction(String id) async {
+    // Remove from local list immediately
+    setState(() {
+      _transactions.removeWhere((t) => t.id == id);
+    });
+
+    // Save to local storage
+    await _localStorageService.saveTransactions(_userId, _transactions);
+
+    // Try to sync to Firebase
+    try {
+      setState(() => _isSyncing = true);
+      await _firestoreService.deleteTransaction(_userId, id);
+      setState(() => _isSyncing = false);
+    } catch (e) {
+      print('Failed to delete from Firebase: $e');
+      await _localStorageService.addPendingOperation(_userId, {
+        'type': 'delete',
+        'entity': 'transaction',
+        'payload': {'id': id},
+      });
+      setState(() => _isSyncing = false);
+    }
+  }
+
+  // Add budget (local-first)
+  Future<void> _addBudget(Budget budget) async {
+    final budgetWithUserId = Budget(
+      id: budget.id,
+      userId: _userId,
+      category: budget.category,
+      amount: budget.amount,
+      period: budget.period,
+    );
+
+    setState(() {
+      _budgets.add(budgetWithUserId);
+    });
+
+    await _localStorageService.saveBudgets(_userId, _budgets);
+
+    try {
+      setState(() => _isSyncing = true);
+      await _firestoreService.addBudget(budgetWithUserId);
+      setState(() => _isSyncing = false);
+    } catch (e) {
+      print('Failed to sync budget: $e');
+      setState(() => _isSyncing = false);
+    }
+  }
+
+  // Delete budget (local-first)
+  Future<void> _deleteBudget(String id) async {
+    setState(() {
+      _budgets.removeWhere((b) => b.id == id);
+    });
+
+    await _localStorageService.saveBudgets(_userId, _budgets);
+
+    try {
+      setState(() => _isSyncing = true);
+      await _firestoreService.deleteBudget(_userId, id);
+      setState(() => _isSyncing = false);
+    } catch (e) {
+      print('Failed to delete budget from Firebase: $e');
+      setState(() => _isSyncing = false);
     }
   }
 
@@ -149,22 +266,13 @@ class _HomeScreenState extends State<HomeScreen> {
         TransactionsScreen(
           transactions: _transactions,
           rules: _rules,
-          onDeleteTransaction: (id) => _firestoreService.deleteTransaction(_userId!, id),
+          onDeleteTransaction: _deleteTransaction,
         ),
         BudgetScreen(
           budgets: _budgets,
           transactions: _transactions,
-          onAddBudget: (budget) {
-            final budgetWithUserId = Budget(
-              id: budget.id,
-              userId: _userId,
-              category: budget.category,
-              amount: budget.amount,
-              period: budget.period,
-            );
-            _firestoreService.addBudget(budgetWithUserId);
-          },
-          onDeleteBudget: (id) => _firestoreService.deleteBudget(_userId!, id),
+          onAddBudget: _addBudget,
+          onDeleteBudget: _deleteBudget,
         ),
         ProductsScreen(products: _products),
         const SettingsScreen(),
@@ -185,10 +293,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           // Sync indicator
-          if (_isSyncing || _errorMessage != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: SyncDot(isSyncing: _isSyncing),
+          if (_isSyncing)
+            const Padding(
+              padding: EdgeInsets.only(right: 8),
+              child: SyncDot(isSyncing: true),
             ),
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
@@ -240,29 +348,14 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      floatingActionButton: _currentIndex < 2 && !_isLoading && _errorMessage == null
+      floatingActionButton: _currentIndex < 2 && !_isLoading
           ? FloatingActionButton(
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => AddTransactionScreen(
                       onSave: (transaction) async {
-                        setState(() => _isSyncing = true);
-                        final txWithUserId = models.Transaction(
-                          id: transaction.id,
-                          userId: _userId,
-                          merchant: transaction.merchant,
-                          amount: transaction.amount,
-                          category: transaction.category,
-                          subcategory: transaction.subcategory,
-                          type: transaction.type,
-                          date: transaction.date,
-                          notes: transaction.notes,
-                          items: transaction.items,
-                          currency: transaction.currency,
-                        );
-                        await _firestoreService.addTransaction(txWithUserId);
-                        setState(() => _isSyncing = false);
+                        await _addTransaction(transaction);
                         if (context.mounted) {
                           Navigator.of(context).pop();
                         }
