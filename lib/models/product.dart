@@ -62,8 +62,7 @@ class Product {
     this.shops = const [],
   });
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
+  Map<String, dynamic> toFirestore() => {
         'name': name,
         'emoji': emoji,
         'brand': brand,
@@ -77,21 +76,27 @@ class Product {
         'shops': shops.map((e) => e.toJson()).toList(),
       };
 
-  factory Product.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  // Updated to match other models - takes data and id separately
+  factory Product.fromFirestore(Map<String, dynamic> data, String id) {
     return Product(
-      id: doc.id,
-      name: data['name'],
+      id: id,
+      name: data['name'] ?? '',
       emoji: data['emoji'],
       brand: data['brand'],
-      category: Category.values.firstWhere((e) => e.label == data['category'], orElse: () => Category.other),
+      category: Category.values.firstWhere(
+        (e) => e.label == data['category'],
+        orElse: () => Category.other,
+      ),
       subcategory: data['subcategory'],
-      avgPrice: (data['avgPrice'] as num).toDouble(),
-      lowestPrice: (data['lowestPrice'] as num).toDouble(),
-      highestPrice: (data['highestPrice'] as num).toDouble(),
-      totalPurchases: data['totalPurchases'],
-      lastPurchased: (data['lastPurchased'] as Timestamp).toDate(),
-      shops: (data['shops'] as List?)?.map((e) => ProductShop.fromJson(e)).toList() ?? [],
+      avgPrice: (data['avgPrice'] as num?)?.toDouble() ?? 0.0,
+      lowestPrice: (data['lowestPrice'] as num?)?.toDouble() ?? 0.0,
+      highestPrice: (data['highestPrice'] as num?)?.toDouble() ?? 0.0,
+      totalPurchases: (data['totalPurchases'] as num?)?.toInt() ?? 0,
+      lastPurchased: (data['lastPurchased'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      shops: (data['shops'] as List<dynamic>?)
+              ?.map((e) => ProductShop.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
     );
   }
 }
