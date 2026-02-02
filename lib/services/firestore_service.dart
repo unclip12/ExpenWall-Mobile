@@ -23,6 +23,8 @@ class FirestoreService {
 
   Future<void> addTransaction(Transaction transaction) async {
     final userId = transaction.userId ?? '';
+    if (userId.isEmpty) return;
+    
     await _db
         .collection('users')
         .doc(userId)
@@ -40,10 +42,13 @@ class FirestoreService {
         .update(transaction.toFirestore());
   }
 
-  Future<void> deleteTransaction(String transactionId) async {
-    // Note: You'll need to pass userId or store it in state
-    // For now, this is a placeholder
-    throw UnimplementedError('Delete requires userId context');
+  Future<void> deleteTransaction(String userId, String transactionId) async {
+    await _db
+        .collection('users')
+        .doc(userId)
+        .collection('transactions')
+        .doc(transactionId)
+        .delete();
   }
 
   // MERCHANT RULES
@@ -102,6 +107,8 @@ class FirestoreService {
 
   Future<void> addBudget(Budget budget) async {
     final userId = budget.userId ?? '';
+    if (userId.isEmpty) return;
+    
     await _db
         .collection('users')
         .doc(userId)
@@ -110,12 +117,16 @@ class FirestoreService {
         .set(budget.toFirestore());
   }
 
-  Future<void> deleteBudget(String budgetId) async {
-    // Note: Requires userId context
-    throw UnimplementedError('Delete requires userId context');
+  Future<void> deleteBudget(String userId, String budgetId) async {
+    await _db
+        .collection('users')
+        .doc(userId)
+        .collection('budgets')
+        .doc(budgetId)
+        .delete();
   }
 
-  // PRODUCTS
+  // PRODUCTS - Now consistent with other models!
   Stream<List<Product>> subscribeToProducts(String userId) {
     return _db
         .collection('users')
@@ -125,5 +136,14 @@ class FirestoreService {
         .map((snapshot) => snapshot.docs
             .map((doc) => Product.fromFirestore(doc.data(), doc.id))
             .toList());
+  }
+
+  Future<void> addProduct(String userId, Product product) async {
+    await _db
+        .collection('users')
+        .doc(userId)
+        .collection('products')
+        .doc(product.id)
+        .set(product.toFirestore());
   }
 }
