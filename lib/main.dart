@@ -13,6 +13,8 @@ void main() async {
       systemNavigationBarColor: Colors.transparent,
       systemNavigationBarDividerColor: Colors.transparent,
       statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
 
@@ -31,6 +33,18 @@ class ExpenWallApp extends StatelessWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
       home: const SplashScreen(),
+      builder: (context, child) {
+        // Add beautiful gradient background to entire app
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Container(
+          decoration: BoxDecoration(
+            gradient: isDark
+                ? AppTheme.darkBackgroundGradient
+                : AppTheme.lightBackgroundGradient,
+          ),
+          child: child,
+        );
+      },
     );
   }
 }
