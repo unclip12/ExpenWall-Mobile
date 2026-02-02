@@ -7,7 +7,7 @@ import 'add_transaction_screen.dart';
 import 'budget_screen.dart';
 import 'products_screen.dart';
 import 'settings_screen.dart';
-import '../models/transaction.dart';
+import '../models/transaction.dart' as models;
 import '../models/wallet.dart';
 import '../models/merchant_rule.dart';
 import '../models/budget.dart';
@@ -25,7 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   final _firestoreService = FirestoreService();
   
-  List<Transaction> _transactions = [];
+  List<models.Transaction> _transactions = [];
   List<MerchantRule> _rules = [];
   List<Wallet> _wallets = [];
   List<Budget> _budgets = [];
@@ -150,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     builder: (_) => AddTransactionScreen(
                       onSave: (transaction) async {
                         // Add userId to transaction
-                        final txWithUserId = Transaction(
+                        final txWithUserId = models.Transaction(
                           id: transaction.id,
                           userId: _userId,
                           merchant: transaction.merchant,
