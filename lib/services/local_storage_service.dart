@@ -11,6 +11,7 @@ import '../models/recurring_rule.dart';
 import '../models/recurring_notification.dart';
 import '../models/contact.dart';
 import '../models/group.dart';
+import '../models/split_bill.dart';
 
 class LocalStorageService {
   static const String _transactionsFile = 'transactions';
@@ -23,6 +24,7 @@ class LocalStorageService {
   static const String _recurringNotificationsFile = 'recurring_notifications';
   static const String _contactsFile = 'contacts';
   static const String _groupsFile = 'groups';
+  static const String _splitBillsFile = 'split_bills';
   
   static const String _lastSyncKey = 'last_sync_timestamp';
   static const String _userIdKey = 'cached_user_id';
@@ -184,7 +186,7 @@ class LocalStorageService {
   // PRODUCTS
   Future<void> saveProducts(String userId, List<Product> products) async {
     try {
-      final file = await _getUserFile(userId, _productsFile);
+      final file = await _getUserFile(userId, _productFile);
       final jsonList = products.map((p) => p.toFirestore()).toList();
       
       await file.writeAsString(jsonEncode(jsonList));
@@ -394,6 +396,36 @@ class LocalStorageService {
     }
   }
 
+  // SPLIT BILLS
+  Future<void> saveSplitBills(String userId, List<SplitBill> bills) async {
+    try {
+      final file = await _getUserFile(userId, _splitBillsFile);
+      final jsonList = bills.map((b) => b.toJson()).toList();
+      
+      await file.writeAsString(jsonEncode(jsonList));
+      await _updateLastSync();
+    } catch (e) {
+      print('Error saving split bills to local storage: $e');
+    }
+  }
+
+  Future<List<SplitBill>> loadSplitBills(String userId) async {
+    try {
+      final file = await _getUserFile(userId, _splitBillsFile);
+      if (!await file.exists()) {
+        return [];
+      }
+      
+      final jsonString = await file.readAsString();
+      final List<dynamic> jsonList = jsonDecode(jsonString);
+      
+      return jsonList.map((json) => SplitBill.fromJson(json)).toList();
+    } catch (e) {
+      print('Error loading split bills from local storage: $e');
+      return [];
+    }
+  }
+
   // PENDING OPERATIONS QUEUE
   Future<void> addPendingOperation(String userId, Map<String, dynamic> operation) async {
     try {
@@ -486,6 +518,7 @@ class LocalStorageService {
         _recurringNotificationsFile,
         _contactsFile,
         _groupsFile,
+        _splitBillsFile,
       ];
       
       for (final filename in files) {
