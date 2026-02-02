@@ -3,10 +3,10 @@ import 'dart:ui';
 import 'dart:async';
 import 'dashboard_screen.dart';
 import 'transactions_screen.dart';
-import 'add_transaction_screen.dart';
+import 'add_transaction_screen_v2.dart';
 import 'budget_screen.dart';
 import 'products_screen.dart';
-import 'settings_screen.dart';
+import 'settings_screen_v2.dart';
 import '../models/transaction.dart' as models;
 import '../models/wallet.dart';
 import '../models/merchant_rule.dart';
@@ -167,7 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onDeleteBudget: _deleteBudget,
         ),
         ProductsScreen(products: _products),
-        const SettingsScreen(),
+        const SettingsScreenV2(),
       ];
 
   @override
@@ -245,7 +245,8 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => AddTransactionScreen(
+                    builder: (_) => AddTransactionScreenV2(
+                      userId: _userId,
                       onSave: (transaction) async {
                         await _addTransaction(transaction);
                         if (context.mounted) {
