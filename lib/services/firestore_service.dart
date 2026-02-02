@@ -59,7 +59,7 @@ class FirestoreService {
         .collection('merchantRules')
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => MerchantRule.fromFirestore(doc.data(), doc.id))
+            .map((doc) => MerchantRule.fromFirestore(doc))
             .toList());
   }
 
@@ -80,7 +80,7 @@ class FirestoreService {
         .collection('wallets')
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => Wallet.fromFirestore(doc.data(), doc.id))
+            .map((doc) => Wallet.fromFirestore(doc))
             .toList());
   }
 
