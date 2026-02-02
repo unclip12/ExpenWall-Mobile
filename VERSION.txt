@@ -1,0 +1,38 @@
+ExpenWall Mobile - Version Information
+========================================
+
+CURRENT VERSION: 2.1.0
+RELEASE NAME: Smart Features & Theme System
+RELEASE DATE: February 2, 2026
+BUILD NUMBER: 210
+
+FINAL COMMIT SHA: 648643df2e500da13deb926aa367cba371d07a2b
+
+KEY FEATURES IN THIS VERSION:
+- Smart autocomplete with auto-categorization
+- 10 premium themes with live switching
+- Dark/Light mode toggle
+- Fixed emoji duplication
+- Changed wording (Received/Spent)
+- Animated type selector
+- Enhanced Settings screen
+- Complete offline-first architecture
+- Optional Google Drive sync
+
+BUILD INSTRUCTIONS:
+1. git checkout 648643df2e500da13deb926aa367cba371d07a2b
+2. flutter clean
+3. flutter pub get
+4. flutter build apk --release
+
+OR download from GitHub Actions:
+https://github.com/unclip12/ExpenWall-Mobile/actions
+(Look for workflow run at: Feb 2, 2026, 7:59 PM IST)
+
+TESTING GUIDE: See TESTING.md
+VERSION HISTORY: See VERSION_HISTORY.md
+ROADMAP: See ROADMAP.md
+PROGRESS: See PROGRESS.md
+
+NEXT VERSION: 2.2.0 (Navigation Overhaul)
+ESTIMATED: Week of Feb 3-9, 2026
