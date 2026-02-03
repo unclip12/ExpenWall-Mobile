@@ -2,7 +2,7 @@ name: expenwall_mobile
 description: "ExpenWall - Premium Flutter Mobile App for Expense Tracking"
 publish_to: 'none'
 
-version: 2.0.0+2
+version: 2.6.0+5
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -43,6 +43,9 @@ dependencies:
   # File Operations (compatible versions)
   share_plus: ^7.2.2
   file_picker: ^6.1.1
+
+  # Permissions
+  permission_handler: ^11.3.0
 
   # OCR & Image Processing
   google_mlkit_text_recognition: ^0.13.0
