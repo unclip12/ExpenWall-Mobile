@@ -507,9 +507,13 @@ class SplitBillService {
   /// Get total amount in pending bills
   Future<double> getTotalPendingAmount() async {
     final bills = await getAllBills();
-    return bills
-        .where((b) => b.status != BillStatus.fullySettled)
-        .fold(0.0, (sum, b) => sum + b.totalAmountPending);
+    double total = 0.0;
+    for (var bill in bills) {
+      if (bill.status != BillStatus.fullySettled) {
+        total += bill.totalAmountPending;
+      }
+    }
+    return total;
   }
 
   /// Get count of pending bills
