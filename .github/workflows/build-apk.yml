@@ -61,10 +61,10 @@ jobs:
     - name: Run Flutter doctor
       run: flutter doctor -v
     
-    - name: Build Fat APK (Single APK for all architectures)
+    - name: Build Fat APK (Universal)
       run: |
-        echo "🔨 Building fat APK (no splits)..."
-        flutter build apk --release --no-split-per-abi
+        echo "🔨 Building universal APK (works on all architectures)..."
+        flutter build apk --release
         echo "✅ Fat APK build complete! This single APK works on all devices."
     
     - name: Get APK info
