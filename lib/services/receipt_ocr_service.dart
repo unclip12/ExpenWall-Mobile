@@ -96,7 +96,7 @@ class ReceiptOCRService {
     RegExp(r'\b(BIG\s*BAZAAR|BIGBAZAAR)\b', caseSensitive: false),
     RegExp(r'\b(MORE\s*MEGA\s*STORE|MORE)\b', caseSensitive: false),
     RegExp(r'\b(RELIANCE\s*FRESH|RELIANCE\s*SMART)\b', caseSensitive: false),
-    RegExp(r'\b(SPENCER\'?S|SPENCERS)\b', caseSensitive: false),
+    RegExp(r"\b(SPENCER'?S|SPENCERS)\b", caseSensitive: false),
     RegExp(r'\b(VISHAL\s*MEGA\s*MART)\b', caseSensitive: false),
     RegExp(r'\b(STAR\s*BAZAAR)\b', caseSensitive: false),
     
@@ -106,9 +106,9 @@ class ReceiptOCRService {
     RegExp(r'\b(UBER\s*EATS)\b', caseSensitive: false),
     
     // Restaurants
-    RegExp(r'\b(MCDONALD\'?S|MC\s*DONALD\'?S)\b', caseSensitive: false),
+    RegExp(r"\b(MCDONALD'?S|MC\s*DONALD'?S)\b", caseSensitive: false),
     RegExp(r'\b(KFC|KENTUCKY\s*FRIED\s*CHICKEN)\b', caseSensitive: false),
-    RegExp(r'\b(DOMINO\'?S|DOMINOS)\b', caseSensitive: false),
+    RegExp(r"\b(DOMINO'?S|DOMINOS)\b", caseSensitive: false),
     RegExp(r'\b(PIZZA\s*HUT)\b', caseSensitive: false),
     RegExp(r'\b(SUBWAY)\b', caseSensitive: false),
     RegExp(r'\b(BURGER\s*KING)\b', caseSensitive: false),
