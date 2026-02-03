@@ -8,11 +8,13 @@ import '../models/transaction.dart' as models;
 import '../models/budget.dart';
 import '../models/report_config.dart';
 import 'local_storage_service.dart';
+import 'chart_to_pdf_service.dart';
 
 /// PDF Report Generation Service
-/// Generates professional expense reports with analytics and insights
+/// Generates professional expense reports with analytics, insights, and charts
 class PDFReportService {
   final LocalStorageService _localStorage;
+  final ChartToPdfService _chartService = ChartToPdfService();
 
   PDFReportService(this._localStorage);
 
@@ -34,23 +36,109 @@ class PDFReportService {
     // Apply additional filters
     final filteredTransactions = _applyFilters(transactions, config);
 
+    // Generate charts if requested
+    Uint8List? categoryChartImage;
+    Uint8List? trendChartImage;
+    Uint8List? budgetChartImage;
+
+    if (config.includeCharts) {
+      try {
+        // Generate category pie chart
+        final categoryBreakdown = _getCategoryBreakdown(filteredTransactions);
+        if (categoryBreakdown.isNotEmpty) {
+          categoryChartImage = await _chartService.generateCategoryPieChart(categoryBreakdown);
+        }
+
+        // Generate spending trend chart for simple and detailed reports
+        if (config.type != ReportType.budget && filteredTransactions.isNotEmpty) {
+          trendChartImage = await _chartService.generateSpendingTrendChart(
+            filteredTransactions,
+            config.startDate,
+            config.endDate,
+          );
+        }
+
+        // Generate budget comparison chart for budget report
+        if (config.type == ReportType.budget && allBudgets.isNotEmpty) {
+          final budgetAnalysis = _analyzeBudgetPerformance(filteredTransactions, allBudgets);
+          if (budgetAnalysis.isNotEmpty) {
+            budgetChartImage = await _chartService.generateBudgetComparisonChart(budgetAnalysis);
+          }
+        }
+      } catch (e) {
+        // Log error but continue without charts
+        print('Error generating charts: $e');
+      }
+    }
+
+    // Load receipt images if requested
+    List<Uint8List> receiptImages = [];
+    if (config.includeReceipts) {
+      receiptImages = await _loadReceiptImages(filteredTransactions);
+    }
+
     // Generate PDF based on template type
     final pdf = pw.Document();
 
     switch (config.type) {
       case ReportType.simple:
-        await _generateSimpleReport(pdf, config, filteredTransactions, allBudgets, allTransactions);
+        await _generateSimpleReport(
+          pdf,
+          config,
+          filteredTransactions,
+          allBudgets,
+          allTransactions,
+          categoryChartImage,
+          trendChartImage,
+          receiptImages,
+        );
         break;
       case ReportType.detailed:
-        await _generateDetailedReport(pdf, config, filteredTransactions, allBudgets, allTransactions);
+        await _generateDetailedReport(
+          pdf,
+          config,
+          filteredTransactions,
+          allBudgets,
+          allTransactions,
+          categoryChartImage,
+          trendChartImage,
+          receiptImages,
+        );
         break;
       case ReportType.budget:
-        await _generateBudgetReport(pdf, config, filteredTransactions, allBudgets, allTransactions);
+        await _generateBudgetReport(
+          pdf,
+          config,
+          filteredTransactions,
+          allBudgets,
+          allTransactions,
+          categoryChartImage,
+          budgetChartImage,
+          receiptImages,
+        );
         break;
     }
 
     // Save PDF to file
     return await _savePDF(pdf, config);
+  }
+
+  /// Load receipt images for transactions
+  Future<List<Uint8List>> _loadReceiptImages(List<models.Transaction> transactions) async {
+    final images = <Uint8List>[];
+    for (final transaction in transactions) {
+      if (transaction.receiptImagePath != null && transaction.receiptImagePath!.isNotEmpty) {
+        try {
+          final imageBytes = await _localStorage.loadReceiptImage(transaction.receiptImagePath!);
+          if (imageBytes != null) {
+            images.add(imageBytes);
+          }
+        } catch (e) {
+          print('Error loading receipt image: $e');
+        }
+      }
+    }
+    return images;
   }
 
   /// Apply filters to transactions
@@ -92,6 +180,9 @@ class PDFReportService {
     List<models.Transaction> transactions,
     List<Budget> budgets,
     List<models.Transaction> allTransactions,
+    Uint8List? categoryChartImage,
+    Uint8List? trendChartImage,
+    List<Uint8List> receiptImages,
   ) async {
     // Calculate summary statistics
     final stats = _calculateStatistics(transactions);
@@ -99,48 +190,87 @@ class PDFReportService {
     final categoryBreakdown = _getCategoryBreakdown(transactions);
     final topTransactions = _getTopTransactions(transactions, 10);
 
+    final content = <pw.Widget>[
+      // Header
+      _buildHeader(config, 'Simple Summary Report'),
+      pw.SizedBox(height: 20),
+
+      // Executive Summary Card
+      _buildExecutiveSummary(stats, previousStats),
+      pw.SizedBox(height: 20),
+
+      // Personalized Insights
+      _buildInsightsSection(stats, previousStats),
+      pw.SizedBox(height: 20),
+    ];
+
+    // Add category pie chart if available
+    if (categoryChartImage != null) {
+      content.addAll([
+        pw.Text(
+          'Spending by Category',
+          style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 10),
+        pw.Center(
+          child: pw.Image(pw.MemoryImage(categoryChartImage), width: 500, height: 400),
+        ),
+        pw.SizedBox(height: 20),
+      ]);
+    }
+
+    // Category Breakdown Table
+    content.addAll([
+      pw.Text(
+        'Category Breakdown',
+        style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+      ),
+      pw.SizedBox(height: 10),
+      _buildCategoryTable(categoryBreakdown, stats['totalExpenses']),
+      pw.SizedBox(height: 20),
+    ]);
+
+    // Add spending trend chart if available
+    if (trendChartImage != null) {
+      content.addAll([
+        pw.Text(
+          'Spending Trend',
+          style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 10),
+        pw.Center(
+          child: pw.Image(pw.MemoryImage(trendChartImage), width: 520, height: 260),
+        ),
+        pw.SizedBox(height: 20),
+      ]);
+    }
+
+    // Top Transactions
+    content.addAll([
+      pw.Text(
+        'Top 10 Transactions',
+        style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+      ),
+      pw.SizedBox(height: 10),
+      _buildTopTransactionsTable(topTransactions),
+      pw.SizedBox(height: 20),
+
+      // Key Statistics
+      _buildKeyStatistics(stats, transactions),
+    ]);
+
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(32),
-        build: (context) => [
-          // Header
-          _buildHeader(config, 'Simple Summary Report'),
-          pw.SizedBox(height: 20),
-
-          // Executive Summary Card
-          _buildExecutiveSummary(stats, previousStats),
-          pw.SizedBox(height: 20),
-
-          // Personalized Insights
-          _buildInsightsSection(stats, previousStats),
-          pw.SizedBox(height: 20),
-
-          // Category Breakdown Header
-          pw.Text(
-            'Category Breakdown',
-            style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-          ),
-          pw.SizedBox(height: 10),
-
-          // Category Table
-          _buildCategoryTable(categoryBreakdown, stats.totalExpenses),
-          pw.SizedBox(height: 20),
-
-          // Top Transactions
-          pw.Text(
-            'Top 10 Transactions',
-            style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-          ),
-          pw.SizedBox(height: 10),
-          _buildTopTransactionsTable(topTransactions),
-          pw.SizedBox(height: 20),
-
-          // Key Statistics
-          _buildKeyStatistics(stats, transactions),
-        ],
+        build: (context) => content,
       ),
     );
+
+    // Add receipts page if available
+    if (receiptImages.isNotEmpty) {
+      _addReceiptsPage(pdf, receiptImages);
+    }
   }
 
   /// Generate Detailed Transaction Report
@@ -150,37 +280,74 @@ class PDFReportService {
     List<models.Transaction> transactions,
     List<Budget> budgets,
     List<models.Transaction> allTransactions,
+    Uint8List? categoryChartImage,
+    Uint8List? trendChartImage,
+    List<Uint8List> receiptImages,
   ) async {
     final stats = _calculateStatistics(transactions);
     final previousStats = _calculatePreviousMonthStats(allTransactions, config);
     final categoryBreakdown = _getCategoryBreakdown(transactions);
     final transactionsByCategory = _groupTransactionsByCategory(transactions);
 
+    final content = <pw.Widget>[
+      // Header
+      _buildHeader(config, 'Detailed Transaction Report'),
+      pw.SizedBox(height: 20),
+
+      // Executive Summary
+      _buildExecutiveSummary(stats, previousStats),
+      pw.SizedBox(height: 20),
+
+      // Insights
+      _buildInsightsSection(stats, previousStats),
+      pw.SizedBox(height: 20),
+    ];
+
+    // Add category pie chart if available
+    if (categoryChartImage != null) {
+      content.addAll([
+        pw.Text(
+          'Spending Distribution',
+          style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 10),
+        pw.Center(
+          child: pw.Image(pw.MemoryImage(categoryChartImage), width: 500, height: 400),
+        ),
+        pw.SizedBox(height: 20),
+      ]);
+    }
+
+    // Category Summary Table
+    content.addAll([
+      pw.Text(
+        'Category Summary',
+        style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+      ),
+      pw.SizedBox(height: 10),
+      _buildCategoryTable(categoryBreakdown, stats['totalExpenses']),
+    ]);
+
+    // Add spending trend chart if available
+    if (trendChartImage != null) {
+      content.addAll([
+        pw.SizedBox(height: 20),
+        pw.Text(
+          'Spending Trend Over Time',
+          style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 10),
+        pw.Center(
+          child: pw.Image(pw.MemoryImage(trendChartImage), width: 520, height: 260),
+        ),
+      ]);
+    }
+
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(32),
-        build: (context) => [
-          // Header
-          _buildHeader(config, 'Detailed Transaction Report'),
-          pw.SizedBox(height: 20),
-
-          // Executive Summary
-          _buildExecutiveSummary(stats, previousStats),
-          pw.SizedBox(height: 20),
-
-          // Insights
-          _buildInsightsSection(stats, previousStats),
-          pw.SizedBox(height: 20),
-
-          // Category Summary Table
-          pw.Text(
-            'Category Summary',
-            style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-          ),
-          pw.SizedBox(height: 10),
-          _buildCategoryTable(categoryBreakdown, stats.totalExpenses),
-        ],
+        build: (context) => content,
       ),
     );
 
@@ -211,6 +378,11 @@ class PDFReportService {
         ),
       );
     }
+
+    // Add receipts page if available
+    if (receiptImages.isNotEmpty) {
+      _addReceiptsPage(pdf, receiptImages);
+    }
   }
 
   /// Generate Budget Performance Report
@@ -220,42 +392,136 @@ class PDFReportService {
     List<models.Transaction> transactions,
     List<Budget> budgets,
     List<models.Transaction> allTransactions,
+    Uint8List? categoryChartImage,
+    Uint8List? budgetChartImage,
+    List<Uint8List> receiptImages,
   ) async {
     final stats = _calculateStatistics(transactions);
     final previousStats = _calculatePreviousMonthStats(allTransactions, config);
     final budgetAnalysis = _analyzeBudgetPerformance(transactions, budgets);
 
+    final content = <pw.Widget>[
+      // Header
+      _buildHeader(config, 'Budget Performance Report'),
+      pw.SizedBox(height: 20),
+
+      // Executive Summary
+      _buildExecutiveSummary(stats, previousStats),
+      pw.SizedBox(height: 20),
+
+      // Budget Overview
+      _buildBudgetOverview(budgetAnalysis),
+      pw.SizedBox(height: 20),
+    ];
+
+    // Add budget comparison chart if available
+    if (budgetChartImage != null) {
+      content.addAll([
+        pw.Text(
+          'Budget vs Actual Comparison',
+          style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 10),
+        pw.Center(
+          child: pw.Image(pw.MemoryImage(budgetChartImage), width: 520, height: 350),
+        ),
+        pw.SizedBox(height: 20),
+      ]);
+    }
+
+    // Budget Comparison Table
+    content.addAll([
+      pw.Text(
+        'Budget vs Actual Spending',
+        style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+      ),
+      pw.SizedBox(height: 10),
+      _buildBudgetComparisonTable(budgetAnalysis),
+      pw.SizedBox(height: 20),
+    ]);
+
+    // Add category pie chart if available
+    if (categoryChartImage != null) {
+      content.addAll([
+        pw.Text(
+          'Spending Distribution',
+          style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 10),
+        pw.Center(
+          child: pw.Image(pw.MemoryImage(categoryChartImage), width: 500, height: 400),
+        ),
+        pw.SizedBox(height: 20),
+      ]);
+    }
+
+    // Insights
+    content.add(_buildBudgetInsights(budgetAnalysis));
+
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(32),
-        build: (context) => [
-          // Header
-          _buildHeader(config, 'Budget Performance Report'),
-          pw.SizedBox(height: 20),
-
-          // Executive Summary
-          _buildExecutiveSummary(stats, previousStats),
-          pw.SizedBox(height: 20),
-
-          // Budget Overview
-          _buildBudgetOverview(budgetAnalysis),
-          pw.SizedBox(height: 20),
-
-          // Budget Comparison Table
-          pw.Text(
-            'Budget vs Actual Spending',
-            style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-          ),
-          pw.SizedBox(height: 10),
-          _buildBudgetComparisonTable(budgetAnalysis),
-          pw.SizedBox(height: 20),
-
-          // Insights
-          _buildBudgetInsights(budgetAnalysis),
-        ],
+        build: (context) => content,
       ),
     );
+
+    // Add receipts page if available
+    if (receiptImages.isNotEmpty) {
+      _addReceiptsPage(pdf, receiptImages);
+    }
+  }
+
+  /// Add receipts page with thumbnail grid
+  void _addReceiptsPage(pw.Document pdf, List<Uint8List> receiptImages) {
+    // Show up to 6 receipts per page in a 2x3 grid
+    final pages = (receiptImages.length / 6).ceil();
+
+    for (int page = 0; page < pages; page++) {
+      final startIndex = page * 6;
+      final endIndex = (startIndex + 6).clamp(0, receiptImages.length);
+      final pageReceipts = receiptImages.sublist(startIndex, endIndex);
+
+      pdf.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(32),
+          build: (context) => pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(
+                'Receipt Images${pages > 1 ? ' (Page ${page + 1} of $pages)' : ''}',
+                style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+              ),
+              pw.SizedBox(height: 20),
+              pw.Expanded(
+                child: pw.GridView(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.7,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  children: pageReceipts
+                      .map((imageBytes) => pw.Container(
+                            decoration: pw.BoxDecoration(
+                              border: pw.Border.all(color: PdfColors.grey400),
+                              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                            ),
+                            child: pw.ClipRRect(
+                              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                              child: pw.Image(
+                                pw.MemoryImage(imageBytes),
+                                fit: pw.BoxFit.cover,
+                              ),
+                            ),
+                          ))
+                      .toList(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
   }
 
   /// Build report header
@@ -381,11 +647,11 @@ class PDFReportService {
 
       if (expenseChange > 0) {
         insights.add(
-          '📈 Expenses increased by ₹${_formatAmount(expenseChange.abs())} (${expenseChangePercent.toStringAsFixed(1)}%) compared to previous month.',
+          '📈 Expenses increased by ₹${_formatAmount(expenseChange.abs())} (${expenseChangePercent.toStringAsFixed(1)}%) compared to previous period.',
         );
       } else if (expenseChange < 0) {
         insights.add(
-          '📉 Great job! Expenses decreased by ₹${_formatAmount(expenseChange.abs())} (${expenseChangePercent.abs().toStringAsFixed(1)}%) compared to previous month.',
+          '📉 Great job! Expenses decreased by ₹${_formatAmount(expenseChange.abs())} (${expenseChangePercent.abs().toStringAsFixed(1)}%) compared to previous period.',
         );
       }
 
@@ -395,11 +661,11 @@ class PDFReportService {
 
       if (savingsChange > 0) {
         insights.add(
-          '💰 You saved ₹${_formatAmount(savingsChange.abs())} more this month! Keep up the excellent work.',
+          '💰 You saved ₹${_formatAmount(savingsChange.abs())} more this period! Keep up the excellent work.',
         );
       } else if (savingsChange < 0) {
         insights.add(
-          '⚠️ Savings decreased by ₹${_formatAmount(savingsChange.abs())} this month. Consider reviewing your spending.',
+          '⚠️ Savings decreased by ₹${_formatAmount(savingsChange.abs())} this period. Consider reviewing your spending.',
         );
       }
     }
