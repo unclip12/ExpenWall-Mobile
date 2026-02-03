@@ -70,7 +70,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
     if (deleteRule != null) {
       await _recurringService.handleCanceledAction(
         notification.id,
-        deleteRule: deleteRule,
+        shouldDeleteRule: deleteRule,
       );
       _showSnackBar(
         deleteRule ? '🗑️ Rule deleted' : '⏸️ Subscription paused',
