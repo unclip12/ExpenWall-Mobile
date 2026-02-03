@@ -31,7 +31,7 @@ class _CreateRecurringRuleScreenState extends State<CreateRecurringRuleScreen> {
   final _notesController = TextEditingController();
   final _frequencyValueController = TextEditingController(text: '1');
 
-  Category _selectedCategory = Category.subscriptions;
+  Category _selectedCategory = Category.other;
   String? _selectedSubcategory;
   TransactionType _transactionType = TransactionType.expense;
   FrequencyUnit _frequencyUnit = FrequencyUnit.months;
