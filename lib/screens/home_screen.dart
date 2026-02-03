@@ -158,6 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
         TransactionsScreen(
           transactions: _transactions,
           rules: _rules,
+          userId: _userId,
           onDeleteTransaction: _deleteTransaction,
         ),
         BudgetScreen(
