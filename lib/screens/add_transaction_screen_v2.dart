@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/transaction.dart';
 import '../models/recurring_rule.dart';
+import '../screens/receipt_review_screen.dart';
 import '../widgets/glass_card.dart';
 import '../utils/category_icons.dart';
 import '../services/local_storage_service.dart';
@@ -49,6 +50,11 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
   List<String> _merchantSuggestions = [];
   List<Transaction> _previousTransactions = [];
   RecurringRule? _matchingRecurringRule;
+  
+  // Phase 5: Receipt data
+  String? _receiptImagePath;
+  Map<String, dynamic>? _receiptData;
+  bool _hasReceiptData = false;
 
   @override
   void initState() {
@@ -87,6 +93,9 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
       _subcategory = widget.initialData!.subcategory;
       _selectedDate = widget.initialData!.date;
       _items = widget.initialData!.items ?? [];
+      _receiptImagePath = widget.initialData!.receiptImagePath;
+      _receiptData = widget.initialData!.receiptData;
+      _hasReceiptData = _receiptImagePath != null;
     }
   }
 
@@ -200,9 +209,9 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
     }
   }
 
-  /// Open receipt camera scanner
+  /// Open receipt camera scanner (Phase 5: Handle returned data)
   Future<void> _openReceiptScanner() async {
-    await Navigator.push(
+    final result = await Navigator.push<Map<String, dynamic>>(
       context,
       MaterialPageRoute(
         builder: (context) => ReceiptCameraScreen(
@@ -210,7 +219,63 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
         ),
       ),
     );
-    // TODO: Handle returned receipt data in Phase 5
+
+    // Phase 5: Handle returned receipt data
+    if (result != null) {
+      setState(() {
+        // Auto-fill merchant
+        if (result['merchant'] != null) {
+          _merchantController.text = result['merchant'];
+        }
+
+        // Auto-fill amount
+        if (result['amount'] != null) {
+          _amountController.text = result['amount'].toString();
+        }
+
+        // Auto-fill date
+        if (result['date'] != null) {
+          _selectedDate = result['date'];
+        }
+
+        // Auto-fill items
+        if (result['items'] != null) {
+          final receiptItems = result['items'] as List<EditableReceiptItem>;
+          _items = receiptItems.map((item) {
+            return TransactionItem(
+              name: item.name,
+              price: item.price,
+              quantity: item.quantity,
+              brand: null, // Receipt items don't have brand info yet
+            );
+          }).toList();
+        }
+
+        // Store receipt metadata
+        _receiptImagePath = result['receiptImagePath'];
+        _receiptData = result['receiptData'];
+        _hasReceiptData = true;
+      });
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text('Receipt data imported successfully!'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _handleSubmit() async {
@@ -245,6 +310,8 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
         notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         items: _items.isEmpty ? null : _items,
         currency: 'INR',
+        receiptImagePath: _receiptImagePath,
+        receiptData: _receiptData,
       );
 
       await widget.onSave(transaction);
@@ -370,6 +437,8 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
         notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         items: _items.isEmpty ? null : _items,
         currency: 'INR',
+        receiptImagePath: _receiptImagePath,
+        receiptData: _receiptData,
       );
 
       // Save transaction first
@@ -440,6 +509,52 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
+                // Receipt indicator
+                if (_hasReceiptData) ...[
+                  GlassCard(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.receipt_long,
+                            color: Colors.green,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Receipt Attached',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              Text(
+                                'Data imported from scanned receipt',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.check_circle, color: Colors.green),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 if (!_showItemsForm) ..._buildMainForm() else ..._buildItemsForm(),
                 const SizedBox(height: 100),
               ],
