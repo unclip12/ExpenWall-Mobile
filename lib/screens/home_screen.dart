@@ -352,16 +352,17 @@ class _HomeScreenState extends State<HomeScreen> {
               size: 24, // All icons same size
             ),
             const SizedBox(height: 4),
-            // Only show label for selected icon
-            if (isSelected)
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+            // FIXED: Show label for ALL icons, not just selected
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.grey[600],
               ),
+            ),
           ],
         ),
       ),
