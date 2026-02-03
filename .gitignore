@@ -50,6 +50,16 @@ android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 lib/firebase_options.dart
 
+# 🔑 SECURITY: Release signing keystores
+# CRITICAL: Never commit keystore files - they're your app's identity!
+# If leaked, someone can impersonate your app
+*.jks
+*.keystore
+key.properties
+keystore-base64.txt
+android/app/release-keystore.jks
+android/key.properties
+
 # Environment variables
 .env
 .env.local
