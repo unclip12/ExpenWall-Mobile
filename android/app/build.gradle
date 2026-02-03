@@ -82,10 +82,9 @@ android {
             } else {
                 signingConfig signingConfigs.debug
             }
-            // FIXED: Complete disable of code/resource optimization
-            // This prevents Package Installer crashes and build errors
-            minifyEnabled false
-            shrinkResources false
+            // Optimized build: smaller APK, obfuscated code, better performance
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
