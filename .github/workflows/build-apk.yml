@@ -1,36 +1,24 @@
 name: Build Flutter APK
 
-# 🚨 BUILD TRIGGER RULES - READ CAREFULLY!
+# 🚀 AUTOMATIC BUILD ON EVERY PUSH!
 #
-# This workflow ONLY triggers on:
-#   1. Version tags (v2.3.1, v2.4.0, etc.) - For official releases
-#   2. Manual trigger from GitHub Actions UI - For testing
+# This workflow triggers on:
+#   1. Every push to main branch - Automatic builds
+#   2. Version tags (v2.3.1, v2.4.0, etc.) - For official releases
+#   3. Manual trigger from GitHub Actions UI - For testing
 #
-# This workflow DOES NOT trigger on:
-#   - Regular commits to main
-#   - Code updates during development  
-#   - Documentation changes
-#
-# WHY? To save GitHub Actions minutes and prevent unnecessary builds!
-#
-# For full workflow rules, see: DEVELOPMENT_WORKFLOW.md
-# 
-# When to create version tags:
-#   - All phases complete
-#   - User has tested and approved
-#   - User says "Ready to release"
-#
-# How to create version tags:
-#   git tag v2.3.1
-#   git push origin v2.3.1
+# Changed from tag-only builds to automatic builds per user request.
+# Builds will now start immediately after any code changes are pushed.
 
 on:
-  # Only trigger on version tags (v2.3.1, v2.4.0, etc.)
+  # Trigger on every push to main branch
   push:
+    branches:
+      - main
     tags:
-      - 'v*.*.*'  # Matches v2.3.1, v2.4.0, v3.0.0, etc.
+      - 'v*.*.*'  # Also keep version tag support
   
-  # Allow manual trigger from Actions tab when needed for testing
+  # Allow manual trigger from Actions tab
   workflow_dispatch:
 
 jobs:
@@ -84,7 +72,7 @@ jobs:
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: expenwall-mobile-release
+        name: expenwall-mobile-release-${{ github.sha }}
         path: build/app/outputs/flutter-apk/app-release.apk
         retention-days: 30
     
@@ -93,10 +81,11 @@ jobs:
         echo "✅ APK Build Successful!" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 📱 Download your APK" >> $GITHUB_STEP_SUMMARY
-        echo "Go to the Actions tab and download the artifact named **expenwall-mobile-release**" >> $GITHUB_STEP_SUMMARY
+        echo "Go to the Actions tab and download the artifact named **expenwall-mobile-release-${{ github.sha }}**" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 📦 Build Details" >> $GITHUB_STEP_SUMMARY
         echo "- Flutter Version: $(flutter --version | head -n 1)" >> $GITHUB_STEP_SUMMARY
         echo "- Build Date: $(date)" >> $GITHUB_STEP_SUMMARY
         echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
         echo "- 🔐 Firebase: Configured from secrets" >> $GITHUB_STEP_SUMMARY
