@@ -152,13 +152,38 @@ class ReceiptOCRService {
     'final amount',
     'total Rs',
     'total INR',
+    'net payable',
+    'amount to be paid',
   ];
 
-  // Item line patterns (typical receipt format)
-  static final _itemLinePattern = RegExp(
-    r'^(.+?)\s+(\d+(?:\.\d{2})?|\d+,\d{3}(?:\.\d{2})?)\s*$',
-    multiLine: true,
-  );
+  // IMPROVED: Multiple item line patterns for Indian receipts
+  static final _itemLinePatterns = [
+    // Format 1: "Item Name  Price" (standard)
+    RegExp(r'^(.+?)\s{2,}(\d+(?:\.\d{2})?|\d+,\d{3}(?:\.\d{2})?)\s*$'),
+    
+    // Format 2: "Item Name Price" (single space)
+    RegExp(r'^(.{3,}?)\s+(\d+\.\d{2})\s*$'),
+    
+    // Format 3: "Qty x Price = Total" (e.g., "2 x 50.00 = 100.00")
+    RegExp(r'^(.+?)\s+(\d+)\s*[xX*]\s*(\d+\.?\d{0,2})(?:\s*=?\s*(\d+\.?\d{0,2}))?'),
+    
+    // Format 4: "Item  Qty  Price" (DMart style)
+    RegExp(r'^(.+?)\s+(\d+)\s+(\d+\.\d{2})\s*$'),
+    
+    // Format 5: "Item Name\nPrice" (multi-line)
+    RegExp(r'^(.+)$'),
+  ];
+
+  // Skip patterns (lines to ignore)
+  static final _skipPatterns = [
+    RegExp(r'^\s*[-=*]+\s*$'), // Separator lines
+    RegExp(r'^\s*$'), // Empty lines
+    RegExp(r'\b(subtotal|sub total|sub-total)\b', caseSensitive: false),
+    RegExp(r'\b(tax|vat|gst|cgst|sgst)\b', caseSensitive: false),
+    RegExp(r'\b(discount|savings|offer)\b', caseSensitive: false),
+    RegExp(r'\b(barcode|code|sku)\b', caseSensitive: false),
+    RegExp(r'^\d{12,}$'), // Barcode numbers
+  ];
 
   ReceiptOCRService()
       : _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin),
@@ -178,18 +203,18 @@ class ReceiptOCRService {
       final merchant = _extractMerchant(lines, rawText);
       final date = _extractDate(lines, rawText);
       final total = _extractTotalAmount(lines, rawText);
-      final items = _extractItems(lines);
+      final items = _extractItems(lines, rawText);
 
-      // Calculate confidence scores
-      final fieldConfidences = {
-        'merchant': merchant != null ? 0.8 : 0.0,
-        'date': date != null ? 0.7 : 0.0,
-        'total': total != null ? 0.9 : 0.0,
-        'items': items.isNotEmpty ? 0.6 : 0.0,
-      };
+      // IMPROVED: Smart confidence calculation
+      final fieldConfidences = _calculateFieldConfidences(
+        merchant: merchant,
+        date: date,
+        total: total,
+        items: items,
+        rawText: rawText,
+      );
 
-      final overallConfidence = fieldConfidences.values.reduce((a, b) => a + b) /
-          fieldConfidences.length;
+      final overallConfidence = _calculateOverallConfidence(fieldConfidences, items, total);
 
       return ExtractedReceipt(
         merchantName: merchant,
@@ -207,6 +232,131 @@ class ReceiptOCRService {
         confidence: 0.0,
       );
     }
+  }
+
+  /// IMPROVED: Smart confidence calculation
+  Map<String, double> _calculateFieldConfidences({
+    required String? merchant,
+    required DateTime? date,
+    required double? total,
+    required List<ReceiptItem> items,
+    required String rawText,
+  }) {
+    final confidences = <String, double>{};
+
+    // Merchant confidence (0.0 to 1.0)
+    if (merchant != null) {
+      if (_merchantPatterns.any((p) => p.hasMatch(merchant))) {
+        confidences['merchant'] = 0.95; // Known merchant
+      } else if (merchant.length > 3) {
+        confidences['merchant'] = 0.75; // Probable merchant
+      } else {
+        confidences['merchant'] = 0.5; // Weak match
+      }
+    } else {
+      confidences['merchant'] = 0.0;
+    }
+
+    // Date confidence
+    if (date != null) {
+      final now = DateTime.now();
+      final diffDays = now.difference(date).inDays.abs();
+      if (diffDays <= 30) {
+        confidences['date'] = 0.9; // Recent date
+      } else if (diffDays <= 365) {
+        confidences['date'] = 0.7; // Within year
+      } else {
+        confidences['date'] = 0.4; // Old date
+      }
+    } else {
+      confidences['date'] = 0.0;
+    }
+
+    // Total amount confidence
+    if (total != null) {
+      if (total > 0 && total < 1000000) {
+        confidences['total'] = 0.95; // Reasonable amount
+      } else {
+        confidences['total'] = 0.6; // Suspicious amount
+      }
+    } else {
+      confidences['total'] = 0.0;
+    }
+
+    // Items confidence (based on quantity and quality)
+    if (items.isNotEmpty) {
+      final itemsWithCategory = items.where((i) => i.category != null).length;
+      final avgItemConfidence = items.fold(0.0, (sum, i) => sum + i.confidence) / items.length;
+      
+      // More items = higher confidence (up to 10 items)
+      final quantityScore = (items.length / 10.0).clamp(0.0, 1.0);
+      
+      // Items with categories = higher confidence
+      final categoryScore = items.length > 0 ? (itemsWithCategory / items.length) : 0.0;
+      
+      confidences['items'] = (quantityScore * 0.4 + categoryScore * 0.3 + avgItemConfidence * 0.3);
+    } else {
+      confidences['items'] = 0.0;
+    }
+
+    // Text quality (readability)
+    final textLength = rawText.replaceAll(RegExp(r'\s+'), '').length;
+    if (textLength > 100) {
+      confidences['text_quality'] = 0.8;
+    } else if (textLength > 50) {
+      confidences['text_quality'] = 0.6;
+    } else {
+      confidences['text_quality'] = 0.3;
+    }
+
+    return confidences;
+  }
+
+  /// IMPROVED: Weighted overall confidence calculation
+  double _calculateOverallConfidence(
+    Map<String, double> fieldConfidences,
+    List<ReceiptItem> items,
+    double? total,
+  ) {
+    // Weighted scores (critical fields matter more)
+    final weights = {
+      'total': 0.30,      // Most critical
+      'merchant': 0.25,   // Very important
+      'items': 0.25,      // Very important
+      'date': 0.15,       // Important
+      'text_quality': 0.05, // Nice to have
+    };
+
+    double score = 0.0;
+    double totalWeight = 0.0;
+
+    fieldConfidences.forEach((field, confidence) {
+      final weight = weights[field] ?? 0.0;
+      score += confidence * weight;
+      totalWeight += weight;
+    });
+
+    double baseConfidence = totalWeight > 0 ? score / totalWeight : 0.0;
+
+    // Bonus points for validation
+    if (items.isNotEmpty && total != null) {
+      final itemsTotal = items.fold(0.0, (sum, item) => sum + (item.price * item.quantity));
+      final diff = (itemsTotal - total).abs();
+      final diffPercent = total > 0 ? diff / total : 1.0;
+      
+      // If items total matches receipt total (within 5%), big bonus
+      if (diffPercent < 0.05) {
+        baseConfidence = (baseConfidence + 0.15).clamp(0.0, 1.0);
+      } else if (diffPercent < 0.15) {
+        baseConfidence = (baseConfidence + 0.05).clamp(0.0, 1.0);
+      }
+    }
+
+    // Penalty for critical missing fields
+    if (total == null) baseConfidence *= 0.6;
+    if (items.isEmpty) baseConfidence *= 0.7;
+
+    return baseConfidence;
   }
 
   /// Extract text lines from recognized text
@@ -249,11 +399,6 @@ class ReceiptOCRService {
 
   /// Check if a line looks like a merchant name
   bool _looksLikeMerchantName(String line) {
-    // Merchant names are usually:
-    // - All caps or title case
-    // - Short (less than 50 chars)
-    // - Don't start with numbers
-    // - Don't contain too many special characters
     if (line.length > 50) return false;
     if (RegExp(r'^\d').hasMatch(line)) return false;
     if (RegExp(r'[₹Rs\.]').hasMatch(line)) return false;
@@ -286,11 +431,9 @@ class ReceiptOCRService {
       final match = pattern.firstMatch(rawText);
       if (match != null) {
         try {
-          // Try different date formats
           if (match.groupCount >= 3) {
             int day, month, year;
 
-            // Detect format based on values
             final part1 = int.parse(match.group(1)!);
             final part2 = int.parse(match.group(2)!);
             final part3 = int.parse(match.group(3)!);
@@ -331,7 +474,6 @@ class ReceiptOCRService {
     for (var i = 0; i < lines.length; i++) {
       final line = lines[i].toLowerCase();
 
-      // Check if line contains total keyword
       if (_totalKeywords.any((keyword) => line.contains(keyword.toLowerCase()))) {
         // Search this line and next few lines for amount
         for (var j = i; j < i + 3 && j < lines.length; j++) {
@@ -343,7 +485,7 @@ class ReceiptOCRService {
       }
     }
 
-    // Fallback: Find largest amount in receipt
+    // Fallback: Find largest amount in receipt (likely the total)
     double? maxAmount;
     for (final line in lines) {
       final amount = _extractAmountFromLine(line);
@@ -371,22 +513,136 @@ class ReceiptOCRService {
     return null;
   }
 
-  /// Extract items from receipt
-  List<ReceiptItem> _extractItems(List<String> lines) {
+  /// IMPROVED: Extract items from receipt (handles multiple formats)
+  List<ReceiptItem> _extractItems(List<String> lines, String rawText) {
     final items = <ReceiptItem>[];
+    String? pendingItemName;
 
-    for (final line in lines) {
-      // Skip lines that look like headers, totals, or merchant info
-      if (_isHeaderOrTotal(line)) continue;
+    for (var i = 0; i < lines.length; i++) {
+      final line = lines[i].trim();
+      
+      // Skip empty or skip-pattern lines
+      if (line.isEmpty || _skipPatterns.any((p) => p.hasMatch(line))) {
+        continue;
+      }
 
-      // Try to parse as item line
-      final item = _parseItemLine(line);
+      // Skip header/total lines
+      if (_isHeaderOrTotal(line)) {
+        continue;
+      }
+
+      // Try all item patterns
+      ReceiptItem? item;
+      
+      // Try pattern 3: Qty x Price format
+      final qtyPriceMatch = _itemLinePatterns[2].firstMatch(line);
+      if (qtyPriceMatch != null && qtyPriceMatch.groupCount >= 3) {
+        try {
+          final name = qtyPriceMatch.group(1)!.trim();
+          final qty = int.parse(qtyPriceMatch.group(2)!);
+          final price = double.parse(qtyPriceMatch.group(3)!);
+          
+          item = _createReceiptItem(name, price, qty);
+        } catch (e) {
+          // Continue to next pattern
+        }
+      }
+
+      // Try pattern 4: Item Qty Price (DMart style)
+      if (item == null) {
+        final dmartMatch = _itemLinePatterns[3].firstMatch(line);
+        if (dmartMatch != null && dmartMatch.groupCount >= 3) {
+          try {
+            final name = dmartMatch.group(1)!.trim();
+            final qty = int.parse(dmartMatch.group(2)!);
+            final price = double.parse(dmartMatch.group(3)!);
+            
+            item = _createReceiptItem(name, price, qty);
+          } catch (e) {
+            // Continue
+          }
+        }
+      }
+
+      // Try pattern 1: Standard "Item  Price"
+      if (item == null) {
+        final standardMatch = _itemLinePatterns[0].firstMatch(line);
+        if (standardMatch != null) {
+          try {
+            final name = standardMatch.group(1)!.trim();
+            final priceStr = standardMatch.group(2)!.replaceAll(',', '');
+            final price = double.parse(priceStr);
+            
+            if (price > 0 && price < 100000) {
+              item = _createReceiptItem(name, price, 1);
+            }
+          } catch (e) {
+            // Continue
+          }
+        }
+      }
+
+      // Try pattern 2: Simple "Item Price"
+      if (item == null) {
+        final simpleMatch = _itemLinePatterns[1].firstMatch(line);
+        if (simpleMatch != null) {
+          try {
+            final name = simpleMatch.group(1)!.trim();
+            final price = double.parse(simpleMatch.group(2)!);
+            
+            if (price > 0 && price < 100000) {
+              item = _createReceiptItem(name, price, 1);
+            }
+          } catch (e) {
+            // Continue
+          }
+        }
+      }
+
+      // Handle multi-line items (item name on one line, price on next)
+      if (item == null && pendingItemName != null) {
+        final amount = _extractAmountFromLine(line);
+        if (amount != null && amount < 10000) {
+          item = _createReceiptItem(pendingItemName, amount, 1);
+          pendingItemName = null;
+        }
+      }
+
+      // If we found an item, add it
       if (item != null) {
         items.add(item);
+        pendingItemName = null;
+      } else if (_looksLikeItemName(line)) {
+        // Store as pending item name
+        pendingItemName = line;
       }
     }
 
     return items;
+  }
+
+  /// Create a receipt item with category recognition
+  ReceiptItem _createReceiptItem(String name, double price, int quantity) {
+    final recognition = _itemRecognitionService.recognizeItem(name);
+
+    return ReceiptItem(
+      name: name,
+      price: price,
+      quantity: quantity,
+      category: recognition?.category,
+      subcategory: recognition?.subcategory,
+      confidence: recognition?.confidence ?? 0.6,
+    );
+  }
+
+  /// Check if line looks like an item name
+  bool _looksLikeItemName(String line) {
+    if (line.length < 3 || line.length > 80) return false;
+    if (RegExp(r'^\d+$').hasMatch(line)) return false; // Just numbers
+    if (RegExp(r'^[^a-zA-Z]+$').hasMatch(line)) return false; // No letters
+    if (_extractAmountFromLine(line) != null) return false; // Contains amount
+    
+    return true;
   }
 
   /// Check if line is a header or total line
@@ -394,45 +650,14 @@ class ReceiptOCRService {
     final lowerLine = line.toLowerCase();
     return lowerLine.contains('total') ||
         lowerLine.contains('subtotal') ||
+        lowerLine.contains('sub total') ||
         lowerLine.contains('tax') ||
         lowerLine.contains('discount') ||
-        lowerLine.contains('item') ||
-        lowerLine.contains('qty') ||
-        lowerLine.contains('price') ||
-        lowerLine.contains('amount') ||
-        line.length < 3;
-  }
-
-  /// Parse a line as an item
-  ReceiptItem? _parseItemLine(String line) {
-    // Try standard item format: "Item Name  Price"
-    final match = _itemLinePattern.firstMatch(line);
-    if (match != null) {
-      try {
-        final name = match.group(1)!.trim();
-        final priceStr = match.group(2)!.replaceAll(',', '');
-        final price = double.parse(priceStr);
-
-        // Skip if price is too high (likely a total)
-        if (price > 10000) return null;
-
-        // Try to recognize item and get category
-        final recognition = _itemRecognitionService.recognizeItem(name);
-
-        return ReceiptItem(
-          name: name,
-          price: price,
-          quantity: 1,
-          category: recognition?.category,
-          subcategory: recognition?.subcategory,
-          confidence: recognition?.confidence ?? 0.5,
-        );
-      } catch (e) {
-        return null;
-      }
-    }
-
-    return null;
+        lowerLine.contains('savings') ||
+        lowerLine.contains('item') && lowerLine.contains('qty') ||
+        lowerLine.contains('price') && lowerLine.length < 10 ||
+        lowerLine.contains('amount') && lowerLine.length < 15 ||
+        line.length < 2;
   }
 
   /// Dispose the text recognizer
