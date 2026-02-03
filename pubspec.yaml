@@ -1,74 +1,38 @@
 name: expenwall_mobile
-description: "ExpenWall - Premium Flutter Mobile App for Expense Tracking"
+description: "A new Flutter project."
 publish_to: 'none'
 
-version: 2.6.0+5
+version: 1.0.0+1
 
 environment:
-  sdk: '>=3.3.0 <4.0.0'
+  sdk: '>=3.5.4 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
 
-  # Firebase (Optional - Background sync only)
-  firebase_core: ^2.27.0
-  firebase_auth: ^4.17.8
-  cloud_firestore: ^4.15.8
-  firebase_storage: ^11.6.9
-
-  # Google Drive Integration
-  google_sign_in: ^6.2.1
+  cupertino_icons: ^1.0.8
+  google_sign_in: ^6.2.2
   googleapis: ^13.2.0
-  googleapis_auth: ^1.6.0
-  extension_google_sign_in_as_googleapis_auth: ^2.0.12
-
-  # State Management
-  provider: ^6.1.1
-
-  # UI & Animations
-  google_fonts: ^6.1.0
-  flutter_animate: ^4.5.0
-  lottie: ^3.0.0
-  rive: ^0.12.4
-
-  # Charts & Analytics
-  fl_chart: ^0.66.2
-  syncfusion_flutter_charts: ^24.2.9
-
-  # Local Storage
-  shared_preferences: ^2.2.2
-  path_provider: ^2.1.2
-
-  # File Operations (compatible versions)
-  share_plus: ^7.2.2
-  file_picker: ^6.1.1
-  archive: ^3.4.10
-
-  # Permissions
-  permission_handler: ^11.3.0
-
-  # OCR & Image Processing
-  google_mlkit_text_recognition: ^0.13.0
-  image_picker: ^1.0.7
-  camera: ^0.10.5+9
-  image: ^4.1.7
-
-  # PDF Generation (v2.5.0)
+  http: ^1.2.2
+  path_provider: ^2.1.5
+  intl: ^0.19.0
+  shared_preferences: ^2.3.3
+  uuid: ^4.5.1
+  workmanager: ^0.5.2
+  google_mlkit_text_recognition: ^0.14.1
+  image_picker: ^1.1.2
+  camera: ^0.11.0+2
+  archive: ^3.6.1
   pdf: ^3.10.8
   printing: ^5.12.0
-
-  # Utilities
-  intl: ^0.19.0
-  http: ^1.2.0
-
-  # Icons
-  cupertino_icons: ^1.0.6
+  fl_chart: ^0.69.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.1
+
+  flutter_lints: ^5.0.0
 
 flutter:
   uses-material-design: true
