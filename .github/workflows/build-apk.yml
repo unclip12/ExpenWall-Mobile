@@ -65,11 +65,13 @@ jobs:
         if [ -n "$KEYSTORE_BASE64" ]; then
           echo "🔑 Decoding release keystore..."
           echo "$KEYSTORE_BASE64" | base64 -d > android/app/release-keystore.jks
-          echo "KEYSTORE_FILE=android/app/release-keystore.jks" >> $GITHUB_ENV
+          # Just the filename - Gradle file() function runs from android/app directory
+          echo "KEYSTORE_FILE=release-keystore.jks" >> $GITHUB_ENV
           echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> $GITHUB_ENV
           echo "KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
           echo "KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
           echo "✅ Release keystore configured!"
+          echo "📍 Keystore location: android/app/release-keystore.jks"
         else
           echo "⚠️ No keystore found. Building with debug signature."
           echo "⚠️ Add KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, and KEY_PASSWORD secrets to enable release signing."
