@@ -55,17 +55,41 @@ jobs:
         
         echo "✅ Firebase configuration injected successfully!"
     
+    - name: 🔑 Setup Release Keystore
+      env:
+        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      run: |
+        if [ -n "$KEYSTORE_BASE64" ]; then
+          echo "🔑 Decoding release keystore..."
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/release-keystore.jks
+          echo "KEYSTORE_FILE=android/app/release-keystore.jks" >> $GITHUB_ENV
+          echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> $GITHUB_ENV
+          echo "KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
+          echo "✅ Release keystore configured!"
+        else
+          echo "⚠️ No keystore found. Building with debug signature."
+          echo "⚠️ Add KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, and KEY_PASSWORD secrets to enable release signing."
+        fi
+    
     - name: Install dependencies
       run: flutter pub get
     
     - name: Run Flutter doctor
       run: flutter doctor -v
     
-    - name: Build Fat APK (Universal)
+    - name: Build Release APK
       run: |
-        echo "🔨 Building universal APK (works on all architectures)..."
+        if [ -n "$KEYSTORE_FILE" ]; then
+          echo "🔨 Building properly signed release APK..."
+        else
+          echo "🔨 Building debug-signed APK (add keystore secrets for release signing)..."
+        fi
         flutter build apk --release
-        echo "✅ Fat APK build complete! This single APK works on all devices."
+        echo "✅ APK build complete!"
     
     - name: Get APK info
       run: |
@@ -73,6 +97,13 @@ jobs:
         ls -lh build/app/outputs/flutter-apk/
         echo ""
         echo "📱 APK Size: $(du -h build/app/outputs/flutter-apk/app-release.apk | cut -f1)"
+        
+        # Check signing status
+        if [ -n "$KEYSTORE_FILE" ]; then
+          echo "✅ APK is properly signed with release keystore"
+        else
+          echo "⚠️ APK is signed with debug signature"
+        fi
     
     - name: Upload APK
       uses: actions/upload-artifact@v4
@@ -88,10 +119,19 @@ jobs:
         echo "### 📱 Download your APK" >> $GITHUB_STEP_SUMMARY
         echo "Go to the Actions tab and download the artifact named **expenwall-mobile-v${{ github.run_number }}-release**" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### ✅ Installation Fix Applied" >> $GITHUB_STEP_SUMMARY
-        echo "- Built as **fat APK** (single file for all architectures)" >> $GITHUB_STEP_SUMMARY
-        echo "- No more split APK installation issues" >> $GITHUB_STEP_SUMMARY
-        echo "- Works on all Android devices (ARM32, ARM64, x86_64)" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -n "$KEYSTORE_FILE" ]; then
+          echo "### ✅ Properly Signed Release APK" >> $GITHUB_STEP_SUMMARY
+          echo "- Signed with release keystore" >> $GITHUB_STEP_SUMMARY
+          echo "- Will install on all devices" >> $GITHUB_STEP_SUMMARY
+          echo "- Production-ready build" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "### ⚠️ Debug Signed APK" >> $GITHUB_STEP_SUMMARY
+          echo "- Currently using debug signature" >> $GITHUB_STEP_SUMMARY
+          echo "- May have installation issues" >> $GITHUB_STEP_SUMMARY
+          echo "- Add keystore secrets for proper release signing" >> $GITHUB_STEP_SUMMARY
+        fi
+        
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 📦 Build Details" >> $GITHUB_STEP_SUMMARY
         echo "- Flutter Version: $(flutter --version | head -n 1)" >> $GITHUB_STEP_SUMMARY
