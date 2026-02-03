@@ -291,12 +291,18 @@ class RecurringBillService {
   // ========== PRIVATE HELPERS ==========
   
   Future<Transaction> _createTransactionFromRule(RecurringRule rule) async {
+    // Convert rule.category String to Category enum
+    final category = Category.values.firstWhere(
+      (cat) => cat.label == rule.category,
+      orElse: () => Category.other,
+    );
+    
     final transaction = Transaction(
       id: const Uuid().v4(),
       userId: userId,
       merchant: rule.name,
       amount: rule.amount,
-      category: rule.category,
+      category: category,
       subcategory: rule.subcategory,
       type: rule.type,
       date: rule.nextOccurrence,
