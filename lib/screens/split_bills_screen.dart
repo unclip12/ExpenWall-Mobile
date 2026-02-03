@@ -150,34 +150,36 @@ class _SplitBillsScreenState extends State<SplitBillsScreen>
               children: [
                 // Summary card
                 if (_pendingBills.isNotEmpty)
-                  GlassCard(
-                    margin: const EdgeInsets.all(16),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Total Pending',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey,
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: GlassCard(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Total Pending',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          Text(
-                            '₹${_totalPending.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.orange,
+                              ],
                             ),
-                          ),
-                        ],
+                            Text(
+                              '₹${_totalPending.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -228,106 +230,108 @@ class _SplitBillsScreenState extends State<SplitBillsScreen>
   }
 
   Widget _buildBillCard(SplitBill bill) {
-    return GlassCard(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => BillDetailsScreen(
-                userId: widget.userId,
-                billId: bill.id,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassCard(
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => BillDetailsScreen(
+                  userId: widget.userId,
+                  billId: bill.id,
+                ),
               ),
-            ),
-          ).then((_) => _loadBills());
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      bill.title,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+            ).then((_) => _loadBills());
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        bill.title,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor(bill.status),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      bill.getStatusText(),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getStatusColor(bill.status),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        bill.getStatusText(),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.currency_rupee, size: 16),
-                  const SizedBox(width: 4),
-                  Text(
-                    bill.totalAmount.toStringAsFixed(2),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  const Icon(Icons.people, size: 16),
-                  const SizedBox(width: 4),
-                  Text('${bill.participants.length} people'),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Text(
-                    _formatDate(bill.date),
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                  const SizedBox(width: 12),
-                  const Icon(Icons.splitscreen, size: 14, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Text(
-                    bill.getSplitTypeText(),
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ],
-              ),
-              if (bill.status != BillStatus.fullySettled) ...[
+                  ],
+                ),
                 const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value: bill.totalAmountPaid / bill.totalAmount,
-                  backgroundColor: Colors.grey[300],
-                  valueColor: const AlwaysStoppedAnimation(Colors.green),
+                Row(
+                  children: [
+                    const Icon(Icons.currency_rupee, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      bill.totalAmount.toStringAsFixed(2),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    const Icon(Icons.people, size: 16),
+                    const SizedBox(width: 4),
+                    Text('${bill.participants.length} people'),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '${bill.totalPaidCount}/${bill.totalParticipants} paid',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
+                    const SizedBox(width: 4),
+                    Text(
+                      _formatDate(bill.date),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    const SizedBox(width: 12),
+                    const Icon(Icons.splitscreen, size: 14, color: Colors.grey),
+                    const SizedBox(width: 4),
+                    Text(
+                      bill.getSplitTypeText(),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
                 ),
+                if (bill.status != BillStatus.fullySettled) ...[
+                  const SizedBox(height: 8),
+                  LinearProgressIndicator(
+                    value: bill.totalAmountPaid / bill.totalAmount,
+                    backgroundColor: Colors.grey[300],
+                    valueColor: const AlwaysStoppedAnimation(Colors.green),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${bill.totalPaidCount}/${bill.totalParticipants} paid',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
