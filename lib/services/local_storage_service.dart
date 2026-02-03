@@ -310,7 +310,7 @@ class LocalStorageService {
   // PRODUCTS
   Future<void> saveProducts(String userId, List<Product> products) async {
     try {
-      final file = await _getUserFile(userId, _productFile);
+      final file = await _getUserFile(userId, _productsFile);
       final jsonList = products.map((p) => p.toFirestore()).toList();
       
       await file.writeAsString(jsonEncode(jsonList));
