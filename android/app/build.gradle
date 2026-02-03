@@ -82,7 +82,9 @@ android {
             } else {
                 signingConfig signingConfigs.debug
             }
-            minifyEnabled true
+            // FIXED: Disabled minification to prevent Package Installer crashes
+            // This increases APK size but ensures reliable installation
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
