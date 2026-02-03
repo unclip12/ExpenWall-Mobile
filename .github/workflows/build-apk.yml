@@ -61,18 +61,23 @@ jobs:
     - name: Run Flutter doctor
       run: flutter doctor -v
     
-    - name: Build APK
-      run: flutter build apk --release
-    
-    - name: Get APK path
-      id: apk-path
+    - name: Build Fat APK (Single APK for all architectures)
       run: |
-        echo "path=$(find build/app/outputs/flutter-apk -name '*.apk' -type f | head -n 1)" >> $GITHUB_OUTPUT
+        echo "🔨 Building fat APK (no splits)..."
+        flutter build apk --release --no-split-per-abi
+        echo "✅ Fat APK build complete! This single APK works on all devices."
+    
+    - name: Get APK info
+      run: |
+        echo "📦 APK Information:"
+        ls -lh build/app/outputs/flutter-apk/
+        echo ""
+        echo "📱 APK Size: $(du -h build/app/outputs/flutter-apk/app-release.apk | cut -f1)"
     
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: expenwall-mobile-release-${{ github.sha }}
+        name: expenwall-mobile-v${{ github.run_number }}-release
         path: build/app/outputs/flutter-apk/app-release.apk
         retention-days: 30
     
@@ -81,11 +86,17 @@ jobs:
         echo "✅ APK Build Successful!" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 📱 Download your APK" >> $GITHUB_STEP_SUMMARY
-        echo "Go to the Actions tab and download the artifact named **expenwall-mobile-release-${{ github.sha }}**" >> $GITHUB_STEP_SUMMARY
+        echo "Go to the Actions tab and download the artifact named **expenwall-mobile-v${{ github.run_number }}-release**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### ✅ Installation Fix Applied" >> $GITHUB_STEP_SUMMARY
+        echo "- Built as **fat APK** (single file for all architectures)" >> $GITHUB_STEP_SUMMARY
+        echo "- No more split APK installation issues" >> $GITHUB_STEP_SUMMARY
+        echo "- Works on all Android devices (ARM32, ARM64, x86_64)" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 📦 Build Details" >> $GITHUB_STEP_SUMMARY
         echo "- Flutter Version: $(flutter --version | head -n 1)" >> $GITHUB_STEP_SUMMARY
         echo "- Build Date: $(date)" >> $GITHUB_STEP_SUMMARY
         echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
         echo "- Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Build Number: ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
         echo "- 🔐 Firebase: Configured from secrets" >> $GITHUB_STEP_SUMMARY
