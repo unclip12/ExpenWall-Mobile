@@ -113,7 +113,7 @@ class _ExpandableTabBarState extends State<ExpandableTabBar>
                                     : Colors.grey[600],
                                 size: isSelected ? 24 : 20,
                               ),
-                              if (isSelected) ..[
+                              if (isSelected) ...[
                                 const SizedBox(height: 4),
                                 Flexible(
                                   child: Text(
