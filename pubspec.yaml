@@ -43,6 +43,7 @@ dependencies:
   # File Operations (compatible versions)
   share_plus: ^7.2.2
   file_picker: ^6.1.1
+  archive: ^3.4.10
 
   # Permissions
   permission_handler: ^11.3.0
