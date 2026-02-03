@@ -587,7 +587,7 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
                   const SizedBox(height: 16),
 
                   // Split Type & Calculator
-                  if (_selectedParticipants.isNotEmpty) ..[
+                  if (_selectedParticipants.isNotEmpty) ...[
                     GlassCard(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -628,7 +628,7 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
                             const SizedBox(height: 16),
 
                             // Split calculator
-                            if (_splitType == SplitType.equal) ..[
+                            if (_splitType == SplitType.equal) ...[
                               const Divider(),
                               const SizedBox(height: 8),
                               Text(
@@ -638,7 +638,7 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ] else if (_splitType == SplitType.custom) ..[
+                            ] else if (_splitType == SplitType.custom) ...[
                               const Divider(),
                               const Text('Enter amount for each person:'),
                               const SizedBox(height: 8),
@@ -667,7 +667,7 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
                                   ),
                                 );
                               }),
-                            ] else if (_splitType == SplitType.percentage) ..[
+                            ] else if (_splitType == SplitType.percentage) ...[
                               const Divider(),
                               const Text('Enter percentage for each person:'),
                               const SizedBox(height: 8),
