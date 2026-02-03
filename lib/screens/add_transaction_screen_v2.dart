@@ -7,6 +7,7 @@ import '../widgets/glass_card.dart';
 import '../utils/category_icons.dart';
 import '../services/local_storage_service.dart';
 import '../services/recurring_bill_service.dart';
+import '../services/item_recognition_service.dart';
 import 'receipt_camera_screen.dart';
 
 class AddTransactionScreenV2 extends StatefulWidget {
@@ -33,6 +34,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
   final _notesController = TextEditingController();
   final _merchantFocusNode = FocusNode();
   final _localStorageService = LocalStorageService();
+  final _itemRecognitionService = ItemRecognitionService();
   late final RecurringBillService _recurringService;
 
   late AnimationController _animController;
@@ -43,6 +45,8 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
   Category _category = Category.other;
   String? _subcategory;
   DateTime _selectedDate = DateTime.now();
+  TimeOfDay _selectedTime = TimeOfDay.now();
+  String _paymentMethod = 'Cash'; // NEW: Payment method
   List<TransactionItem> _items = [];
   bool _isSubmitting = false;
   bool _showItemsForm = false;
@@ -55,6 +59,16 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
   String? _receiptImagePath;
   Map<String, dynamic>? _receiptData;
   bool _hasReceiptData = false;
+
+  // NEW: Item editing state
+  int? _editingItemIndex;
+  final _itemNameController = TextEditingController();
+  final _itemBrandController = TextEditingController();
+  final _itemQuantityController = TextEditingController();
+  final _itemPriceController = TextEditingController();
+  final _itemNameFocusNode = FocusNode();
+  bool _showItemSuggestions = false;
+  List<ItemRecognitionMatch> _itemSuggestions = [];
 
   @override
   void initState() {
@@ -84,6 +98,10 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
     _merchantController.addListener(_onMerchantChanged);
     _merchantFocusNode.addListener(_onMerchantFocusChanged);
 
+    // NEW: Listen to item name input for autocomplete
+    _itemNameController.addListener(_onItemNameChanged);
+    _itemNameFocusNode.addListener(_onItemNameFocusChanged);
+
     if (widget.initialData != null) {
       _merchantController.text = widget.initialData!.merchant;
       _amountController.text = widget.initialData!.amount.toString();
@@ -92,6 +110,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
       _category = widget.initialData!.category;
       _subcategory = widget.initialData!.subcategory;
       _selectedDate = widget.initialData!.date;
+      _selectedTime = TimeOfDay.fromDateTime(widget.initialData!.date);
       _items = widget.initialData!.items ?? [];
       _receiptImagePath = widget.initialData!.receiptImagePath;
       _receiptData = widget.initialData!.receiptData;
@@ -106,6 +125,11 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
     _amountController.dispose();
     _notesController.dispose();
     _merchantFocusNode.dispose();
+    _itemNameController.dispose();
+    _itemBrandController.dispose();
+    _itemQuantityController.dispose();
+    _itemPriceController.dispose();
+    _itemNameFocusNode.dispose();
     super.dispose();
   }
 
@@ -168,6 +192,60 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
     }
   }
 
+  // NEW: Item name autocomplete
+  void _onItemNameChanged() {
+    final query = _itemNameController.text.trim();
+    if (query.length < 2) {
+      setState(() {
+        _showItemSuggestions = false;
+        _itemSuggestions = [];
+      });
+      return;
+    }
+
+    // Search for items using ItemRecognitionService
+    final suggestions = _itemRecognitionService.searchItems(query);
+    
+    setState(() {
+      _itemSuggestions = suggestions.take(10).toList();
+      _showItemSuggestions = _itemSuggestions.isNotEmpty;
+    });
+  }
+
+  void _onItemNameFocusChanged() {
+    if (!_itemNameFocusNode.hasFocus) {
+      // Delay to allow tap on suggestion
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (mounted) {
+          setState(() {
+            _showItemSuggestions = false;
+          });
+        }
+      });
+    }
+  }
+
+  void _selectItemSuggestion(ItemRecognitionMatch match) {
+    setState(() {
+      _itemNameController.text = match.itemName;
+      _showItemSuggestions = false;
+      
+      // Auto-select category if available
+      if (match.category != null) {
+        try {
+          _category = Category.values.firstWhere(
+            (c) => c.label.toLowerCase() == match.category!.toLowerCase(),
+            orElse: () => _category,
+          );
+        } catch (e) {
+          // Keep current category
+        }
+      }
+      
+      _subcategory = match.subcategory;
+    });
+  }
+
   Future<void> _checkForRecurringRule(String merchantName) async {
     final matchingRule = await _recurringService.findMatchingRule(merchantName);
     if (matchingRule != null) {
@@ -209,7 +287,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
     }
   }
 
-  /// Open receipt camera scanner (Phase 5: Handle returned data)
+  /// Open receipt camera scanner
   Future<void> _openReceiptScanner() async {
     final result = await Navigator.push<Map<String, dynamic>>(
       context,
@@ -220,7 +298,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
       ),
     );
 
-    // Phase 5: Handle returned receipt data
     if (result != null) {
       setState(() {
         // Auto-fill merchant
@@ -246,7 +323,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
               name: item.name,
               price: item.price,
               quantity: item.quantity,
-              brand: null, // Receipt items don't have brand info yet
+              brand: null,
             );
           }).toList();
         }
@@ -257,7 +334,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
         _hasReceiptData = true;
       });
 
-      // Show success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -285,19 +361,26 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
     if (_matchingRecurringRule != null) {
       final isRecurringPayment = await _showRecurringRuleDialog();
       
-      if (isRecurringPayment == null) return; // User canceled
+      if (isRecurringPayment == null) return;
       
       if (isRecurringPayment) {
-        // Link to recurring rule
         await _linkToRecurringRule();
         return;
       }
-      // Otherwise, continue with normal transaction creation
     }
 
     setState(() => _isSubmitting = true);
 
     try {
+      // Combine date and time
+      final dateTime = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+        _selectedTime.hour,
+        _selectedTime.minute,
+      );
+
       final transaction = Transaction(
         id: widget.initialData?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
         userId: widget.userId,
@@ -306,7 +389,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
         category: _category,
         subcategory: _subcategory,
         type: _type,
-        date: _selectedDate,
+        date: dateTime,
         notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         items: _items.isEmpty ? null : _items,
         currency: 'INR',
@@ -425,6 +508,14 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
     setState(() => _isSubmitting = true);
 
     try {
+      final dateTime = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+        _selectedTime.hour,
+        _selectedTime.minute,
+      );
+
       final transaction = Transaction(
         id: widget.initialData?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
         userId: widget.userId,
@@ -433,7 +524,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
         category: _category,
         subcategory: _subcategory,
         type: _type,
-        date: _selectedDate,
+        date: dateTime,
         notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         items: _items.isEmpty ? null : _items,
         currency: 'INR',
@@ -441,10 +532,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
         receiptData: _receiptData,
       );
 
-      // Save transaction first
       await widget.onSave(transaction);
-
-      // Link to recurring rule (this will delete auto-created transaction)
       await _recurringService.linkTransactionToRule(
         transaction.id,
         _matchingRecurringRule!.id,
@@ -488,7 +576,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
               label: const Text('Back'),
             )
           else
-            // Receipt Scanner Button
             IconButton(
               onPressed: _openReceiptScanner,
               icon: const Icon(Icons.document_scanner),
@@ -509,7 +596,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                // Receipt indicator
                 if (_hasReceiptData) ...[
                   GlassCard(
                     padding: const EdgeInsets.all(16),
@@ -568,6 +654,36 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
 
   List<Widget> _buildMainForm() {
     return [
+      // REORDERED: Items first (Priority #1)
+      GlassCard(
+        padding: const EdgeInsets.all(0),
+        child: ListTile(
+          leading: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.shopping_bag,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          title: Text(
+            _items.isEmpty ? 'Add Items (Optional)' : '${_items.length} items added',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          subtitle: _items.isNotEmpty
+              ? Text(
+                  'Total: ₹${_items.fold(0.0, (sum, item) => sum + (item.price * item.quantity)).toStringAsFixed(2)}',
+                )
+              : null,
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => setState(() => _showItemsForm = true),
+        ),
+      ),
+      const SizedBox(height: 16),
+
       // Merchant with Autocomplete
       GlassCard(
         padding: const EdgeInsets.all(20),
@@ -582,7 +698,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                 ),
-                // Quick scan button
                 TextButton.icon(
                   onPressed: _openReceiptScanner,
                   icon: const Icon(Icons.document_scanner, size: 18),
@@ -615,7 +730,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
               textCapitalization: TextCapitalization.words,
               validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
             ),
-            // Recurring Rule Banner
             if (_matchingRecurringRule != null)
               Container(
                 margin: const EdgeInsets.only(top: 12),
@@ -648,7 +762,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
                   ],
                 ),
               ),
-            // Autocomplete Suggestions
             if (_showMerchantSuggestions && _merchantSuggestions.isNotEmpty)
               Container(
                 margin: const EdgeInsets.only(top: 8),
@@ -679,41 +792,36 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
       ),
       const SizedBox(height: 16),
 
-      // Amount
+      // NEW: Payment Method (Cash/Card/UPI/Wallet)
       GlassCard(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Amount',
+              'Payment Method',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
             const SizedBox(height: 12),
-            TextFormField(
-              controller: _amountController,
+            DropdownButtonFormField<String>(
+              value: _paymentMethod,
               decoration: const InputDecoration(
-                hintText: '0.00',
-                prefixIcon: Icon(Icons.currency_rupee),
+                prefixIcon: Icon(Icons.payment),
               ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-              ],
-              validator: (v) {
-                if (v?.trim().isEmpty == true) return 'Required';
-                if (double.tryParse(v!) == null || double.parse(v) <= 0) {
-                  return 'Invalid amount';
-                }
-                return null;
-              },
+              items: ['Cash', 'Card', 'UPI', 'Wallet', 'Bank Transfer', 'Other']
+                  .map((method) => DropdownMenuItem(
+                        value: method,
+                        child: Text(method),
+                      ))
+                  .toList(),
+              onChanged: (val) => setState(() => _paymentMethod = val!),
             ),
           ],
         ),
       ),
       const SizedBox(height: 16),
 
-      // Type - New Animated Design
+      // Type - Spent or Received
       GlassCard(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -750,7 +858,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
       ),
       const SizedBox(height: 16),
 
-      // Category - Fixed Emoji Display
+      // FIXED: Category - No duplicate icon
       GlassCard(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -763,21 +871,15 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
             const SizedBox(height: 12),
             DropdownButtonFormField<Category>(
               value: _category,
-              decoration: InputDecoration(
-                prefixIcon: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Text(
-                    CategoryIcons.getIcon(_category),
-                    style: const TextStyle(fontSize: 24),
-                  ),
-                ),
+              decoration: const InputDecoration(
+                // REMOVED: prefixIcon to fix duplicate icon issue
+                prefixIcon: null,
               ),
               items: Category.values
                   .map((cat) => DropdownMenuItem(
                         value: cat,
                         child: Row(
                           children: [
-                            // Show emoji ONLY here, not in prefix
                             Text(CategoryIcons.getIcon(cat),
                                 style: const TextStyle(fontSize: 20)),
                             const SizedBox(width: 12),
@@ -787,6 +889,85 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
                       ))
                   .toList(),
               onChanged: (val) => setState(() => _category = val!),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 16),
+
+      // NEW: Date & Time in one row
+      GlassCard(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Date & Time',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                // Date picker (left)
+                Expanded(
+                  child: InkWell(
+                    onTap: _pickDate,
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_today, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Time picker (right)
+                Expanded(
+                  child: InkWell(
+                    onTap: _pickTime,
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.access_time, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _selectedTime.format(context),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -818,72 +999,36 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
       ),
       const SizedBox(height: 16),
 
-      // Date
+      // Amount
       GlassCard(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Date',
+              'Amount',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
             const SizedBox(height: 12),
-            InkWell(
-              onTap: _pickDate,
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.withOpacity(0.3)),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.calendar_today),
-                    const SizedBox(width: 12),
-                    Text(
-                      '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
+            TextFormField(
+              controller: _amountController,
+              decoration: const InputDecoration(
+                hintText: '0.00',
+                prefixIcon: Icon(Icons.currency_rupee),
               ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+              ],
+              validator: (v) {
+                if (v?.trim().isEmpty == true) return 'Required';
+                if (double.tryParse(v!) == null || double.parse(v) <= 0) {
+                  return 'Invalid amount';
+                }
+                return null;
+              },
             ),
           ],
-        ),
-      ),
-      const SizedBox(height: 16),
-
-      // Items button
-      GlassCard(
-        padding: const EdgeInsets.all(0),
-        child: ListTile(
-          leading: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              Icons.shopping_bag,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          title: Text(
-            _items.isEmpty ? 'Add Items (Optional)' : '${_items.length} items added',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          subtitle: _items.isNotEmpty
-              ? Text(
-                  'Total: ₹${_items.fold(0.0, (sum, item) => sum + (item.price * item.quantity)).toStringAsFixed(2)}',
-                )
-              : null,
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => setState(() => _showItemsForm = true),
         ),
       ),
       const SizedBox(height: 16),
@@ -997,6 +1142,11 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
         style: TextStyle(color: Colors.grey[600]),
       ),
       const SizedBox(height: 20),
+      
+      // Item entry form with autocomplete
+      if (_editingItemIndex != null) ..._buildItemEditForm(),
+      
+      // List of added items
       ..._items.asMap().entries.map((entry) {
         final index = entry.key;
         final item = entry.value;
@@ -1004,7 +1154,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
       }).toList(),
       const SizedBox(height: 16),
       ElevatedButton.icon(
-        onPressed: _addItem,
+        onPressed: _startAddingItem,
         icon: const Icon(Icons.add),
         label: const Text('Add Item'),
         style: ElevatedButton.styleFrom(
@@ -1015,91 +1165,249 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
     ];
   }
 
+  // NEW: Item edit form with autocomplete
+  List<Widget> _buildItemEditForm() {
+    return [
+      GlassCard(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _editingItemIndex == _items.length ? 'Add New Item' : 'Edit Item',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            
+            // Item name with autocomplete
+            TextFormField(
+              controller: _itemNameController,
+              focusNode: _itemNameFocusNode,
+              decoration: const InputDecoration(
+                labelText: 'Item Name',
+                hintText: 'Start typing... (e.g., chicken)',
+                prefixIcon: Icon(Icons.shopping_cart),
+              ),
+              textCapitalization: TextCapitalization.words,
+            ),
+            
+            // Autocomplete suggestions
+            if (_showItemSuggestions && _itemSuggestions.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                constraints: const BoxConstraints(maxHeight: 200),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                  ),
+                ),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _itemSuggestions.length,
+                  itemBuilder: (context, index) {
+                    final suggestion = _itemSuggestions[index];
+                    return ListTile(
+                      dense: true,
+                      leading: Text(
+                        suggestion.category != null
+                            ? CategoryIcons.getIconForCategory(suggestion.category!)
+                            : '🛒',
+                        style: const TextStyle(fontSize: 20),
+                      ),
+                      title: Text(suggestion.itemName),
+                      subtitle: suggestion.category != null
+                          ? Text(
+                              '${suggestion.category}${suggestion.subcategory != null ? ' • ${suggestion.subcategory}' : ''}',
+                              style: const TextStyle(fontSize: 11),
+                            )
+                          : null,
+                      trailing: Text(
+                        '${(suggestion.confidence * 100).toInt()}%',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      onTap: () => _selectItemSuggestion(suggestion),
+                    );
+                  },
+                ),
+              ),
+            
+            const SizedBox(height: 12),
+            
+            // Brand (optional)
+            TextFormField(
+              controller: _itemBrandController,
+              decoration: const InputDecoration(
+                labelText: 'Brand (Optional)',
+                prefixIcon: Icon(Icons.branding_watermark),
+              ),
+              textCapitalization: TextCapitalization.words,
+            ),
+            const SizedBox(height: 12),
+            
+            // Quantity and Price
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _itemQuantityController,
+                    decoration: const InputDecoration(
+                      labelText: 'Quantity',
+                      prefixIcon: Icon(Icons.numbers),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: _itemPriceController,
+                    decoration: const InputDecoration(
+                      labelText: 'Price',
+                      prefixText: '₹',
+                      prefixIcon: Icon(Icons.currency_rupee),
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            // Action buttons
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _cancelEditingItem,
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    onPressed: _saveEditingItem,
+                    child: const Text('Save Item'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 16),
+    ];
+  }
+
+  void _startAddingItem() {
+    setState(() {
+      _editingItemIndex = _items.length;
+      _itemNameController.clear();
+      _itemBrandController.clear();
+      _itemQuantityController.text = '1';
+      _itemPriceController.text = '';
+    });
+    _itemNameFocusNode.requestFocus();
+  }
+
+  void _startEditingItem(int index) {
+    final item = _items[index];
+    setState(() {
+      _editingItemIndex = index;
+      _itemNameController.text = item.name;
+      _itemBrandController.text = item.brand ?? '';
+      _itemQuantityController.text = item.quantity.toString();
+      _itemPriceController.text = item.price.toString();
+    });
+  }
+
+  void _cancelEditingItem() {
+    setState(() {
+      _editingItemIndex = null;
+      _itemNameController.clear();
+      _itemBrandController.clear();
+      _itemQuantityController.clear();
+      _itemPriceController.clear();
+      _showItemSuggestions = false;
+    });
+  }
+
+  void _saveEditingItem() {
+    if (_itemNameController.text.trim().isEmpty ||
+        _itemPriceController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter item name and price')),
+      );
+      return;
+    }
+
+    final newItem = TransactionItem(
+      name: _itemNameController.text.trim(),
+      brand: _itemBrandController.text.trim().isEmpty
+          ? null
+          : _itemBrandController.text.trim(),
+      quantity: int.tryParse(_itemQuantityController.text) ?? 1,
+      price: double.tryParse(_itemPriceController.text) ?? 0,
+    );
+
+    setState(() {
+      if (_editingItemIndex == _items.length) {
+        _items.add(newItem);
+      } else {
+        _items[_editingItemIndex!] = newItem;
+      }
+      _cancelEditingItem();
+    });
+  }
+
   Widget _buildItemCard(int index, TransactionItem item) {
     return GlassCard(
       padding: const EdgeInsets.all(16),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: TextFormField(
-                  initialValue: item.name,
-                  decoration: const InputDecoration(
-                    labelText: 'Item Name',
-                    isDense: true,
-                  ),
-                  onChanged: (v) => _items[index] = TransactionItem(
-                    name: v,
-                    price: item.price,
-                    quantity: item.quantity,
-                    brand: item.brand,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                flex: 2,
-                child: TextFormField(
-                  initialValue: item.brand,
-                  decoration: const InputDecoration(
-                    labelText: 'Brand',
-                    isDense: true,
+                const SizedBox(height: 4),
+                if (item.brand != null)
+                  Text(
+                    item.brand!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
                   ),
-                  onChanged: (v) => _items[index] = TransactionItem(
-                    name: item.name,
-                    price: item.price,
-                    quantity: item.quantity,
-                    brand: v.isEmpty ? null : v,
+                const SizedBox(height: 4),
+                Text(
+                  '${item.quantity} x ₹${item.price.toStringAsFixed(2)} = ₹${(item.quantity * item.price).toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[700],
                   ),
                 ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red),
-                onPressed: () => setState(() => _items.removeAt(index)),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  initialValue: item.quantity.toString(),
-                  decoration: const InputDecoration(
-                    labelText: 'Quantity',
-                    isDense: true,
-                  ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) => _items[index] = TransactionItem(
-                    name: item.name,
-                    price: item.price,
-                    quantity: int.tryParse(v) ?? 1,
-                    brand: item.brand,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextFormField(
-                  initialValue: item.price.toString(),
-                  decoration: const InputDecoration(
-                    labelText: 'Price',
-                    prefixText: '₹',
-                    isDense: true,
-                  ),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  onChanged: (v) => _items[index] = TransactionItem(
-                    name: item.name,
-                    price: double.tryParse(v) ?? 0,
-                    quantity: item.quantity,
-                    brand: item.brand,
-                  ),
-                ),
-              ),
-            ],
+          IconButton(
+            icon: const Icon(Icons.edit, size: 20),
+            onPressed: () => _startEditingItem(index),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+            onPressed: () => setState(() => _items.removeAt(index)),
           ),
         ],
       ),
@@ -1157,16 +1465,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
     );
   }
 
-  void _addItem() {
-    setState(() {
-      _items.add(TransactionItem(
-        name: '',
-        price: 0,
-        quantity: 1,
-      ));
-    });
-  }
-
   Future<void> _pickDate() async {
     final date = await showDatePicker(
       context: context,
@@ -1176,6 +1474,17 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
     );
     if (date != null) {
       setState(() => _selectedDate = date);
+    }
+  }
+
+  // NEW: Time picker
+  Future<void> _pickTime() async {
+    final time = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime,
+    );
+    if (time != null) {
+      setState(() => _selectedTime = time);
     }
   }
 }
