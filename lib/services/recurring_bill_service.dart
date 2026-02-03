@@ -79,7 +79,7 @@ class RecurringBillService {
   /// Action 2: User canceled subscription (Canceled ✗)
   Future<void> handleCanceledAction(
     String notificationId,
-    {bool deleteRule = false}
+    {bool shouldDeleteRule = false}
   ) async {
     final notification = await getNotification(notificationId);
     if (notification == null) return;
@@ -94,7 +94,7 @@ class RecurringBillService {
     // Pause the rule (or delete if requested)
     final rule = await getRule(notification.recurringRuleId);
     if (rule != null) {
-      if (deleteRule) {
+      if (shouldDeleteRule) {
         await deleteRule(rule.id);
       } else {
         final pausedRule = rule.copyWith(isActive: false);
