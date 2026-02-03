@@ -316,8 +316,8 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(Icons.dashboard_rounded, 'Home', 0),
-                _buildNavItem(Icons.receipt_long_rounded, 'Activity', 1),
+                _buildNavItem(Icons.dashboard_rounded, 'Dashboard', 0),
+                _buildNavItem(Icons.receipt_long_rounded, 'Expense', 1),
                 _buildNavItem(Icons.account_balance_wallet_rounded, 'Budget', 2),
                 _buildNavItem(Icons.inventory_2_rounded, 'Products', 3),
                 _buildNavItem(Icons.settings_rounded, 'Settings', 4),
@@ -349,19 +349,19 @@ class _HomeScreenState extends State<HomeScreen> {
               color: isSelected
                   ? Theme.of(context).colorScheme.primary
                   : Colors.grey[600],
-              size: 22,
+              size: 24, // All icons same size
             ),
             const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected
-                    ? Theme.of(context).colorScheme.primary
-                    : Colors.grey[600],
+            // Only show label for selected icon
+            if (isSelected)
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
               ),
-            ),
           ],
         ),
       ),
