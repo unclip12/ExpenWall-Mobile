@@ -68,7 +68,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
   final _itemPriceController = TextEditingController();
   final _itemNameFocusNode = FocusNode();
   bool _showItemSuggestions = false;
-  List<ItemRecognitionMatch> _itemSuggestions = [];
+  List<ItemSuggestion> _itemSuggestions = [];  // FIXED: Changed from ItemRecognitionMatch
 
   @override
   void initState() {
@@ -204,7 +204,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
     }
 
     // Search for items using ItemRecognitionService
-    final suggestions = _itemRecognitionService.searchItems(query);
+    final suggestions = _itemRecognitionService.getSuggestions(query);  // FIXED: Changed from searchItems
     
     setState(() {
       _itemSuggestions = suggestions.take(10).toList();
@@ -225,16 +225,16 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
     }
   }
 
-  void _selectItemSuggestion(ItemRecognitionMatch match) {
+  void _selectItemSuggestion(ItemSuggestion match) {  // FIXED: Changed from ItemRecognitionMatch
     setState(() {
       _itemNameController.text = match.itemName;
       _showItemSuggestions = false;
       
       // Auto-select category if available
-      if (match.category != null) {
+      if (match.category.isNotEmpty) {
         try {
           _category = Category.values.firstWhere(
-            (c) => c.label.toLowerCase() == match.category!.toLowerCase(),
+            (c) => c.label.toLowerCase() == match.category.toLowerCase(),
             orElse: () => _category,
           );
         } catch (e) {
@@ -242,7 +242,9 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
         }
       }
       
-      _subcategory = match.subcategory;
+      if (match.subcategory.isNotEmpty) {
+        _subcategory = match.subcategory;
+      }
     });
   }
 
@@ -1211,20 +1213,16 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
                     return ListTile(
                       dense: true,
                       leading: Text(
-                        suggestion.category != null
-                            ? CategoryIcons.getIconForCategory(suggestion.category!)
-                            : '🛒',
+                        suggestion.emoji,  // FIXED: Use emoji property instead of CategoryIcons.getIconForCategory
                         style: const TextStyle(fontSize: 20),
                       ),
                       title: Text(suggestion.itemName),
-                      subtitle: suggestion.category != null
-                          ? Text(
-                              '${suggestion.category}${suggestion.subcategory != null ? ' • ${suggestion.subcategory}' : ''}',
-                              style: const TextStyle(fontSize: 11),
-                            )
-                          : null,
+                      subtitle: Text(
+                        '${suggestion.category}${suggestion.subcategory.isNotEmpty ? ' • ${suggestion.subcategory}' : ''}',
+                        style: const TextStyle(fontSize: 11),
+                      ),
                       trailing: Text(
-                        '${(suggestion.confidence * 100).toInt()}%',
+                        '${(suggestion.similarity * 100).toInt()}%',
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey[600],
