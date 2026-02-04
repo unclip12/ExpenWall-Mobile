@@ -130,7 +130,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                 children: [
                   _buildMonthSelector(),
                   const SizedBox(height: 24),
-                  if (_comparison != null) ..[
+                  if (_comparison != null) ...[
                     _buildSummaryCard(),
                     const SizedBox(height: 16),
                     _buildComparisonTable(),
@@ -377,7 +377,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            if (metric.isImprovement) ..[
+                            if (metric.isImprovement) ...[
                               const SizedBox(width: 4),
                               const Icon(
                                 Icons.star,
