@@ -1,82 +1,552 @@
+// lib/widgets/insight_card.dart
+
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
+import '../models/analytics_data.dart';
+import 'glass_card.dart';
 
 class InsightCard extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final Color iconColor;
-  final Widget child;
+  final InsightType type;
+  final AnalyticsData analyticsData;
+  final List<AIInsight> aiInsights;
+  final ExpensePrediction? prediction;
+  final bool onReorder;
 
   const InsightCard({
     Key? key,
-    required this.title,
-    required this.icon,
-    required this.iconColor,
-    required this.child,
+    required this.type,
+    required this.analyticsData,
+    required this.aiInsights,
+    this.prediction,
+    this.onReorder = false,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 4,
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: GlassCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(context),
+            const SizedBox(height: 16),
+            _buildContent(context),
+          ],
+        ),
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.white,
-              iconColor.withOpacity(0.05),
-            ],
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Row(
+      children: [
+        if (onReorder) ..[
+          const Icon(Icons.drag_handle, color: Colors.white70, size: 20),
+          const SizedBox(width: 8),
+        ],
+        Icon(_getIcon(), color: Colors.white, size: 24),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            _getTitle(),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
+      ],
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
+    switch (type) {
+      case InsightType.topSpendingCategories:
+        return _buildTopCategories();
+      case InsightType.spendingTrends:
+        return _buildTrendChart();
+      case InsightType.dayOfWeekAnalysis:
+        return _buildDayOfWeekChart();
+      case InsightType.merchantFrequency:
+        return _buildMerchantList();
+      case InsightType.budgetProgress:
+        return _buildBudgetProgress();
+      case InsightType.aiInsights:
+        return _buildAIInsights();
+    }
+  }
+
+  IconData _getIcon() {
+    switch (type) {
+      case InsightType.topSpendingCategories:
+        return Icons.pie_chart;
+      case InsightType.spendingTrends:
+        return Icons.trending_up;
+      case InsightType.dayOfWeekAnalysis:
+        return Icons.calendar_today;
+      case InsightType.merchantFrequency:
+        return Icons.store;
+      case InsightType.budgetProgress:
+        return Icons.account_balance_wallet;
+      case InsightType.aiInsights:
+        return Icons.auto_awesome;
+    }
+  }
+
+  String _getTitle() {
+    switch (type) {
+      case InsightType.topSpendingCategories:
+        return 'Top Spending Categories';
+      case InsightType.spendingTrends:
+        return 'Spending Trends';
+      case InsightType.dayOfWeekAnalysis:
+        return 'Day of Week Analysis';
+      case InsightType.merchantFrequency:
+        return 'Top Merchants';
+      case InsightType.budgetProgress:
+        return 'Budget Progress';
+      case InsightType.aiInsights:
+        return 'AI-Powered Insights';
+    }
+  }
+
+  Widget _buildTopCategories() {
+    final sortedCategories = analyticsData.categorySpending.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final topCategories = sortedCategories.take(5).toList();
+
+    if (topCategories.isEmpty) {
+      return const Text('No spending data', style: TextStyle(color: Colors.white70));
+    }
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 200,
+          child: PieChart(
+            PieChartData(
+              sections: topCategories.map((entry) {
+                final percentage =
+                    (entry.value / analyticsData.totalExpenses) * 100;
+                return PieChartSectionData(
+                  value: entry.value,
+                  title: '${percentage.toStringAsFixed(0)}%',
+                  radius: 80,
+                  titleStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                );
+              }).toList(),
+              sectionsSpace: 2,
+              centerSpaceRadius: 40,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        ...topCategories.map(
+          (entry) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  entry.key,
+                  style: const TextStyle(color: Colors.white),
+                ),
+                Text(
+                  '₹${entry.value.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTrendChart() {
+    if (analyticsData.monthlyTrends.isEmpty) {
+      return const Text('No trend data', style: TextStyle(color: Colors.white70));
+    }
+
+    final spots = analyticsData.monthlyTrends.entries
+        .toList()
+        .asMap()
+        .entries
+        .map((entry) => FlSpot(entry.key.toDouble(), entry.value.value))
+        .toList();
+
+    return SizedBox(
+      height: 200,
+      child: LineChart(
+        LineChartData(
+          lineBarsData: [
+            LineChartBarData(
+              spots: spots,
+              isCurved: true,
+              color: Colors.blue,
+              barWidth: 3,
+              dotData: const FlDotData(show: true),
+              belowBarData: BarAreaData(
+                show: true,
+                color: Colors.blue.withOpacity(0.3),
+              ),
+            ),
+          ],
+          titlesData: FlTitlesData(
+            leftTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (value, meta) {
+                  final labels = analyticsData.monthlyTrends.keys.toList();
+                  if (value.toInt() >= 0 && value.toInt() < labels.length) {
+                    return Text(
+                      labels[value.toInt()],
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10,
+                      ),
+                    );
+                  }
+                  return const Text('');
+                },
+              ),
+            ),
+          ),
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            getDrawingHorizontalLine: (value) => FlLine(
+              color: Colors.white.withOpacity(0.1),
+              strokeWidth: 1,
+            ),
+          ),
+          borderData: FlBorderData(show: false),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDayOfWeekChart() {
+    if (analyticsData.dayOfWeekSpending.isEmpty) {
+      return const Text('No day data', style: TextStyle(color: Colors.white70));
+    }
+
+    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final maxSpending = analyticsData.dayOfWeekSpending.values
+        .reduce((a, b) => a > b ? a : b);
+
+    return Column(
+      children: days.map((day) {
+        final amount = analyticsData.dayOfWeekSpending[day] ?? 0;
+        final percentage = maxSpending > 0 ? amount / maxSpending : 0;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: iconColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      icon,
-                      color: iconColor,
-                      size: 28,
+                  Text(
+                    day,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  Text(
+                    '₹${amount.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
-                  ),
-                  // Drag handle
-                  Icon(
-                    Icons.drag_indicator,
-                    color: Colors.grey[400],
-                    size: 28,
                   ),
                 ],
               ),
               const SizedBox(height: 4),
-              child,
+              LinearProgressIndicator(
+                value: percentage,
+                backgroundColor: Colors.white.withOpacity(0.1),
+                valueColor: const AlwaysStoppedAnimation(Colors.blue),
+              ),
             ],
           ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildMerchantList() {
+    final sortedMerchants = analyticsData.merchantFrequency.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final topMerchants = sortedMerchants.take(5).toList();
+
+    if (topMerchants.isEmpty) {
+      return const Text('No merchant data', style: TextStyle(color: Colors.white70));
+    }
+
+    return Column(
+      children: topMerchants.map((entry) {
+        final spending = analyticsData.merchantSpending[entry.key] ?? 0;
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.store, color: Colors.blue, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.key,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      '${entry.value} transactions',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '₹${spending.toStringAsFixed(0)}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildBudgetProgress() {
+    final percentage = analyticsData.budgetUsedPercentage;
+    final remaining = analyticsData.budgetAmount - analyticsData.totalExpenses;
+    final color = percentage > 90
+        ? Colors.red
+        : percentage > 70
+            ? Colors.orange
+            : Colors.green;
+
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Budget',
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+                Text(
+                  '₹${analyticsData.budgetAmount.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                const Text(
+                  'Spent',
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+                Text(
+                  '₹${analyticsData.totalExpenses.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
-      ),
+        const SizedBox(height: 16),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: LinearProgressIndicator(
+            value: (percentage / 100).clamp(0.0, 1.0),
+            minHeight: 20,
+            backgroundColor: Colors.white.withOpacity(0.1),
+            valueColor: AlwaysStoppedAnimation(color),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '${percentage.toStringAsFixed(1)}% used',
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              '₹${remaining.toStringAsFixed(0)} left',
+              style: const TextStyle(
+                color: Colors.white70,
+              ),
+            ),
+          ],
+        ),
+        if (prediction != null) ..[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.insights, color: Colors.blue, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Next Month Prediction',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                      ),
+                      Text(
+                        '₹${prediction!.predictedAmount.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  '${(prediction!.confidenceLevel * 100).toStringAsFixed(0)}%',
+                  style: const TextStyle(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildAIInsights() {
+    if (aiInsights.isEmpty) {
+      return const Text(
+        'No significant changes detected',
+        style: TextStyle(color: Colors.white70),
+      );
+    }
+
+    return Column(
+      children: aiInsights.map((insight) {
+        final color = insight.sentiment == InsightSentiment.positive
+            ? Colors.green
+            : insight.sentiment == InsightSentiment.negative
+                ? Colors.red
+                : Colors.blue;
+
+        final icon = insight.sentiment == InsightSentiment.positive
+            ? Icons.trending_down
+            : insight.sentiment == InsightSentiment.negative
+                ? Icons.trending_up
+                : Icons.info;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: color, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      insight.category,
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      insight.insight,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 }
