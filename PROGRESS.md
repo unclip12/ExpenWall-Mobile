@@ -1,8 +1,8 @@
 # ExpenWall Mobile - Development Progress
 
-**Last Updated:** February 4, 2026, 6:05 PM IST  
-**Current Version:** v2.8.1 (Light Mode Fixes) 🎨  
-**Latest Achievement:** Feature 5 - Light Mode Background & Theme Text Fixes COMPLETE! 🎉
+**Last Updated:** February 4, 2026, 6:09 PM IST  
+**Current Version:** v2.8.2 (Swipeable Navigation) 🎨  
+**Latest Achievement:** Feature 6 - Swipeable Bottom Navigation COMPLETE! 🎉
 
 ---
 
@@ -14,7 +14,7 @@
 
 ---
 
-## 🎨 Pending Features
+## 🎨 Recent Features
 
 ### Feature 5: Light Mode Background & Theme Text Fixes ✅ **COMPLETE!**
 **Completed:** February 4, 2026, 6:05 PM IST
@@ -33,19 +33,29 @@
 
 ---
 
-### Feature 6: Swipeable Bottom Navigation (Next - Priority 1)
-**Target:** February 5, 2026
+### Feature 6: Swipeable Bottom Navigation ✅ **COMPLETE!**
+**Completed:** February 4, 2026, 6:09 PM IST
 
-**Goal:** Add horizontal swipe gestures to bottom navigation tabs with haptic feedback
+**What Was Added:**
+- ✅ **Horizontal swipe** between main bottom tabs using `PageView` with `PageController`
+- ✅ **Horizontal swipe** between Planning sub-tabs (Budget / Recurring / Buying List)
+- ✅ **Horizontal swipe** between Social sub-tabs (Split Bills / Cravings)
+- ✅ **Haptic feedback** on tab change (both tap and swipe)
+- ✅ **Smooth animations** when changing pages programmatically
 
-**Features to implement:**
-- [ ] Swipe left/right to change tabs
-- [ ] Haptic feedback on swipe
-- [ ] Smooth animation between tabs
-- [ ] Prevent accidental swipes during scrolling
-- [ ] Work with both main tabs and sub-tabs
+**Files Modified:**
+1. `lib/screens/home_screen_v2.dart`
+   - Added `PageController`s for main, planning, and social sections
+   - Wrapped main content in a `PageView` for swipe navigation
+   - Wrapped Planning and Social content in their own `PageView`s
+   - Synced tab bar selection with page index in both directions
+   - Centralized tab-change logic into `_onMainTabChanged`, `_onPlanningSubTabChanged`, `_onSocialSubTabChanged`
 
-**Estimated Time:** 30-45 minutes
+**Notes:**
+- Swipe gestures respect existing scrolling inside each page
+- Haptics trigger only when the active tab actually changes
+
+**Status:** 🎉 **COMPLETE - Bottom navigation now supports swipe gestures!**
 
 ---
 
@@ -174,6 +184,18 @@ Complete UI overhaul to achieve Apple-style premium liquid glass design with smo
 
 ## ✅ Completed Features
 
+### v2.8.2 - Swipeable Navigation ✅ **COMPLETE!** 🎨
+- ✅ Horizontal swipe between all 5 main tabs
+- ✅ Horizontal swipe between 3 Planning sub-tabs
+- ✅ Horizontal swipe between 2 Social sub-tabs
+- ✅ Haptic feedback on tab change
+- ✅ Smooth animations via `PageController`
+
+**Files Modified:** 1 file (`home_screen_v2.dart`)  
+**Status:** 🎉 **BOTTOM NAV NOW FEELS NATIVE & FLUID!**
+
+---
+
 ### v2.8.1 - Light Mode Fixes ✅ **COMPLETE!** 🎨
 - ✅ Theme name text color (black in light, white in dark)
 - ✅ Color swatch border visibility
@@ -286,27 +308,19 @@ Complete UI overhaul to achieve Apple-style premium liquid glass design with smo
 
 ## 📅 Roadmap
 
-### v2.8.1 - Light Mode Fixes ✅ **COMPLETE!** 🎨
-**Completed:** February 4, 2026, 6:05 PM IST
-- ✅ Theme selector text visibility in light mode
-- ✅ Particle opacity reduction in light mode
-- ✅ Background regeneration on theme toggle
+### v2.8.2 - Swipeable Navigation ✅ **COMPLETE!** 🎨
+**Completed:** February 4, 2026, 6:09 PM IST
+- ✅ Swipe between main tabs
+- ✅ Swipe between Planning sub-tabs
+- ✅ Swipe between Social sub-tabs
+- ✅ Haptics + animation
 
 **Status:** 🎉 **COMPLETE!**
 
-### Feature 6 - Swipeable Bottom Navigation (Next - Priority 1)
-**Target:** February 5, 2026
-- [ ] Swipe gesture detection
-- [ ] Tab switching animation
-- [ ] Haptic feedback
-- [ ] Scroll conflict prevention
-
-**Estimated Time:** 30-45 minutes
-
-### v2.7.1 - Integration Testing (Priority 2)
+### v2.7.1 - Integration Testing (Priority 1)
 **Target:** February 5, 2026
 - [ ] Integrate v2.7.0 Premium UI components
-- [ ] Integrate v2.8.0 Enhanced Cravings
+- [ ] Integrate v2.8.x features (Cravings, Light Mode Fixes, Swipeable Nav)
 - [ ] Test on real Android device
 - [ ] Test on real iOS device
 - [ ] Performance profiling
@@ -316,7 +330,7 @@ Complete UI overhaul to achieve Apple-style premium liquid glass design with smo
 
 **Estimated Time:** 2-3 hours
 
-### v2.4.0 - Analytics & Insights (Priority 3)
+### v2.4.0 - Analytics & Insights (Priority 2)
 **Target:** February 15, 2026
 - [ ] Replace Settings tab with Insights
 - [ ] Top spending categories pie chart
@@ -338,8 +352,8 @@ Complete UI overhaul to achieve Apple-style premium liquid glass design with smo
 ## 📈 Statistics
 
 ### Code Metrics ⬆️⬆️⬆️
-- **Total Files:** 96 (+2 modified)
-- **Lines of Code:** ~282,400+ (+100 for light mode fixes)
+- **Total Files:** 96 (+1 modified for swipe nav)
+- **Lines of Code:** ~282,550+ (+150 for swipe navigation)
 - **Models:** 23
 - **Providers:** 1 (ThemeProvider)
 - **Services:** 17
@@ -358,8 +372,9 @@ Complete UI overhaul to achieve Apple-style premium liquid glass design with smo
 - **v2.7.0:** Premium UI Overhaul (30+ features) 🎨
 - **v2.8.0:** Enhanced Cravings (35+ features) 🍕
 - **v2.8.1:** Light Mode Fixes (4 features) 🎨
+- **v2.8.2:** Swipeable Navigation (5 features) 🎨
 
-**Total Features:** 239+
+**Total Features:** 244+
 
 ---
 
@@ -378,16 +393,16 @@ Complete UI overhaul to achieve Apple-style premium liquid glass design with smo
 - ✅ **Feb 4, 2026, 2:36 PM** - v2.7.0 Phase 6 COMPLETE! 🎉
 - ✅ **Feb 4, 2026, 5:52 PM** - v2.8.0 Enhanced Cravings COMPLETE! 🍕
 - ✅ **Feb 4, 2026, 6:05 PM** - v2.8.1 Light Mode Fixes COMPLETE! 🎨
-- 🎯 **Feb 5, 2026** - Feature 6: Swipeable Navigation Target
+- ✅ **Feb 4, 2026, 6:09 PM** - v2.8.2 Swipeable Navigation COMPLETE! 🎨
 - 🎯 **Feb 5, 2026** - v2.7.1 Integration Testing Target
 - 🎯 **Feb 15, 2026** - v2.4.0 Analytics Target
 
 ---
 
-**Current Focus:** 🎨 **v2.8.1 COMPLETE - Light mode now properly visible!**
+**Current Focus:** 🎨 **v2.8.2 COMPLETE - Swipe navigation feels native and fluid!**
 
-**Next:** Feature 6 - Swipeable Bottom Navigation
+**Next:** v2.7.1 - Integration Testing
 
 ---
 
-*Last Updated: February 4, 2026, 6:05 PM IST*
+*Last Updated: February 4, 2026, 6:09 PM IST*
