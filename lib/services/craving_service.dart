@@ -204,9 +204,11 @@ class CravingService {
         endOfMonth,
       );
 
-      return cravings
+      final double total = cravings
           .where((c) => c.gaveIn)
-          .fold(0.0, (sum, c) => sum + c.totalAmount);
+          .fold<double>(0.0, (double sum, Craving c) => sum + c.totalAmount);
+      
+      return total;
     } catch (e) {
       throw Exception('Failed to get monthly spending: $e');
     }
