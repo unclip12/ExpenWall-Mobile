@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
-import '../theme/app_theme.dart';
+import '../theme/theme_compat.dart';
 
 /// Premium liquid glassmorphism card with blur effects and gradients
 class GlassCard extends StatelessWidget {
@@ -42,7 +42,7 @@ class GlassCard extends StatelessWidget {
               BoxShadow(
                 color: isDark 
                     ? Colors.black.withOpacity(0.3)
-                    : AppTheme.primaryPurple.withOpacity(0.08),
+                    : AppThemeCompat.primaryPurple.withOpacity(0.08),
                 blurRadius: 24,
                 offset: const Offset(0, 8),
                 spreadRadius: 0,
@@ -89,7 +89,7 @@ class GlassCard extends StatelessWidget {
                         shape: BoxShape.circle,
                         gradient: RadialGradient(
                           colors: [
-                            AppTheme.primaryPurple.withOpacity(0.1),
+                            AppThemeCompat.primaryPurple.withOpacity(0.1),
                             Colors.transparent,
                           ],
                         ),
@@ -111,25 +111,27 @@ class GradientGlassCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
   final double borderRadius;
-  final Gradient gradient;
+  final Gradient? gradient;
 
   const GradientGlassCard({
     super.key,
     required this.child,
     this.padding,
     this.borderRadius = 24,
-    this.gradient = AppTheme.purpleGradient,
+    this.gradient,
   });
 
   @override
   Widget build(BuildContext context) {
+    final effectiveGradient = gradient ?? AppThemeCompat.purpleGradient;
+    
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
-        gradient: gradient,
+        gradient: effectiveGradient,
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryPurple.withOpacity(0.3),
+            color: AppThemeCompat.primaryPurple.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
