@@ -390,7 +390,7 @@ class InsightCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Budget',
                   style: TextStyle(color: secondaryText, fontSize: 12),
                 ),
@@ -407,7 +407,7 @@ class InsightCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const Text(
+                Text(
                   'Spent',
                   style: TextStyle(color: secondaryText, fontSize: 12),
                 ),
