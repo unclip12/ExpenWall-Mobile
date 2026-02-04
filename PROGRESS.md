@@ -1,8 +1,8 @@
 # ExpenWall Mobile - Development Progress
 
-**Last Updated:** February 4, 2026, 5:52 PM IST  
-**Current Version:** v2.8.0 (Enhanced Cravings Feature) 🍕  
-**Latest Achievement:** v2.8.0 100% COMPLETE! 🎉🎉🎉
+**Last Updated:** February 4, 2026, 6:05 PM IST  
+**Current Version:** v2.8.1 (Light Mode Fixes) 🎨  
+**Latest Achievement:** Feature 5 - Light Mode Background & Theme Text Fixes COMPLETE! 🎉
 
 ---
 
@@ -11,6 +11,41 @@
 ```
 █████████████████████████████ 99%
 ```
+
+---
+
+## 🎨 Pending Features
+
+### Feature 5: Light Mode Background & Theme Text Fixes ✅ **COMPLETE!**
+**Completed:** February 4, 2026, 6:05 PM IST
+
+**What Was Fixed:**
+- ✅ **Theme name text color** - Now uses black text in light mode, white in dark mode (was white in both)
+- ✅ **Color swatch borders** - Adjusted for better visibility in both light and dark modes
+- ✅ **Particle opacity** - Reduced to 30% in light mode for cleaner look
+- ✅ **Background regeneration** - Particles now regenerate when switching between light/dark modes
+
+**Files Modified:**
+1. `lib/screens/theme_selector_screen.dart` - Fixed text colors and swatch borders
+2. `lib/widgets/themed_background.dart` - Reduced particle opacity in light mode
+
+**Status:** 🎉 **COMPLETE - Light mode is now properly visible!**
+
+---
+
+### Feature 6: Swipeable Bottom Navigation (Next - Priority 1)
+**Target:** February 5, 2026
+
+**Goal:** Add horizontal swipe gestures to bottom navigation tabs with haptic feedback
+
+**Features to implement:**
+- [ ] Swipe left/right to change tabs
+- [ ] Haptic feedback on swipe
+- [ ] Smooth animation between tabs
+- [ ] Prevent accidental swipes during scrolling
+- [ ] Work with both main tabs and sub-tabs
+
+**Estimated Time:** 30-45 minutes
 
 ---
 
@@ -139,6 +174,17 @@ Complete UI overhaul to achieve Apple-style premium liquid glass design with smo
 
 ## ✅ Completed Features
 
+### v2.8.1 - Light Mode Fixes ✅ **COMPLETE!** 🎨
+- ✅ Theme name text color (black in light, white in dark)
+- ✅ Color swatch border visibility
+- ✅ Particle opacity reduction (30% in light mode)
+- ✅ Background regeneration on theme switch
+
+**Files Modified:** 2 files  
+**Status:** 🎉 **LIGHT MODE NOW PROPERLY VISIBLE!**
+
+---
+
 ### v2.8.0 - Enhanced Cravings Feature ✅ **100% COMPLETE!** 🍕
 
 #### Core Tracking
@@ -240,19 +286,24 @@ Complete UI overhaul to achieve Apple-style premium liquid glass design with smo
 
 ## 📅 Roadmap
 
-### v2.8.0 - Enhanced Cravings Feature ✅ **100% COMPLETE!** 🍕
-**Completed:** February 4, 2026, 5:52 PM IST
-- ✅ Complete feature parity with web app
-- ✅ Item tracking with quantities and prices
-- ✅ Merchant and location tracking
-- ✅ Advanced analytics (3 sections)
-- ✅ Ranking and streak system
-- ✅ Success animations
-- ✅ Firebase integration
+### v2.8.1 - Light Mode Fixes ✅ **COMPLETE!** 🎨
+**Completed:** February 4, 2026, 6:05 PM IST
+- ✅ Theme selector text visibility in light mode
+- ✅ Particle opacity reduction in light mode
+- ✅ Background regeneration on theme toggle
 
-**Status:** 🎉 **READY FOR INTEGRATION!**
+**Status:** 🎉 **COMPLETE!**
 
-### v2.7.1 - Integration Testing (Next - Priority 1)
+### Feature 6 - Swipeable Bottom Navigation (Next - Priority 1)
+**Target:** February 5, 2026
+- [ ] Swipe gesture detection
+- [ ] Tab switching animation
+- [ ] Haptic feedback
+- [ ] Scroll conflict prevention
+
+**Estimated Time:** 30-45 minutes
+
+### v2.7.1 - Integration Testing (Priority 2)
 **Target:** February 5, 2026
 - [ ] Integrate v2.7.0 Premium UI components
 - [ ] Integrate v2.8.0 Enhanced Cravings
@@ -265,7 +316,7 @@ Complete UI overhaul to achieve Apple-style premium liquid glass design with smo
 
 **Estimated Time:** 2-3 hours
 
-### v2.4.0 - Analytics & Insights (Priority 2)
+### v2.4.0 - Analytics & Insights (Priority 3)
 **Target:** February 15, 2026
 - [ ] Replace Settings tab with Insights
 - [ ] Top spending categories pie chart
@@ -287,12 +338,12 @@ Complete UI overhaul to achieve Apple-style premium liquid glass design with smo
 ## 📈 Statistics
 
 ### Code Metrics ⬆️⬆️⬆️
-- **Total Files:** 96 (+5 new files in v2.8.0!)
-- **Lines of Code:** ~282,300+ (+2,300 for Enhanced Cravings!)
-- **Models:** 23 (+1: Craving)
+- **Total Files:** 96 (+2 modified)
+- **Lines of Code:** ~282,400+ (+100 for light mode fixes)
+- **Models:** 23
 - **Providers:** 1 (ThemeProvider)
-- **Services:** 17 (+1: CravingService)
-- **Screens:** 34 (+3: CravingsScreenEnhanced, LogCravingScreen, CravingAnalyticsScreen)
+- **Services:** 17
+- **Screens:** 34
 - **Widgets:** 28+ (11 glass components)
 - **Documentation:** 7 guides
 
@@ -306,8 +357,9 @@ Complete UI overhaul to achieve Apple-style premium liquid glass design with smo
 - **v2.6.0:** Receipt OCR (70+ features)
 - **v2.7.0:** Premium UI Overhaul (30+ features) 🎨
 - **v2.8.0:** Enhanced Cravings (35+ features) 🍕
+- **v2.8.1:** Light Mode Fixes (4 features) 🎨
 
-**Total Features:** 235+
+**Total Features:** 239+
 
 ---
 
@@ -325,15 +377,17 @@ Complete UI overhaul to achieve Apple-style premium liquid glass design with smo
 - ✅ **Feb 4, 2026, 2:28 PM** - v2.7.0 Phase 5 COMPLETE!
 - ✅ **Feb 4, 2026, 2:36 PM** - v2.7.0 Phase 6 COMPLETE! 🎉
 - ✅ **Feb 4, 2026, 5:52 PM** - v2.8.0 Enhanced Cravings COMPLETE! 🍕
+- ✅ **Feb 4, 2026, 6:05 PM** - v2.8.1 Light Mode Fixes COMPLETE! 🎨
+- 🎯 **Feb 5, 2026** - Feature 6: Swipeable Navigation Target
 - 🎯 **Feb 5, 2026** - v2.7.1 Integration Testing Target
 - 🎯 **Feb 15, 2026** - v2.4.0 Analytics Target
 
 ---
 
-**Current Focus:** 🍕 **v2.8.0 COMPLETE - Enhanced Cravings Ready!**
+**Current Focus:** 🎨 **v2.8.1 COMPLETE - Light mode now properly visible!**
 
-**Status:** ✅ **5 Files Created in 17 minutes! Ready to integrate!** 🎆🎆🎆
+**Next:** Feature 6 - Swipeable Bottom Navigation
 
 ---
 
-*Last Updated: February 4, 2026, 5:52 PM IST*
+*Last Updated: February 4, 2026, 6:05 PM IST*
