@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
@@ -7,9 +8,9 @@ import 'package:file_picker/file_picker.dart';
 import '../services/google_drive_service.dart';
 import '../services/local_storage_service.dart';
 import '../services/sync_manager.dart';
-import '../services/theme_service.dart';
 import '../widgets/glass_card.dart';
-import '../main.dart';
+import '../providers/theme_provider.dart';
+import 'theme_selector_screen.dart';
 import 'package:intl/intl.dart';
 
 class SettingsScreenV2 extends StatefulWidget {
@@ -22,19 +23,16 @@ class SettingsScreenV2 extends StatefulWidget {
 class _SettingsScreenV2State extends State<SettingsScreenV2> {
   final GoogleDriveService _driveService = GoogleDriveService();
   final LocalStorageService _localStorage = LocalStorageService();
-  final ThemeService _themeService = ThemeService();
   late SyncManager _syncManager;
   
   bool _isLoading = true;
   bool _isSyncing = false;
   bool _isSignedIn = false;
   bool _autoSyncEnabled = false;
-  bool _isDarkMode = false;
   String? _userEmail;
   DateTime? _lastBackupTime;
   String _userId = 'local_user';
   int _syncInterval = 5;
-  AppThemeType _currentTheme = AppThemeType.midnightPurple;
 
   @override
   void initState() {
@@ -67,16 +65,12 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
     
     final autoSync = await _syncManager.isAutoSyncEnabled();
     final interval = await _syncManager.getSyncInterval();
-    final isDark = await _themeService.isDarkMode();
-    final theme = await _themeService.getTheme();
     
     setState(() {
       _isSignedIn = _driveService.isSignedIn;
       _userEmail = _driveService.userEmail;
       _autoSyncEnabled = autoSync;
       _syncInterval = interval;
-      _isDarkMode = isDark;
-      _currentTheme = theme;
       _isLoading = false;
     });
 
@@ -93,176 +87,6 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
     setState(() {
       _lastBackupTime = lastBackup;
     });
-  }
-
-  // Toggle dark mode
-  Future<void> _toggleDarkMode(bool value) async {
-    setState(() => _isDarkMode = value);
-    await MyApp.of(context)?.toggleDarkMode(value);
-    _showSnackBar(
-      value ? 'Dark mode enabled' : 'Light mode enabled',
-      Colors.grey,
-    );
-  }
-
-  // Change theme
-  Future<void> _changeTheme(AppThemeType theme) async {
-    setState(() => _currentTheme = theme);
-    await MyApp.of(context)?.changeTheme(theme);
-    final themeName = ThemeService.themeMetadata[theme]!['name'];
-    _showSnackBar('Theme changed to $themeName', Colors.green);
-  }
-
-  // Show theme selector dialog
-  Future<void> _showThemeSelector() async {
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        minChildSize: 0.5,
-        maxChildSize: 0.9,
-        builder: (context, scrollController) => Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  'Choose Your Theme',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Expanded(
-                child: GridView.builder(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(20),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 1.1,
-                  ),
-                  itemCount: AppThemeType.values.length,
-                  itemBuilder: (context, index) {
-                    final theme = AppThemeType.values[index];
-                    final metadata = ThemeService.themeMetadata[theme]!;
-                    final isSelected = theme == _currentTheme;
-
-                    return GestureDetector(
-                      onTap: () {
-                        _changeTheme(theme);
-                        Navigator.pop(context);
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              metadata['primaryColor'],
-                              (metadata['primaryColor'] as Color).withOpacity(0.7),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: isSelected ? Colors.white : Colors.transparent,
-                            width: 3,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: (metadata['primaryColor'] as Color).withOpacity(0.4),
-                              blurRadius: isSelected ? 20 : 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Stack(
-                          children: [
-                            // Background icon
-                            Positioned(
-                              top: -20,
-                              right: -20,
-                              child: Icon(
-                                metadata['icon'],
-                                size: 120,
-                                color: Colors.white.withOpacity(0.1),
-                              ),
-                            ),
-                            // Content
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Icon(
-                                    metadata['icon'],
-                                    color: Colors.white,
-                                    size: 32,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    metadata['name'],
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    metadata['description'],
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.white.withOpacity(0.8),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // Selected indicator
-                            if (isSelected)
-                              const Positioned(
-                                top: 12,
-                                right: 12,
-                                child: Icon(
-                                  Icons.check_circle,
-                                  color: Colors.white,
-                                  size: 28,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   Future<void> _signInToGoogle() async {
@@ -595,7 +419,8 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
   }
 
   Widget _buildAppearanceCard() {
-    final currentThemeMeta = ThemeService.themeMetadata[_currentTheme]!;
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final currentTheme = themeProvider.currentThemeConfig;
     
     return GlassCard(
       padding: const EdgeInsets.all(20),
@@ -606,7 +431,7 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
           Row(
             children: [
               Icon(
-                _isDarkMode ? Icons.dark_mode : Icons.light_mode,
+                themeProvider.isDarkMode ? Icons.dark_mode : Icons.light_mode,
                 color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(width: 12),
@@ -622,7 +447,7 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
                       ),
                     ),
                     Text(
-                      _isDarkMode ? 'Enabled' : 'Disabled',
+                      themeProvider.isDarkMode ? 'Enabled' : 'Disabled',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey[600],
@@ -632,8 +457,14 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
                 ),
               ),
               Switch(
-                value: _isDarkMode,
-                onChanged: _toggleDarkMode,
+                value: themeProvider.isDarkMode,
+                onChanged: (value) {
+                  themeProvider.toggleDarkMode();
+                  _showSnackBar(
+                    value ? 'Dark mode enabled' : 'Light mode enabled',
+                    Colors.grey,
+                  );
+                },
               ),
             ],
           ),
@@ -649,25 +480,33 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
           ),
           const SizedBox(height: 12),
           InkWell(
-            onTap: _showThemeSelector,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ThemeSelectorScreen(),
+                ),
+              );
+            },
             borderRadius: BorderRadius.circular(16),
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    currentThemeMeta['primaryColor'],
-                    (currentThemeMeta['primaryColor'] as Color).withOpacity(0.7),
+                    currentTheme.primaryColor,
+                    currentTheme.primaryColor.withOpacity(0.7),
                   ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
                 children: [
-                  Icon(
-                    currentThemeMeta['icon'],
-                    color: Colors.white,
-                    size: 28,
+                  Text(
+                    currentTheme.emoji,
+                    style: const TextStyle(fontSize: 28),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -675,7 +514,7 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          currentThemeMeta['name'],
+                          currentTheme.name,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -683,7 +522,7 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
                           ),
                         ),
                         Text(
-                          currentThemeMeta['description'],
+                          currentTheme.description,
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.white.withOpacity(0.8),
@@ -1014,7 +853,7 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Version 2.3.1 (Split Bills Update)',
+            'Version 2.7.0 (Premium UI Overhaul)',
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[600],
