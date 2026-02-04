@@ -210,16 +210,16 @@ class _ThemeCard extends StatelessWidget {
                     ),
                     const Spacer(),
 
-                    // Theme name
+                    // Theme name - FIXED: Use black text in light mode, white in dark mode
                     Text(
                       theme.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: isDarkMode ? Colors.white : Colors.black87,
                         shadows: [
                           Shadow(
-                            color: Colors.black26,
+                            color: isDarkMode ? Colors.black26 : Colors.white.withOpacity(0.5),
                             blurRadius: 4,
                           ),
                         ],
@@ -227,14 +227,14 @@ class _ThemeCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
 
-                    // Color swatches
+                    // Color swatches - FIXED: Adjust border for better visibility in both modes
                     Row(
                       children: [
-                        _ColorSwatch(color: theme.primaryColor),
+                        _ColorSwatch(color: theme.primaryColor, isDarkMode: isDarkMode),
                         const SizedBox(width: 4),
-                        _ColorSwatch(color: theme.secondaryColor),
+                        _ColorSwatch(color: theme.secondaryColor, isDarkMode: isDarkMode),
                         const SizedBox(width: 4),
-                        _ColorSwatch(color: theme.accentColor),
+                        _ColorSwatch(color: theme.accentColor, isDarkMode: isDarkMode),
                       ],
                     ),
                   ],
@@ -259,8 +259,12 @@ class _ThemeCard extends StatelessWidget {
 /// Small circular color swatch
 class _ColorSwatch extends StatelessWidget {
   final Color color;
+  final bool isDarkMode;
 
-  const _ColorSwatch({required this.color});
+  const _ColorSwatch({
+    required this.color,
+    required this.isDarkMode,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -271,7 +275,10 @@ class _ColorSwatch extends StatelessWidget {
         color: color,
         shape: BoxShape.circle,
         border: Border.all(
-          color: Colors.white.withOpacity(0.5),
+          // FIXED: Use contrasting border color for both modes
+          color: isDarkMode 
+              ? Colors.white.withOpacity(0.5) 
+              : Colors.black.withOpacity(0.3),
           width: 1.5,
         ),
         boxShadow: [
