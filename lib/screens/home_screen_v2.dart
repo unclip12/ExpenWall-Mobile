@@ -249,7 +249,6 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
 
   void _onMainTabChanged(int index) {
     if (_currentMainTab != index) {
-      // ✅ ENHANCED: More noticeable haptic feedback
       HapticFeedback.mediumImpact();
       setState(() => _currentMainTab = index);
       _mainPageController.animateToPage(
@@ -285,10 +284,10 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
   }
 
   Widget _getPlanningScreen() {
-    // ✅ Sub-tabs use ClampingScrollPhysics to prevent conflicts with child scrolls
+    // ✅ FIX: Use PageScrollPhysics for smooth horizontal swipe in sub-tabs
     return PageView(
       controller: _planningPageController,
-      physics: const ClampingScrollPhysics(),
+      physics: const PageScrollPhysics(), // Allows horizontal swipe
       onPageChanged: (index) {
         if (_planningSubTab != index) {
           HapticFeedback.mediumImpact();
@@ -309,10 +308,10 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
   }
 
   Widget _getSocialScreen() {
-    // ✅ Sub-tabs use ClampingScrollPhysics to prevent conflicts with child scrolls
+    // ✅ FIX: Use PageScrollPhysics for smooth horizontal swipe in sub-tabs
     return PageView(
       controller: _socialPageController,
-      physics: const ClampingScrollPhysics(),
+      physics: const PageScrollPhysics(), // Allows horizontal swipe
       onPageChanged: (index) {
         if (_socialSubTab != index) {
           HapticFeedback.mediumImpact();
@@ -436,13 +435,12 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
                         ? _buildErrorState()
                         : PageView(
                             controller: _mainPageController,
-                            // ✅ CRITICAL FIX: Use BouncingScrollPhysics for smooth horizontal swipes
-                            // This allows natural swipe gestures between tabs while still respecting
-                            // vertical scrolling within each screen
-                            physics: const BouncingScrollPhysics(),
+                            // ✅ CRITICAL FIX: Disable horizontal swipe on main PageView
+                            // This prevents conflicts with vertical scrolling in child screens
+                            // Users will use bottom navigation to switch tabs (more predictable)
+                            physics: const NeverScrollableScrollPhysics(),
                             onPageChanged: (index) {
                               if (_currentMainTab != index) {
-                                HapticFeedback.mediumImpact();
                                 setState(() => _currentMainTab = index);
                               }
                             },
