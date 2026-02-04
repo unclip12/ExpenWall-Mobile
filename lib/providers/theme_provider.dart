@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_config.dart';
+import '../theme/theme_compat.dart';
 
 /// Provider for managing app theme and background configuration
 /// Handles theme selection, persistence, and dark mode toggle
@@ -9,7 +10,7 @@ class ThemeProvider with ChangeNotifier {
   static const String _themeKey = 'selected_theme';
   static const String _darkModeKey = 'dark_mode';
 
-  ThemeConfig _currentThemeConfig = ThemeConfig.midnightPurple;
+  ThemeConfig _currentThemeConfig = AppTheme.midnightPurple;
   bool _isDarkMode = false;
 
   ThemeConfig get currentThemeConfig => _currentThemeConfig;
@@ -17,7 +18,7 @@ class ThemeProvider with ChangeNotifier {
 
   /// Get current Flutter ThemeData based on theme config and dark mode
   ThemeData get currentTheme {
-    return AppTheme.getTheme(_currentThemeConfig, isDark: _isDarkMode);
+    return _isDarkMode ? _currentThemeConfig.darkTheme : _currentThemeConfig.lightTheme;
   }
 
   /// Get background configuration for ThemedBackground widget
@@ -35,10 +36,10 @@ class ThemeProvider with ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       
       // Load theme
-      final themeId = prefs.getString(_themeKey) ?? ThemeConfig.midnightPurple.id;
-      _currentThemeConfig = ThemeConfig.allThemes.firstWhere(
+      final themeId = prefs.getString(_themeKey) ?? AppTheme.midnightPurple.id;
+      _currentThemeConfig = AppTheme.allThemes.firstWhere(
         (theme) => theme.id == themeId,
-        orElse: () => ThemeConfig.midnightPurple,
+        orElse: () => AppTheme.midnightPurple,
       );
       
       // Load dark mode
