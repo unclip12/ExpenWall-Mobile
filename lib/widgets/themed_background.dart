@@ -51,7 +51,7 @@ class _ThemedBackgroundState extends State<ThemedBackground>
   @override
   void didUpdateWidget(ThemedBackground oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.config != widget.config) {
+    if (oldWidget.config != widget.config || oldWidget.isDark != widget.isDark) {
       _generateParticles();
       _particleController.duration = Duration(
         seconds: (20 / widget.config.animationSpeed).round(),
@@ -62,13 +62,17 @@ class _ThemedBackgroundState extends State<ThemedBackground>
   void _generateParticles() {
     final particleCount = (30 * widget.config.particleDensity).round();
     _particles = List.generate(particleCount, (index) {
+      // FIXED: Reduce opacity in light mode
+      final baseOpacity = 0.1 + _random.nextDouble() * 0.3;
+      final adjustedOpacity = widget.isDark ? baseOpacity : baseOpacity * 0.3;
+      
       return Particle(
         x: _random.nextDouble(),
         y: _random.nextDouble(),
         size: 4 + _random.nextDouble() * 12,
         speed: 0.1 + _random.nextDouble() * 0.3,
         angle: _random.nextDouble() * 2 * pi,
-        opacity: 0.1 + _random.nextDouble() * 0.3,
+        opacity: adjustedOpacity,
         color: widget.config.particleColors[
           _random.nextInt(widget.config.particleColors.length)
         ],
