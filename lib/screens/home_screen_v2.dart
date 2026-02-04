@@ -7,7 +7,7 @@ import 'transactions_screen.dart';
 import 'add_transaction_screen_v2.dart';
 import 'budget_screen.dart';
 import 'products_screen.dart';
-import 'settings_screen_v2.dart';
+import 'insights_screen.dart'; // v2.4.0 Analytics & Insights Dashboard
 import 'buying_list_screen.dart';
 import 'cravings_screen_enhanced.dart'; // Enhanced Cravings v2.8.0
 import 'recurring_bills_screen.dart';
@@ -306,8 +306,8 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
         return _getPlanningScreen();
       case 3: // Social
         return _getSocialScreen();
-      case 4: // Insights (Settings for now)
-        return const SettingsScreenV2();
+      case 4: // Insights (v2.4.0 Analytics & Insights Dashboard)
+        return InsightsScreen(userId: _userId);
       default:
         return DashboardScreen(
           transactions: _transactions,
@@ -366,7 +366,7 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
       case 3:
         return _getSocialTitle();
       case 4:
-        return 'Settings';
+        return 'Insights'; // Changed from 'Settings'
       default:
         return 'ExpenWall';
     }
@@ -487,7 +487,8 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
                               ),
                               _getPlanningScreen(),
                               _getSocialScreen(),
-                              const SettingsScreenV2(),
+                              // v2.4.0 Analytics & Insights Dashboard
+                              InsightsScreen(userId: _userId),
                             ],
                           ),
               ),
@@ -526,7 +527,7 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
           TabItem(icon: Icons.receipt_long_rounded, label: 'Expenses'),
           TabItem(icon: Icons.calendar_today, label: 'Planning'),
           TabItem(icon: Icons.people_alt, label: 'Social'),
-          TabItem(icon: Icons.insights, label: 'Insights'),
+          TabItem(icon: Icons.insights, label: 'Insights'), // Changed from Settings
         ],
         selectedIndex: _currentMainTab,
         onTabSelected: _onMainTabChanged,
