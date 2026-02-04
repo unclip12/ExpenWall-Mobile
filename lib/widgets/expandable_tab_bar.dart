@@ -48,7 +48,7 @@ class _ExpandableTabBarState extends State<ExpandableTabBar>
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.all(20),
-      height: 70,
+      height: 75,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
@@ -79,39 +79,46 @@ class _ExpandableTabBarState extends State<ExpandableTabBar>
                 final index = entry.key;
                 final tab = entry.value;
                 final isSelected = widget.selectedIndex == index;
-                
-                // Calculate flex: selected = 65%, others share 35%
-                final flex = isSelected ? 65 : (35 ~/ (widget.tabs.length - 1));
 
+                // Equal width for all tabs
                 return Expanded(
-                  flex: flex,
+                  flex: 1,
                   child: AnimatedBuilder(
                     animation: _animController,
                     builder: (context, child) {
                       return GestureDetector(
                         onTap: () => widget.onTabSelected(index),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             gradient: isSelected
                                 ? LinearGradient(
                                     colors: [
                                       Theme.of(context).colorScheme.primary,
-                                      Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                                      Theme.of(context)
+                                          .colorScheme
+                                          .primary
+                                          .withOpacity(0.6),
                                     ],
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
                                   )
                                 : null,
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 tab.icon,
                                 color: isSelected
                                     ? Colors.white
                                     : Colors.grey[600],
-                                size: isSelected ? 24 : 20,
+                                size: 24,
                               ),
                               if (isSelected) ...[
                                 const SizedBox(height: 4),
@@ -119,12 +126,13 @@ class _ExpandableTabBarState extends State<ExpandableTabBar>
                                   child: Text(
                                     tab.label,
                                     style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: isSelected ? Colors.white : Colors.grey[600],
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
                                   ),
                                 ),
                               ],
