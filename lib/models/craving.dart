@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'transaction.dart';
+import 'transaction.dart' as models;
 
 /// Represents an item within a craving
 class CravingItem {
@@ -73,7 +73,7 @@ class Craving {
   final String? merchantArea; // Area/location of merchant
   final double totalAmount; // Total amount spent if gave in
   final String? transactionId; // Linked transaction if gave in
-  final Category? category; // Category (Food & Dining, Shopping, etc.)
+  final models.Category? category; // Category (Food & Dining, Shopping, etc.)
   final String? notes;
 
   Craving({
@@ -130,9 +130,9 @@ class Craving {
       totalAmount: (data['totalAmount'] as num?)?.toDouble() ?? 0.0,
       transactionId: data['transactionId'],
       category: data['category'] != null
-          ? Category.values.firstWhere(
+          ? models.Category.values.firstWhere(
               (e) => e.label == data['category'],
-              orElse: () => Category.other,
+              orElse: () => models.Category.other,
             )
           : null,
       notes: data['notes'],
@@ -151,7 +151,7 @@ class Craving {
     String? merchantArea,
     double? totalAmount,
     String? transactionId,
-    Category? category,
+    models.Category? category,
     String? notes,
   }) {
     return Craving(
@@ -180,7 +180,7 @@ class CravingAnalytics {
   final double resistanceRate; // Percentage
   final double totalSpent;
   final String? topMerchant;
-  final Category? topCategory;
+  final models.Category? topCategory;
   final int currentStreak; // Days resisted in a row
   final int longestStreak;
   final Map<String, int> merchantFrequency; // Merchant -> count
