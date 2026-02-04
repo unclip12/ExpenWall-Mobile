@@ -249,7 +249,8 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
 
   void _onMainTabChanged(int index) {
     if (_currentMainTab != index) {
-      HapticFeedback.selectionClick();
+      // ✅ ENHANCED: More noticeable haptic feedback
+      HapticFeedback.mediumImpact();
       setState(() => _currentMainTab = index);
       _mainPageController.animateToPage(
         index,
@@ -261,7 +262,7 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
 
   void _onPlanningSubTabChanged(int index) {
     if (_planningSubTab != index) {
-      HapticFeedback.selectionClick();
+      HapticFeedback.mediumImpact();
       setState(() => _planningSubTab = index);
       _planningPageController.animateToPage(
         index,
@@ -273,7 +274,7 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
 
   void _onSocialSubTabChanged(int index) {
     if (_socialSubTab != index) {
-      HapticFeedback.selectionClick();
+      HapticFeedback.mediumImpact();
       setState(() => _socialSubTab = index);
       _socialPageController.animateToPage(
         index,
@@ -284,13 +285,13 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
   }
 
   Widget _getPlanningScreen() {
-    // ✅ FIX: Use ClampingScrollPhysics to prevent horizontal bouncing interfering with vertical scroll
+    // ✅ Sub-tabs use ClampingScrollPhysics to prevent conflicts with child scrolls
     return PageView(
       controller: _planningPageController,
-      physics: const ClampingScrollPhysics(), // Prevents bounce interfering with child scrolls
+      physics: const ClampingScrollPhysics(),
       onPageChanged: (index) {
         if (_planningSubTab != index) {
-          HapticFeedback.selectionClick();
+          HapticFeedback.mediumImpact();
           setState(() => _planningSubTab = index);
         }
       },
@@ -308,13 +309,13 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
   }
 
   Widget _getSocialScreen() {
-    // ✅ FIX: Use ClampingScrollPhysics to prevent horizontal bouncing interfering with vertical scroll
+    // ✅ Sub-tabs use ClampingScrollPhysics to prevent conflicts with child scrolls
     return PageView(
       controller: _socialPageController,
-      physics: const ClampingScrollPhysics(), // Prevents bounce interfering with child scrolls
+      physics: const ClampingScrollPhysics(),
       onPageChanged: (index) {
         if (_socialSubTab != index) {
-          HapticFeedback.selectionClick();
+          HapticFeedback.mediumImpact();
           setState(() => _socialSubTab = index);
         }
       },
@@ -435,12 +436,13 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
                         ? _buildErrorState()
                         : PageView(
                             controller: _mainPageController,
-                            // ✅ CRITICAL FIX: Use ClampingScrollPhysics to allow vertical scrolling
-                            // while still enabling horizontal swiping between tabs
-                            physics: const ClampingScrollPhysics(),
+                            // ✅ CRITICAL FIX: Use BouncingScrollPhysics for smooth horizontal swipes
+                            // This allows natural swipe gestures between tabs while still respecting
+                            // vertical scrolling within each screen
+                            physics: const BouncingScrollPhysics(),
                             onPageChanged: (index) {
                               if (_currentMainTab != index) {
-                                HapticFeedback.selectionClick();
+                                HapticFeedback.mediumImpact();
                                 setState(() => _currentMainTab = index);
                               }
                             },
