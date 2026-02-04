@@ -175,7 +175,7 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
       Navigator.of(context).pop(); // Close the bottom sheet
       
       // Wait a tiny bit for smooth transition
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 150));
       
       // Strong haptic feedback
       HapticFeedback.heavyImpact();
@@ -284,8 +284,10 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
   }
 
   Widget _getPlanningScreen() {
+    // ✅ FIX: Use ClampingScrollPhysics to prevent horizontal bouncing interfering with vertical scroll
     return PageView(
       controller: _planningPageController,
+      physics: const ClampingScrollPhysics(), // Prevents bounce interfering with child scrolls
       onPageChanged: (index) {
         if (_planningSubTab != index) {
           HapticFeedback.selectionClick();
@@ -306,8 +308,10 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
   }
 
   Widget _getSocialScreen() {
+    // ✅ FIX: Use ClampingScrollPhysics to prevent horizontal bouncing interfering with vertical scroll
     return PageView(
       controller: _socialPageController,
+      physics: const ClampingScrollPhysics(), // Prevents bounce interfering with child scrolls
       onPageChanged: (index) {
         if (_socialSubTab != index) {
           HapticFeedback.selectionClick();
@@ -431,6 +435,9 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
                         ? _buildErrorState()
                         : PageView(
                             controller: _mainPageController,
+                            // ✅ CRITICAL FIX: Use ClampingScrollPhysics to allow vertical scrolling
+                            // while still enabling horizontal swiping between tabs
+                            physics: const ClampingScrollPhysics(),
                             onPageChanged: (index) {
                               if (_currentMainTab != index) {
                                 HapticFeedback.selectionClick();
