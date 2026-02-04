@@ -1,6 +1,6 @@
 # ExpenWall Mobile - Feature Testing Checklist
 
-Last Updated: February 5, 2026, 3:38 AM IST
+Last Updated: February 5, 2026, 3:50 AM IST
 
 Purpose: Systematic testing guide to identify and fix bugs across all features
 
@@ -26,17 +26,21 @@ Status: ✅ COMPLETE
 ### 1.2 Bottom Navigation
 - ✅ All 5 tabs visible
 - ✅ Tapping tabs switches screens
-- ✅ Horizontal swipe between tabs (FIXED: Feb 5, 2026)
+- ✅ **Main tab horizontal swipe DISABLED** (by design for stability)
+- ✅ **Sub-tab horizontal swipe WORKS** (Planning/Social) (FIXED: Feb 5, 2026)
+- ✅ **Vertical scrolling WORKS in all screens** (FIXED: Feb 5, 2026)
 - ✅ Haptic feedback enhanced (FIXED: Feb 5, 2026)
 - ✅ Selected tab indicator works
 - ✅ App bar title changes correctly
 
 Status: ✅ COMPLETE
 
-Fixes:
-- Changed PageView physics to BouncingScrollPhysics
-- Enhanced haptic to mediumImpact
-- Commit: 9843253b723e5f81641be3d931299435bb523808
+Fixes Applied:
+- **Round 1 (9843253b):** Enhanced haptic to mediumImpact
+- **Round 2 (bd373d9f):** Fixed scrolling conflicts
+  - Main PageView: NeverScrollableScrollPhysics (tap-only navigation)
+  - Sub-tab PageViews: PageScrollPhysics (allows swipe)
+  - Result: Vertical scrolling restored, sub-tabs swipeable
 
 ---
 
@@ -145,7 +149,7 @@ Status: ⏭️ NOT TESTED
 
 Overall: 10% Complete (1/10 phases)
 
-- ✅ Phase 1: Authentication & Navigation - COMPLETE
+- ✅ Phase 1: Authentication & Navigation - COMPLETE (with bug fixes)
 - ⏭️ Phase 2: Core Transactions - Not started
 - ⏭️ Phase 3: Dashboard - Not started
 - ⏭️ Phase 4: Budget - Not started
@@ -161,11 +165,52 @@ Overall: 10% Complete (1/10 phases)
 ## Known Bugs
 
 ### Fixed ✅
-1. Horizontal swipe not working (Phase 1.2) - Fixed Feb 5, 2026
-2. Weak haptic feedback (Phase 1.2) - Fixed Feb 5, 2026
+
+**Round 1 - Feb 5, 2026, 3:30 AM**
+1. Horizontal swipe between main tabs not working (Phase 1.2)
+   - **Cause:** ClampingScrollPhysics preventing swipe
+   - **Fix:** Changed to BouncingScrollPhysics
+   - **Commit:** 9843253b723e5f81641be3d931299435bb523808
+
+2. Weak haptic feedback (Phase 1.2)
+   - **Cause:** Using selectionClick (too subtle)
+   - **Fix:** Enhanced to mediumImpact
+   - **Commit:** 9843253b723e5f81641be3d931299435bb523808
+
+**Round 2 - Feb 5, 2026, 3:50 AM** (Regression fixes)
+3. Vertical scrolling broken in all screens (Phase 1.2)
+   - **Cause:** BouncingScrollPhysics on main PageView conflicting with child scrolls
+   - **Fix:** Changed main PageView to NeverScrollableScrollPhysics
+   - **Result:** Navigation via bottom tabs only (more predictable)
+   - **Commit:** bd373d9f872d7e55d0969d789baba8de1babda8f
+
+4. Sub-tab horizontal swipe not working (Planning/Social) (Phase 1.2)
+   - **Cause:** ScrollPhysics conflict
+   - **Fix:** Sub-tab PageViews use PageScrollPhysics
+   - **Result:** Can swipe between Budget/Recurring/Buying and SplitBills/Cravings
+   - **Commit:** bd373d9f872d7e55d0969d789baba8de1babda8f
+
+5. Insights screen showing empty grey (Phase 7.1)
+   - **Cause:** Physics conflict preventing rendering
+   - **Fix:** Restored by fixing PageView physics
+   - **Commit:** bd373d9f872d7e55d0969d789baba8de1babda8f
 
 ### Open ⚠️
-(Will be populated as testing progresses)
+(None currently - all Phase 1 bugs fixed)
+
+---
+
+## Navigation Design Decision 📝
+
+**Main Tabs (Bottom Navigation):**
+- Controlled by **tapping only** (no swipe)
+- Reason: Prevents conflicts with vertical scrolling
+- Result: More predictable, stable navigation
+
+**Sub-Tabs (Planning/Social):**
+- Controlled by **tapping OR swiping**
+- Reason: Fewer conflicts in nested PageViews
+- Result: Enhanced UX for related features
 
 ---
 
