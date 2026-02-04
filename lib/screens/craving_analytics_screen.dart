@@ -99,7 +99,7 @@ class CravingAnalyticsScreen extends StatelessWidget {
           else
             ...overallTemptations.take(10).map((entry) {
               return _buildItemCard(
-                context,
+                context: context,
                 name: entry.key,
                 occurrences: entry.value['count'],
                 amount: entry.value['totalAmount'],
@@ -120,7 +120,7 @@ class CravingAnalyticsScreen extends StatelessWidget {
           else
             ...resistedItems.take(10).map((entry) {
               return _buildItemCard(
-                context,
+                context: context,
                 name: entry.key,
                 occurrences: entry.value['resisted'],
                 amount: entry.value['resistedAmount'],
@@ -141,7 +141,7 @@ class CravingAnalyticsScreen extends StatelessWidget {
           else
             ...gaveInItems.take(10).map((entry) {
               return _buildItemCard(
-                context,
+                context: context,
                 name: entry.key,
                 occurrences: entry.value['gaveIn'],
                 amount: entry.value['gaveInAmount'],
@@ -375,7 +375,7 @@ class CravingAnalyticsScreen extends StatelessWidget {
     for (final craving in cravings) {
       if (craving.wasResisted) {
         // Find average price for this item from gave-in cravings
-        final similardGaveIn = cravings.where(
+        final similarGaveIn = cravings.where(
           (c) => c.gaveIn && c.name.toLowerCase() == craving.name.toLowerCase(),
         ).toList();
         

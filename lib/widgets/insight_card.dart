@@ -41,7 +41,7 @@ class InsightCard extends StatelessWidget {
   Widget _buildHeader(BuildContext context) {
     return Row(
       children: [
-        if (onReorder) ..[
+        if (onReorder) ...[
           const Icon(Icons.drag_handle, color: Colors.white70, size: 20),
           const SizedBox(width: 8),
         ],
@@ -257,7 +257,7 @@ class InsightCard extends StatelessWidget {
     return Column(
       children: days.map((day) {
         final amount = analyticsData.dayOfWeekSpending[day] ?? 0;
-        final percentage = maxSpending > 0 ? amount / maxSpending : 0;
+        final percentage = maxSpending > 0 ? amount / maxSpending : 0.0;
 
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
@@ -285,7 +285,7 @@ class InsightCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               LinearProgressIndicator(
-                value: percentage,
+                value: percentage.toDouble(),
                 backgroundColor: Colors.white.withOpacity(0.1),
                 valueColor: const AlwaysStoppedAnimation(Colors.blue),
               ),
@@ -412,7 +412,7 @@ class InsightCard extends StatelessWidget {
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: LinearProgressIndicator(
-            value: (percentage / 100).clamp(0.0, 1.0),
+            value: (percentage / 100).clamp(0.0, 1.0).toDouble(),
             minHeight: 20,
             backgroundColor: Colors.white.withOpacity(0.1),
             valueColor: AlwaysStoppedAnimation(color),
@@ -437,7 +437,7 @@ class InsightCard extends StatelessWidget {
             ),
           ],
         ),
-        if (prediction != null) ..[
+        if (prediction != null) ...[
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(12),

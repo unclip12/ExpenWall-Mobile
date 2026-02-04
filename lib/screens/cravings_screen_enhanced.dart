@@ -40,7 +40,7 @@ class _CravingsScreenEnhancedState extends State<CravingsScreenEnhanced>
     HapticFeedback.mediumImpact();
     AnimatedBottomSheet.show(
       context: context,
-      builder: (context) => LogCravingScreen(
+      child: LogCravingScreen(
         userId: widget.userId,
         onSaved: () {
           setState(() {}); // Refresh the list

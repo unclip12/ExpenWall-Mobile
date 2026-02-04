@@ -22,11 +22,11 @@ class AnalyticsService {
     final monthlyTrends = await _calculateMonthlyTrends(userId, endDate);
 
     final totalExpenses = transactions
-        .where((t) => t.type == 'expense')
+        .where((t) => t.type == TransactionType.expense)
         .fold(0.0, (sum, t) => sum + t.amount);
 
     final totalIncome = transactions
-        .where((t) => t.type == 'income')
+        .where((t) => t.type == TransactionType.income)
         .fold(0.0, (sum, t) => sum + t.amount);
 
     // Get budget for the period
@@ -86,7 +86,7 @@ class AnalyticsService {
           // Significant change
           insights.add(AIInsight(
             category: category,
-            percentageChange: change,
+            percentageChange: change.toDouble(),
             amount: difference.abs(),
             insight: _generateInsightText(category, change, difference.abs()),
             sentiment: change > 0
@@ -138,7 +138,7 @@ class AnalyticsService {
     final targetMonth = DateTime(now.year, now.month + 1, 1);
 
     // Get last 6 months of data
-    final transactions = <ExpenseTransaction>[];
+    final transactions = <Transaction>[];
     final monthlyTotals = <double>[];
     final categoryTotals = <String, List<double>>{};
 
@@ -151,14 +151,14 @@ class AnalyticsService {
       transactions.addAll(monthTransactions);
 
       final monthTotal = monthTransactions
-          .where((t) => t.type == 'expense')
+          .where((t) => t.type == TransactionType.expense)
           .fold(0.0, (sum, t) => sum + t.amount);
       monthlyTotals.add(monthTotal);
 
       // Track category spending per month
-      for (final t in monthTransactions.where((t) => t.type == 'expense')) {
-        categoryTotals.putIfAbsent(t.category, () => []);
-        categoryTotals[t.category]!.add(t.amount);
+      for (final t in monthTransactions.where((t) => t.type == TransactionType.expense)) {
+        categoryTotals.putIfAbsent(t.category.label, () => []);
+        categoryTotals[t.category.label]!.add(t.amount);
       }
     }
 
@@ -199,7 +199,7 @@ class AnalyticsService {
 
     if (lastYearTransactions.isNotEmpty) {
       final lastYearTotal = lastYearTransactions
-          .where((t) => t.type == 'expense')
+          .where((t) => t.type == TransactionType.expense)
           .fold(0.0, (sum, t) => sum + t.amount);
 
       // Adjust prediction with last year's data
@@ -281,14 +281,14 @@ class AnalyticsService {
       final rightAmount = rightData.categorySpending[category] ?? 0;
       final difference = rightAmount - leftAmount;
       final percentageChange =
-          leftAmount > 0 ? (difference / leftAmount) * 100 : 100;
+          leftAmount > 0 ? (difference / leftAmount) * 100 : 100.0;
 
       categoryComparisons[category] = ComparisonMetric(
         category: category,
         leftAmount: leftAmount,
         rightAmount: rightAmount,
         difference: difference,
-        percentageChange: percentageChange,
+        percentageChange: percentageChange.toDouble(),
         isImprovement: difference < 0, // Less spending = improvement
       );
     }
@@ -296,7 +296,7 @@ class AnalyticsService {
     final totalDifference = rightData.totalExpenses - leftData.totalExpenses;
     final percentageChange = leftData.totalExpenses > 0
         ? (totalDifference / leftData.totalExpenses) * 100
-        : 0;
+        : 0.0;
 
     return MonthComparison(
       leftMonth: leftMonth,
@@ -305,12 +305,12 @@ class AnalyticsService {
       rightData: rightData,
       categoryComparisons: categoryComparisons,
       totalDifference: totalDifference,
-      percentageChange: percentageChange,
+      percentageChange: percentageChange.toDouble(),
     );
   }
 
   // Private helper methods
-  Future<List<ExpenseTransaction>> _getTransactions(
+  Future<List<Transaction>> _getTransactions(
     String userId,
     DateTime startDate,
     DateTime endDate,
@@ -324,21 +324,21 @@ class AnalyticsService {
         .get();
 
     return snapshot.docs
-        .map((doc) => ExpenseTransaction.fromFirestore(doc))
+        .map((doc) => Transaction.fromFirestore(doc))
         .toList();
   }
 
   Map<String, double> _calculateCategorySpending(
-      List<ExpenseTransaction> transactions) {
+      List<Transaction> transactions) {
     final spending = <String, double>{};
-    for (final t in transactions.where((t) => t.type == 'expense')) {
-      spending[t.category] = (spending[t.category] ?? 0) + t.amount;
+    for (final t in transactions.where((t) => t.type == TransactionType.expense)) {
+      spending[t.category.label] = (spending[t.category.label] ?? 0) + t.amount;
     }
     return spending;
   }
 
   Map<String, double> _calculateDayOfWeekSpending(
-      List<ExpenseTransaction> transactions) {
+      List<Transaction> transactions) {
     final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     final spending = <String, double>{};
 
@@ -346,7 +346,7 @@ class AnalyticsService {
       spending[day] = 0;
     }
 
-    for (final t in transactions.where((t) => t.type == 'expense')) {
+    for (final t in transactions.where((t) => t.type == TransactionType.expense)) {
       final dayIndex = t.date.weekday - 1;
       spending[days[dayIndex]] = (spending[days[dayIndex]] ?? 0) + t.amount;
     }
@@ -355,12 +355,12 @@ class AnalyticsService {
   }
 
   Map<String, dynamic> _calculateMerchantData(
-      List<ExpenseTransaction> transactions) {
+      List<Transaction> transactions) {
     final frequency = <String, int>{};
     final spending = <String, double>{};
 
-    for (final t in transactions.where((t) => t.merchant?.isNotEmpty ?? false)) {
-      final merchant = t.merchant!;
+    for (final t in transactions.where((t) => t.merchant.isNotEmpty)) {
+      final merchant = t.merchant;
       frequency[merchant] = (frequency[merchant] ?? 0) + 1;
       spending[merchant] = (spending[merchant] ?? 0) + t.amount;
     }
@@ -378,7 +378,7 @@ class AnalyticsService {
 
       final transactions = await _getTransactions(userId, monthStart, monthEnd);
       final total = transactions
-          .where((t) => t.type == 'expense')
+          .where((t) => t.type == TransactionType.expense)
           .fold(0.0, (sum, t) => sum + t.amount);
 
       final monthLabel =
