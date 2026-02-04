@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'dart:async';
 import 'dashboard_screen.dart';
@@ -12,6 +13,7 @@ import 'cravings_screen.dart';
 import 'recurring_bills_screen.dart';
 import 'split_bills_screen.dart';
 import 'notification_center_screen.dart';
+import 'theme_selector_screen.dart';
 import '../models/transaction.dart' as models;
 import '../models/wallet.dart';
 import '../models/merchant_rule.dart';
@@ -22,6 +24,9 @@ import '../services/recurring_bill_service.dart';
 import '../widgets/sync_indicator.dart';
 import '../widgets/expandable_tab_bar.dart';
 import '../widgets/money_flow_animation.dart';
+import '../widgets/glass_button.dart';
+import '../widgets/animated_bottom_sheet.dart';
+import '../widgets/add_transaction_bottom_sheet.dart';
 
 class HomeScreenV2 extends StatefulWidget {
   const HomeScreenV2({super.key});
@@ -48,9 +53,6 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
   bool _isSyncing = false;
   final String _userId = 'local_user';
   String? _errorMessage;
-  bool _showMoneyAnimation = false;
-  double _animationAmount = 0;
-  bool _isAnimationIncome = false;
   int _notificationCount = 0;
   Timer? _notificationTimer;
 
@@ -154,22 +156,41 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
 
     setState(() {
       _transactions.add(txWithUserId);
-      // Show money animation
-      _showMoneyAnimation = true;
-      _animationAmount = transaction.amount;
-      _isAnimationIncome = transaction.type == models.TransactionType.income;
     });
 
     await _localStorageService.saveTransactions(_userId, _transactions);
 
-    // Hide animation after 2 seconds
-    Future.delayed(const Duration(milliseconds: 2000), () {
-      if (mounted) {
-        setState(() {
-          _showMoneyAnimation = false;
-        });
-      }
-    });
+    // Show enhanced money flow animation
+    if (mounted) {
+      _showMoneyFlowAnimation(
+        transaction.amount,
+        transaction.type == models.TransactionType.income,
+      );
+    }
+
+    // Wait for animation to complete
+    await Future.delayed(const Duration(milliseconds: 2500));
+  }
+
+  void _showMoneyFlowAnimation(double amount, bool isIncome) {
+    // Haptic feedback
+    HapticFeedback.mediumImpact();
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.transparent,
+      useSafeArea: false,
+      builder: (context) => MoneyFlowAnimation(
+        amount: amount,
+        isIncome: isIncome,
+        onComplete: () {
+          if (Navigator.canPop(context)) {
+            Navigator.of(context).pop();
+          }
+        },
+      ),
+    );
   }
 
   Future<void> _updateTransaction(models.Transaction transaction) async {
@@ -391,18 +412,6 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
             ],
           ),
           
-          // Money flow animation overlay
-          if (_showMoneyAnimation)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: MoneyFlowAnimation(
-                  amount: _animationAmount,
-                  isIncome: _isAnimationIncome,
-                  onComplete: () {},
-                ),
-              ),
-            ),
-          
           SyncIndicator(
             isSyncing: _isSyncing,
             hasError: _errorMessage != null,
@@ -411,24 +420,21 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
         ],
       ),
       floatingActionButton: (_currentMainTab == 0 || _currentMainTab == 1) && !_isLoading
-          ? FloatingActionButton(
+          ? GlassFAB(
               onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => AddTransactionScreenV2(
-                      userId: _userId,
-                      onSave: (transaction) async {
-                        await _addTransaction(transaction);
-                        if (context.mounted) {
-                          Navigator.of(context).pop();
-                        }
-                      },
-                    ),
+                HapticFeedback.lightImpact();
+                AnimatedBottomSheet.show(
+                  context: context,
+                  builder: (context) => AddTransactionBottomSheet(
+                    userId: _userId,
+                    onSave: (transaction) async {
+                      await _addTransaction(transaction);
+                    },
                   ),
                 );
               },
-              elevation: 8,
-              child: const Icon(Icons.add, size: 32),
+              icon: const Icon(Icons.add, color: Colors.white, size: 32),
+              backgroundColor: Theme.of(context).colorScheme.primary,
             )
           : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
