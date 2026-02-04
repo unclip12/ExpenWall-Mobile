@@ -7,9 +7,9 @@ import 'transactions_screen.dart';
 import 'add_transaction_screen_v2.dart';
 import 'budget_screen.dart';
 import 'products_screen.dart';
-import 'insights_screen.dart'; // v2.4.0 Analytics & Insights Dashboard
+import 'insights_screen.dart';
 import 'buying_list_screen.dart';
-import 'cravings_screen_enhanced.dart'; // Enhanced Cravings v2.8.0
+import 'cravings_screen_enhanced.dart';
 import 'recurring_bills_screen.dart';
 import 'split_bills_screen.dart';
 import 'notification_center_screen.dart';
@@ -36,9 +36,9 @@ class HomeScreenV2 extends StatefulWidget {
 }
 
 class _HomeScreenV2State extends State<HomeScreenV2> {
-  int _currentMainTab = 0; // Main bottom nav: Dashboard, Expenses, Planning, Social, Insights
-  int _planningSubTab = 0; // Budget, Recurring, Buying List
-  int _socialSubTab = 0; // Split Bills, Cravings
+  int _currentMainTab = 0;
+  int _planningSubTab = 0;
+  int _socialSubTab = 0;
   
   final _localStorageService = LocalStorageService();
   late RecurringBillService _recurringService;
@@ -56,7 +56,6 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
   int _notificationCount = 0;
   Timer? _notificationTimer;
 
-  // PageView controllers for swipeable navigation
   late PageController _mainPageController;
   late PageController _planningPageController;
   late PageController _socialPageController;
@@ -69,7 +68,6 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
       userId: _userId,
     );
     
-    // Initialize PageControllers
     _mainPageController = PageController(initialPage: _currentMainTab);
     _planningPageController = PageController(initialPage: _planningSubTab);
     _socialPageController = PageController(initialPage: _socialSubTab);
@@ -77,7 +75,6 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
     _initializeData();
     _loadNotificationCount();
     
-    // Refresh notification count every 30 seconds
     _notificationTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       _loadNotificationCount();
     });
@@ -109,7 +106,6 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
       ),
     );
     
-    // Reload count after returning
     _loadNotificationCount();
   }
 
@@ -174,26 +170,29 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
 
     await _localStorageService.saveTransactions(_userId, _transactions);
 
-    // Show enhanced money flow animation with strong haptic feedback
-    if (mounted) {
-      // Strong haptic feedback on transaction save
+    // ✅ FIX: Close bottom sheet FIRST, then show animation
+    if (mounted && Navigator.canPop(context)) {
+      Navigator.of(context).pop(); // Close the bottom sheet
+      
+      // Wait a tiny bit for smooth transition
+      await Future.delayed(const Duration(milliseconds: 100));
+      
+      // Strong haptic feedback
       HapticFeedback.heavyImpact();
       
+      // Now show animation
       _showMoneyFlowAnimation(
         transaction.amount,
         transaction.type == models.TransactionType.income,
       );
     }
-
-    // Wait for animation to complete (4 seconds)
-    await Future.delayed(const Duration(milliseconds: 4000));
   }
 
   void _showMoneyFlowAnimation(double amount, bool isIncome) {
     showDialog(
       context: context,
       barrierDismissible: false,
-      barrierColor: Colors.transparent,
+      barrierColor: Colors.black.withOpacity(0.3), // Subtle dark overlay
       useSafeArea: false,
       builder: (context) => MoneyFlowAnimation(
         amount: amount,
@@ -248,7 +247,6 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
     await _localStorageService.saveBudgets(_userId, _budgets);
   }
 
-  // Main tab change handler with swipe support
   void _onMainTabChanged(int index) {
     if (_currentMainTab != index) {
       HapticFeedback.selectionClick();
@@ -261,7 +259,6 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
     }
   }
 
-  // Planning sub-tab change handler
   void _onPlanningSubTabChanged(int index) {
     if (_planningSubTab != index) {
       HapticFeedback.selectionClick();
@@ -274,7 +271,6 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
     }
   }
 
-  // Social sub-tab change handler
   void _onSocialSubTabChanged(int index) {
     if (_socialSubTab != index) {
       HapticFeedback.selectionClick();
@@ -284,35 +280,6 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
-    }
-  }
-
-  Widget _getCurrentScreen() {
-    switch (_currentMainTab) {
-      case 0: // Dashboard
-        return DashboardScreen(
-          transactions: _transactions,
-          budgets: _budgets,
-        );
-      case 1: // Expenses
-        return TransactionsScreen(
-          transactions: _transactions,
-          rules: _rules,
-          onDeleteTransaction: _deleteTransaction,
-          onUpdateTransaction: _updateTransaction,
-          userId: _userId,
-        );
-      case 2: // Planning
-        return _getPlanningScreen();
-      case 3: // Social
-        return _getSocialScreen();
-      case 4: // Insights (v2.4.0 Analytics & Insights Dashboard)
-        return InsightsScreen(userId: _userId);
-      default:
-        return DashboardScreen(
-          transactions: _transactions,
-          budgets: _budgets,
-        );
     }
   }
 
@@ -349,7 +316,6 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
       },
       children: [
         SplitBillsScreen(userId: _userId),
-        // v2.8.0 Enhanced Cravings Feature - Full web app parity!
         CravingsScreenEnhanced(userId: _userId),
       ],
     );
@@ -366,7 +332,7 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
       case 3:
         return _getSocialTitle();
       case 4:
-        return 'Insights'; // Changed from 'Settings'
+        return 'Insights';
       default:
         return 'ExpenWall';
     }
@@ -415,7 +381,6 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
               padding: EdgeInsets.only(right: 8),
               child: SyncDot(isSyncing: true),
             ),
-          // Notification Bell with Badge
           Stack(
             children: [
               IconButton(
@@ -456,7 +421,6 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
         children: [
           Column(
             children: [
-              // Sub-tabs for Planning and Social
               if (_currentMainTab == 2) _buildPlanningSubTabs(),
               if (_currentMainTab == 3) _buildSocialSubTabs(),
               
@@ -487,7 +451,6 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
                               ),
                               _getPlanningScreen(),
                               _getSocialScreen(),
-                              // v2.4.0 Analytics & Insights Dashboard
                               InsightsScreen(userId: _userId),
                             ],
                           ),
@@ -527,7 +490,7 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
           TabItem(icon: Icons.receipt_long_rounded, label: 'Expenses'),
           TabItem(icon: Icons.calendar_today, label: 'Planning'),
           TabItem(icon: Icons.people_alt, label: 'Social'),
-          TabItem(icon: Icons.insights, label: 'Insights'), // Changed from Settings
+          TabItem(icon: Icons.insights, label: 'Insights'),
         ],
         selectedIndex: _currentMainTab,
         onTabSelected: _onMainTabChanged,

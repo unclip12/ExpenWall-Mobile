@@ -24,6 +24,7 @@ class _MoneyFlowAnimationState extends State<MoneyFlowAnimation>
   late AnimationController _amountController;
   late Animation<double> _amountSlideAnimation;
   late Animation<double> _amountOpacityAnimation;
+  late Animation<double> _pulseAnimation;
   late List<MoneyParticle> _particles;
   final Random _random = Random();
 
@@ -31,37 +32,34 @@ class _MoneyFlowAnimationState extends State<MoneyFlowAnimation>
   void initState() {
     super.initState();
     
-    // Main animation controller (4 seconds for particles)
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 4000),
+      duration: const Duration(milliseconds: 3500),
       vsync: this,
     );
 
-    // Amount display animation controller (4 seconds total)
     _amountController = AnimationController(
-      duration: const Duration(milliseconds: 4000),
+      duration: const Duration(milliseconds: 3500),
       vsync: this,
     );
 
-    // Slide animation for amount (from top, moves down)
+    // ✅ FIX: Amount slides from TOP (0.05) to middle, then exits
     _amountSlideAnimation = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween<double>(begin: 0.1, end: 0.25)
+        tween: Tween<double>(begin: 0.05, end: 0.15)
             .chain(CurveTween(curve: Curves.easeOutCubic)),
         weight: 20,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: 0.25, end: 0.25),
+        tween: Tween<double>(begin: 0.15, end: 0.15),
         weight: 60,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: 0.25, end: 0.4)
+        tween: Tween<double>(begin: 0.15, end: 0.3)
             .chain(CurveTween(curve: Curves.easeInCubic)),
         weight: 20,
       ),
     ]).animate(_amountController);
 
-    // Opacity animation for amount
     _amountOpacityAnimation = TweenSequence<double>([
       TweenSequenceItem(
         tween: Tween<double>(begin: 0.0, end: 1.0)
@@ -79,10 +77,16 @@ class _MoneyFlowAnimationState extends State<MoneyFlowAnimation>
       ),
     ]).animate(_amountController);
 
-    // Generate particles based on amount
+    // ✅ FIX: Subtle pulse animation for background
+    _pulseAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _amountController,
+        curve: const Interval(0.1, 0.9, curve: Curves.easeInOut),
+      ),
+    );
+
     _particles = _generateParticles();
 
-    // Start animations
     _controller.forward().then((_) {
       widget.onComplete();
     });
@@ -91,7 +95,6 @@ class _MoneyFlowAnimationState extends State<MoneyFlowAnimation>
 
   List<MoneyParticle> _generateParticles() {
     int count;
-    // Amount-based intensity
     if (widget.amount <= 100) {
       count = 15;
     } else if (widget.amount <= 500) {
@@ -108,10 +111,10 @@ class _MoneyFlowAnimationState extends State<MoneyFlowAnimation>
 
     return List.generate(count, (index) {
       return MoneyParticle(
-        startX: 0.2 + _random.nextDouble() * 0.6, // Spread across screen
-        startY: 0.0, // Always start from top
+        startX: 0.2 + _random.nextDouble() * 0.6,
+        startY: 0.0, // Start from very top
         endX: 0.1 + _random.nextDouble() * 0.8,
-        endY: 1.0 + _random.nextDouble() * 0.3, // Flow downward past screen
+        endY: 1.0 + _random.nextDouble() * 0.3,
         delay: _random.nextDouble() * 0.3,
         size: 16 + _random.nextDouble() * 20,
         rotation: _random.nextDouble() * 6.28,
@@ -136,19 +139,38 @@ class _MoneyFlowAnimationState extends State<MoneyFlowAnimation>
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Colored tint background
+        // ✅ FIX: Subtle pulse glow behind amount card ONLY
         AnimatedBuilder(
-          animation: _amountController,
+          animation: _pulseAnimation,
           builder: (context, child) {
-            return Container(
-              color: widget.isIncome
-                  ? const Color(0xFF10B981).withOpacity(0.15 * _amountOpacityAnimation.value)
-                  : const Color(0xFFEF4444).withOpacity(0.15 * _amountOpacityAnimation.value),
+            final pulseValue = sin(_pulseAnimation.value * pi * 3) * 0.5 + 0.5;
+            return Positioned(
+              top: MediaQuery.of(context).size.height * _amountSlideAnimation.value - 50,
+              left: MediaQuery.of(context).size.width * 0.1,
+              right: MediaQuery.of(context).size.width * 0.1,
+              child: Opacity(
+                opacity: _amountOpacityAnimation.value * 0.3,
+                child: Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        (widget.isIncome
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFFEF4444))
+                            .withOpacity(0.4 * pulseValue),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             );
           },
         ),
 
-        // Particles flowing down
+        // Particles flowing down from top
         AnimatedBuilder(
           animation: _controller,
           builder: (context, child) {
@@ -163,7 +185,7 @@ class _MoneyFlowAnimationState extends State<MoneyFlowAnimation>
           },
         ),
 
-        // Large amount display from top
+        // ✅ FIX: Amount display - ONLY the text/card is colored, not full screen
         AnimatedBuilder(
           animation: _amountController,
           builder: (context, child) {
@@ -273,30 +295,25 @@ class MoneyFlowPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     for (var particle in particles) {
-      // Calculate particle progress with delay
       final particleProgress =
           ((progress - particle.delay) / (1 - particle.delay)).clamp(0.0, 1.0);
 
       if (particleProgress <= 0) continue;
 
-      // Interpolate position with easing
       final easedProgress = Curves.easeInOut.transform(particleProgress);
       final x = particle.startX + (particle.endX - particle.startX) * easedProgress;
       final y = particle.startY + (particle.endY - particle.startY) * easedProgress;
 
-      // Calculate opacity (fade in, stay, fade out)
       final opacity = particleProgress < 0.2
           ? particleProgress / 0.2
           : (particleProgress < 0.8
               ? 1.0
               : 1.0 - (particleProgress - 0.8) / 0.2);
 
-      // Calculate scale (start small, grow, maintain)
       final scale = particleProgress < 0.3
           ? particleProgress / 0.3
           : 1.0;
 
-      // Draw particle
       final textPainter = TextPainter(
         text: TextSpan(
           text: particle.symbol,
