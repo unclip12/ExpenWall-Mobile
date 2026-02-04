@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import '../utils/indian_currency_formatter.dart';
 
 class MoneyFlowAnimation extends StatefulWidget {
   final double amount;
@@ -21,7 +22,7 @@ class _MoneyFlowAnimationState extends State<MoneyFlowAnimation>
     with TickerProviderStateMixin {
   late AnimationController _controller;
   late AnimationController _amountController;
-  late Animation<double> _amountScaleAnimation;
+  late Animation<double> _amountSlideAnimation;
   late Animation<double> _amountOpacityAnimation;
   late List<MoneyParticle> _particles;
   final Random _random = Random();
@@ -30,37 +31,32 @@ class _MoneyFlowAnimationState extends State<MoneyFlowAnimation>
   void initState() {
     super.initState();
     
-    // Main animation controller
+    // Main animation controller (4 seconds for particles)
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 2000),
+      duration: const Duration(milliseconds: 4000),
       vsync: this,
     );
 
-    // Amount display animation controller
+    // Amount display animation controller (4 seconds total)
     _amountController = AnimationController(
-      duration: const Duration(milliseconds: 2500),
+      duration: const Duration(milliseconds: 4000),
       vsync: this,
     );
 
-    // Scale animation for amount (pop in effect)
-    _amountScaleAnimation = TweenSequence<double>([
+    // Slide animation for amount (from top, moves down)
+    _amountSlideAnimation = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween<double>(begin: 0.0, end: 1.2)
-            .chain(CurveTween(curve: Curves.easeOutBack)),
-        weight: 30,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1.2, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeInOut)),
+        tween: Tween<double>(begin: 0.1, end: 0.25)
+            .chain(CurveTween(curve: Curves.easeOutCubic)),
         weight: 20,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 1.0),
-        weight: 30,
+        tween: Tween<double>(begin: 0.25, end: 0.25),
+        weight: 60,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 0.0)
-            .chain(CurveTween(curve: Curves.easeInBack)),
+        tween: Tween<double>(begin: 0.25, end: 0.4)
+            .chain(CurveTween(curve: Curves.easeInCubic)),
         weight: 20,
       ),
     ]).animate(_amountController);
@@ -70,16 +66,16 @@ class _MoneyFlowAnimationState extends State<MoneyFlowAnimation>
       TweenSequenceItem(
         tween: Tween<double>(begin: 0.0, end: 1.0)
             .chain(CurveTween(curve: Curves.easeIn)),
-        weight: 20,
+        weight: 15,
       ),
       TweenSequenceItem(
         tween: Tween<double>(begin: 1.0, end: 1.0),
-        weight: 50,
+        weight: 70,
       ),
       TweenSequenceItem(
         tween: Tween<double>(begin: 1.0, end: 0.0)
             .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 30,
+        weight: 15,
       ),
     ]).animate(_amountController);
 
@@ -97,29 +93,27 @@ class _MoneyFlowAnimationState extends State<MoneyFlowAnimation>
     int count;
     // Amount-based intensity
     if (widget.amount <= 100) {
-      count = 12;
+      count = 15;
     } else if (widget.amount <= 500) {
-      count = 25;
+      count = 30;
     } else if (widget.amount <= 1000) {
-      count = 40;
+      count = 50;
     } else if (widget.amount <= 5000) {
-      count = 60;
+      count = 70;
     } else if (widget.amount <= 10000) {
-      count = 80;
+      count = 100;
     } else {
-      count = 120;
+      count = 150;
     }
 
     return List.generate(count, (index) {
       return MoneyParticle(
-        startX: 0.3 + _random.nextDouble() * 0.4, // Center area
-        startY: widget.isIncome ? 0.0 : 0.5, // Top for income, center for expense
+        startX: 0.2 + _random.nextDouble() * 0.6, // Spread across screen
+        startY: 0.0, // Always start from top
         endX: 0.1 + _random.nextDouble() * 0.8,
-        endY: widget.isIncome
-            ? 0.7 + _random.nextDouble() * 0.3
-            : 1.0 + _random.nextDouble() * 0.2,
-        delay: _random.nextDouble() * 0.5,
-        size: 18 + _random.nextDouble() * 18,
+        endY: 1.0 + _random.nextDouble() * 0.3, // Flow downward past screen
+        delay: _random.nextDouble() * 0.3,
+        size: 16 + _random.nextDouble() * 20,
         rotation: _random.nextDouble() * 6.28,
         symbol: _getRandomSymbol(),
       );
@@ -142,7 +136,19 @@ class _MoneyFlowAnimationState extends State<MoneyFlowAnimation>
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Particles
+        // Colored tint background
+        AnimatedBuilder(
+          animation: _amountController,
+          builder: (context, child) {
+            return Container(
+              color: widget.isIncome
+                  ? const Color(0xFF10B981).withOpacity(0.15 * _amountOpacityAnimation.value)
+                  : const Color(0xFFEF4444).withOpacity(0.15 * _amountOpacityAnimation.value),
+            );
+          },
+        ),
+
+        // Particles flowing down
         AnimatedBuilder(
           animation: _controller,
           builder: (context, child) {
@@ -157,72 +163,74 @@ class _MoneyFlowAnimationState extends State<MoneyFlowAnimation>
           },
         ),
 
-        // Large amount display
-        Center(
-          child: AnimatedBuilder(
-            animation: _amountController,
-            builder: (context, child) {
-              return Transform.scale(
-                scale: _amountScaleAnimation.value,
-                child: Opacity(
-                  opacity: _amountOpacityAnimation.value,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 16,
+        // Large amount display from top
+        AnimatedBuilder(
+          animation: _amountController,
+          builder: (context, child) {
+            return Positioned(
+              top: MediaQuery.of(context).size.height * _amountSlideAnimation.value,
+              left: 0,
+              right: 0,
+              child: Opacity(
+                opacity: _amountOpacityAnimation.value,
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 20,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: widget.isIncome
+                          ? [
+                              const Color(0xFF10B981).withOpacity(0.95),
+                              const Color(0xFF059669).withOpacity(0.95),
+                            ]
+                          : [
+                              const Color(0xFFEF4444).withOpacity(0.95),
+                              const Color(0xFFDC2626).withOpacity(0.95),
+                            ],
                     ),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: widget.isIncome
-                            ? [
-                                const Color(0xFF10B981).withOpacity(0.9),
-                                const Color(0xFF059669).withOpacity(0.9),
-                              ]
-                            : [
-                                const Color(0xFFEF4444).withOpacity(0.9),
-                                const Color(0xFFDC2626).withOpacity(0.9),
-                              ],
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: widget.isIncome
+                            ? const Color(0xFF10B981).withOpacity(0.5)
+                            : const Color(0xFFEF4444).withOpacity(0.5),
+                        blurRadius: 30,
+                        spreadRadius: 5,
                       ),
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: widget.isIncome
-                              ? const Color(0xFF10B981).withOpacity(0.4)
-                              : const Color(0xFFEF4444).withOpacity(0.4),
-                          blurRadius: 20,
-                          spreadRadius: 2,
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.isIncome ? 'Received' : 'Spent',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          letterSpacing: 1,
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          widget.isIncome ? '+' : '-',
-                          style: const TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            height: 0.8,
-                          ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${widget.isIncome ? '+' : '-'}${IndianCurrencyFormatter.format(widget.amount)}',
+                        style: const TextStyle(
+                          fontSize: 42,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: -1,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '₹${widget.amount.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                            fontSize: 48,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: -1,
-                          ),
-                        ),
-                      ],
-                    ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       ],
     );
@@ -272,21 +280,21 @@ class MoneyFlowPainter extends CustomPainter {
       if (particleProgress <= 0) continue;
 
       // Interpolate position with easing
-      final easedProgress = Curves.easeOut.transform(particleProgress);
+      final easedProgress = Curves.easeInOut.transform(particleProgress);
       final x = particle.startX + (particle.endX - particle.startX) * easedProgress;
       final y = particle.startY + (particle.endY - particle.startY) * easedProgress;
 
-      // Calculate opacity (fade out at end)
-      final opacity = particleProgress < 0.7
-          ? 1.0
-          : (1.0 - (particleProgress - 0.7) / 0.3);
+      // Calculate opacity (fade in, stay, fade out)
+      final opacity = particleProgress < 0.2
+          ? particleProgress / 0.2
+          : (particleProgress < 0.8
+              ? 1.0
+              : 1.0 - (particleProgress - 0.8) / 0.2);
 
-      // Calculate scale (start small, grow, then shrink)
+      // Calculate scale (start small, grow, maintain)
       final scale = particleProgress < 0.3
           ? particleProgress / 0.3
-          : (particleProgress < 0.7
-              ? 1.0
-              : 1.0 - (particleProgress - 0.7) / 0.3);
+          : 1.0;
 
       // Draw particle
       final textPainter = TextPainter(
