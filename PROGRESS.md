@@ -1,6 +1,6 @@
 # ExpenWall Mobile - Development Progress
 
-**Last Updated:** February 4, 2026, 10:16 PM IST  
+**Last Updated:** February 4, 2026, 11:33 PM IST  
 **Current Version:** v2.4.0 (Analytics & Insights Dashboard) 📊  
 **Latest Achievement:** v2.4.0 INTEGRATED, LIVE & BUILD-CLEAN ON MAIN! 🎊🎊🎊
 
@@ -21,6 +21,7 @@
 **Completed:** February 4, 2026, 6:21 PM IST ⚡  
 **Integrated:** February 4, 2026, 6:27 PM IST 🎊  
 **Build Fixes Merged:** February 4, 2026, 10:16 PM IST ✅  
+**Final Fix Merged:** February 4, 2026, 11:33 PM IST ✅  
 **Total Time:** 7 minutes (Development + Integration!) + build cleanup  
 **Status:** 🟢 **FULLY INTEGRATED, BUILD-CLEAN & LIVE!** 🚀
 
@@ -35,6 +36,7 @@ Comprehensive analytics dashboard with AI-powered insights, reorderable cards, m
 - ✅ **All 5 files deployed** and ready to use
 - ✅ **fl_chart dependency** already present in pubspec.yaml
 - ✅ **v2.4.0 build errors fixed & merged to main** (analytics service, insights UI, cravings UI)
+- ✅ **Firestore Transaction naming conflict resolved** in craving.dart (Feb 4, 11:33 PM IST)
 
 **Users can now:**
 - Tap/swipe to Insights tab (5th tab)
@@ -128,6 +130,11 @@ Comprehensive analytics dashboard with AI-powered insights, reorderable cards, m
    - Updated bottom nav label to 'Insights'
    - Added InsightsScreen to PageView children
 
+2. **lib/models/craving.dart** - Fixed Firestore Transaction naming conflict (Feb 4, 11:33 PM IST)
+   - Added `import 'transaction.dart' as models;` to avoid collision with Firestore's Transaction class
+   - Updated all Category references to `models.Category`
+   - Fixes `FutureOr<double>` type inference error in craving_service.dart
+
 ---
 
 ## 🎨 Recent Features
@@ -167,7 +174,9 @@ Comprehensive analytics dashboard with AI-powered insights, reorderable cards, m
 - ✅ Merchant frequency tracking
 - ✅ Budget progress visualization
 - ✅ **Integrated into app** - Replaces Settings tab
-- ✅ **Build errors resolved & merged to main (Feb 4, 2026, 10:16 PM IST)**
+- ✅ **All build errors resolved & merged to main**
+  - Feb 4, 10:16 PM: Analytics service, Insights UI, Cravings UI fixes
+  - Feb 4, 11:33 PM: Firestore Transaction naming conflict fix
 
 **Status:** 🎊 **LIVE IN THE APP & BUILD-CLEAN!**
 
@@ -223,13 +232,14 @@ Comprehensive analytics dashboard with AI-powered insights, reorderable cards, m
 ### v2.4.0 - Analytics & Insights ✅ **INTEGRATED!** 📊
 **Completed:** February 4, 2026, 6:21 PM IST  
 **Integrated:** February 4, 2026, 6:27 PM IST  
-**Build Fixes Merged:** February 4, 2026, 10:16 PM IST ✅
+**Build Fixes Merged:** February 4, 2026, 10:16 PM & 11:33 PM IST ✅
 
 - ✅ Created 5 new files
 - ✅ Integrated into home_screen_v2.dart
 - ✅ Replaced Settings tab
 - ✅ All features working
 - ✅ All build errors resolved on main
+- ✅ Firestore naming conflicts resolved
 
 **Status:** 🎊 **LIVE, STABLE & READY TO USE!**
 
@@ -311,6 +321,7 @@ Comprehensive analytics dashboard with AI-powered insights, reorderable cards, m
 - ✅ **Feb 4, 2026, 6:21 PM** - v2.4.0 Analytics & Insights Created!
 - ✅ **Feb 4, 2026, 6:27 PM** - v2.4.0 Analytics & Insights INTEGRATED! 🎊
 - ✅ **Feb 4, 2026, 10:16 PM** - v2.4.0 build errors fixed & merged to main ✅
+- ✅ **Feb 4, 2026, 11:33 PM** - Final Firestore naming conflict resolved ✅
 - 🎯 **Feb 5, 2026** - v2.7.1 Integration Testing Target
 
 ---
@@ -321,4 +332,4 @@ Comprehensive analytics dashboard with AI-powered insights, reorderable cards, m
 
 ---
 
-*Last Updated: February 4, 2026, 10:16 PM IST*
+*Last Updated: February 4, 2026, 11:33 PM IST*
