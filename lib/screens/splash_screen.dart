@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'home_screen.dart';
-import '../theme/app_theme.dart';
+import '../theme/theme_compat.dart';
 
 class SplashScreen extends StatefulWidget {
   final Widget nextScreen;
@@ -105,8 +105,8 @@ class _SplashScreenState extends State<SplashScreen>
       body: Container(
         decoration: BoxDecoration(
           gradient: isDark 
-              ? AppTheme.darkBackgroundGradient
-              : AppTheme.lightBackgroundGradient,
+              ? AppThemeCompat.darkBackgroundGradient
+              : AppThemeCompat.lightBackgroundGradient,
         ),
         child: Center(
           child: Column(
@@ -124,11 +124,11 @@ class _SplashScreenState extends State<SplashScreen>
                         width: 100,
                         height: 100,
                         decoration: BoxDecoration(
-                          gradient: AppTheme.purpleGradient,
+                          gradient: AppThemeCompat.purpleGradient,
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.primaryPurple.withOpacity(0.4),
+                              color: AppThemeCompat.primaryPurple.withOpacity(0.4),
                               blurRadius: 30,
                               offset: const Offset(0, 15),
                             ),
@@ -152,7 +152,7 @@ class _SplashScreenState extends State<SplashScreen>
                 child: FadeTransition(
                   opacity: _titleFadeAnimation,
                   child: ShaderMask(
-                    shaderCallback: (bounds) => AppTheme.purpleGradient.createShader(bounds),
+                    shaderCallback: (bounds) => AppThemeCompat.purpleGradient.createShader(bounds),
                     child: Text(
                       'ExpenWall',
                       style: TextStyle(
@@ -162,7 +162,7 @@ class _SplashScreenState extends State<SplashScreen>
                         letterSpacing: 1.5,
                         shadows: [
                           Shadow(
-                            color: AppTheme.primaryPurple.withOpacity(0.3),
+                            color: AppThemeCompat.primaryPurple.withOpacity(0.3),
                             blurRadius: 20,
                             offset: const Offset(0, 4),
                           ),
@@ -251,10 +251,10 @@ class _DotLoaderState extends State<DotLoader>
                   height: 12,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppTheme.primaryPurple.withOpacity(opacity),
+                    color: AppThemeCompat.primaryPurple.withOpacity(opacity),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.primaryPurple.withOpacity(opacity * 0.5),
+                        color: AppThemeCompat.primaryPurple.withOpacity(opacity * 0.5),
                         blurRadius: 8,
                         spreadRadius: 2,
                       ),
