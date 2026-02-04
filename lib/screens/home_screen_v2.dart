@@ -14,6 +14,7 @@ import 'recurring_bills_screen.dart';
 import 'split_bills_screen.dart';
 import 'notification_center_screen.dart';
 import 'theme_selector_screen.dart';
+import 'settings_screen_v2.dart';
 import '../models/transaction.dart' as models;
 import '../models/wallet.dart';
 import '../models/merchant_rule.dart';
@@ -191,15 +192,15 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
   void _showMoneyFlowAnimation(double amount, bool isIncome) {
     showDialog(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: true,
       barrierColor: Colors.black.withOpacity(0.3), // Subtle dark overlay
       useSafeArea: false,
       builder: (context) => MoneyFlowAnimation(
         amount: amount,
         isIncome: isIncome,
         onComplete: () {
-          if (Navigator.canPop(context)) {
-            Navigator.of(context).pop();
+          if (Navigator.of(context, rootNavigator: true).canPop()) {
+            Navigator.of(context, rootNavigator: true).pop();
           }
         },
       ),
@@ -380,6 +381,17 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreenV2(),
+                ),
+              );
+            },
+            tooltip: 'Settings',
+          ),
           if (_isSyncing)
             const Padding(
               padding: EdgeInsets.only(right: 8),
