@@ -10,6 +10,7 @@ import '../services/local_storage_service.dart';
 import '../services/sync_manager.dart';
 import '../widgets/glass_card.dart';
 import '../providers/theme_provider.dart';
+import '../theme/theme_compat.dart';
 import 'theme_selector_screen.dart';
 import 'package:intl/intl.dart';
 
@@ -230,7 +231,7 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
       ];
       
       Map<String, dynamic> exportData = {
-        'version': '2.0.0',
+        'version': '2.7.0',
         'exportDate': DateTime.now().toIso8601String(),
         'userId': _userId,
       };
