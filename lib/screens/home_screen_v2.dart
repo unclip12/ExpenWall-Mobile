@@ -56,6 +56,11 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
   int _notificationCount = 0;
   Timer? _notificationTimer;
 
+  // PageView controllers for swipeable navigation
+  late PageController _mainPageController;
+  late PageController _planningPageController;
+  late PageController _socialPageController;
+
   @override
   void initState() {
     super.initState();
@@ -63,6 +68,12 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
       localStorage: _localStorageService,
       userId: _userId,
     );
+    
+    // Initialize PageControllers
+    _mainPageController = PageController(initialPage: _currentMainTab);
+    _planningPageController = PageController(initialPage: _planningSubTab);
+    _socialPageController = PageController(initialPage: _socialSubTab);
+    
     _initializeData();
     _loadNotificationCount();
     
@@ -75,6 +86,9 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
   @override
   void dispose() {
     _notificationTimer?.cancel();
+    _mainPageController.dispose();
+    _planningPageController.dispose();
+    _socialPageController.dispose();
     super.dispose();
   }
 
@@ -234,6 +248,45 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
     await _localStorageService.saveBudgets(_userId, _budgets);
   }
 
+  // Main tab change handler with swipe support
+  void _onMainTabChanged(int index) {
+    if (_currentMainTab != index) {
+      HapticFeedback.selectionClick();
+      setState(() => _currentMainTab = index);
+      _mainPageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  // Planning sub-tab change handler
+  void _onPlanningSubTabChanged(int index) {
+    if (_planningSubTab != index) {
+      HapticFeedback.selectionClick();
+      setState(() => _planningSubTab = index);
+      _planningPageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  // Social sub-tab change handler
+  void _onSocialSubTabChanged(int index) {
+    if (_socialSubTab != index) {
+      HapticFeedback.selectionClick();
+      setState(() => _socialSubTab = index);
+      _socialPageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
   Widget _getCurrentScreen() {
     switch (_currentMainTab) {
       case 0: // Dashboard
@@ -264,37 +317,41 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
   }
 
   Widget _getPlanningScreen() {
-    switch (_planningSubTab) {
-      case 0:
-        return BudgetScreen(
+    return PageView(
+      controller: _planningPageController,
+      onPageChanged: (index) {
+        if (_planningSubTab != index) {
+          HapticFeedback.selectionClick();
+          setState(() => _planningSubTab = index);
+        }
+      },
+      children: [
+        BudgetScreen(
           budgets: _budgets,
           transactions: _transactions,
           onAddBudget: _addBudget,
           onDeleteBudget: _deleteBudget,
-        );
-      case 1:
-        return RecurringBillsScreen(userId: _userId);
-      case 2:
-        return const BuyingListScreen();
-      default:
-        return BudgetScreen(
-          budgets: _budgets,
-          transactions: _transactions,
-          onAddBudget: _addBudget,
-          onDeleteBudget: _deleteBudget,
-        );
-    }
+        ),
+        RecurringBillsScreen(userId: _userId),
+        const BuyingListScreen(),
+      ],
+    );
   }
 
   Widget _getSocialScreen() {
-    switch (_socialSubTab) {
-      case 0:
-        return SplitBillsScreen(userId: _userId);
-      case 1:
-        return const CravingsScreen();
-      default:
-        return SplitBillsScreen(userId: _userId);
-    }
+    return PageView(
+      controller: _socialPageController,
+      onPageChanged: (index) {
+        if (_socialSubTab != index) {
+          HapticFeedback.selectionClick();
+          setState(() => _socialSubTab = index);
+        }
+      },
+      children: [
+        SplitBillsScreen(userId: _userId),
+        const CravingsScreen(),
+      ],
+    );
   }
 
   String _getAppBarTitle() {
@@ -407,7 +464,31 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
                     ? const Center(child: CircularProgressIndicator())
                     : _errorMessage != null
                         ? _buildErrorState()
-                        : _getCurrentScreen(),
+                        : PageView(
+                            controller: _mainPageController,
+                            onPageChanged: (index) {
+                              if (_currentMainTab != index) {
+                                HapticFeedback.selectionClick();
+                                setState(() => _currentMainTab = index);
+                              }
+                            },
+                            children: [
+                              DashboardScreen(
+                                transactions: _transactions,
+                                budgets: _budgets,
+                              ),
+                              TransactionsScreen(
+                                transactions: _transactions,
+                                rules: _rules,
+                                onDeleteTransaction: _deleteTransaction,
+                                onUpdateTransaction: _updateTransaction,
+                                userId: _userId,
+                              ),
+                              _getPlanningScreen(),
+                              _getSocialScreen(),
+                              const SettingsScreenV2(),
+                            ],
+                          ),
               ),
             ],
           ),
@@ -447,11 +528,7 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
           TabItem(icon: Icons.insights, label: 'Insights'),
         ],
         selectedIndex: _currentMainTab,
-        onTabSelected: (index) {
-          // Haptic feedback on tab change
-          HapticFeedback.selectionClick();
-          setState(() => _currentMainTab = index);
-        },
+        onTabSelected: _onMainTabChanged,
       ),
     );
   }
@@ -464,11 +541,7 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
         TabItem(icon: Icons.shopping_cart, label: 'Buying List'),
       ],
       selectedIndex: _planningSubTab,
-      onTabSelected: (index) {
-        // Haptic feedback on sub-tab change
-        HapticFeedback.selectionClick();
-        setState(() => _planningSubTab = index);
-      },
+      onTabSelected: _onPlanningSubTabChanged,
     );
   }
 
@@ -479,11 +552,7 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
         TabItem(icon: Icons.favorite, label: 'Cravings'),
       ],
       selectedIndex: _socialSubTab,
-      onTabSelected: (index) {
-        // Haptic feedback on sub-tab change
-        HapticFeedback.selectionClick();
-        setState(() => _socialSubTab = index);
-      },
+      onTabSelected: _onSocialSubTabChanged,
     );
   }
 
