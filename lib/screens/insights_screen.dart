@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/analytics_service.dart';
 import '../services/expense_prediction_service.dart';
+import '../models/transaction.dart';
 import '../widgets/insight_card.dart';
 import '../widgets/interactive_chart.dart';
 import 'comparison_screen.dart';
@@ -21,232 +22,137 @@ class _InsightsScreenState extends State<InsightsScreen> {
   final AnalyticsService _analyticsService = AnalyticsService();
   final ExpensePredictionService _predictionService = ExpensePredictionService();
   
-  bool _isLoading = true;
-  List<InsightCardData> _insightCards = [];
-  List<Map<String, dynamic>> _aiInsights = [];
-  Map<String, dynamic>? _predictionData;
-
-  // Default card order
-  final List<String> _defaultCardOrder = [
+  List<String> _cardOrder = [
     'top_categories',
     'spending_trends',
-    'day_of_week',
+    'day_analysis',
     'merchant_frequency',
     'budget_headroom',
-    'expense_prediction',
+    'ai_insights',
+    'predictions',
   ];
-
-  List<String> _cardOrder = [];
 
   @override
   void initState() {
     super.initState();
     _loadCardOrder();
-    _loadAnalytics();
   }
 
   Future<void> _loadCardOrder() async {
     final prefs = await SharedPreferences.getInstance();
-    final orderJson = prefs.getString('insight_card_order');
+    final orderJson = prefs.getString('insights_card_order');
     if (orderJson != null) {
-      _cardOrder = List<String>.from(json.decode(orderJson));
-    } else {
-      _cardOrder = List.from(_defaultCardOrder);
+      setState(() {
+        _cardOrder = List<String>.from(json.decode(orderJson));
+      });
     }
   }
 
   Future<void> _saveCardOrder() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('insight_card_order', json.encode(_cardOrder));
+    await prefs.setString('insights_card_order', json.encode(_cardOrder));
   }
 
-  Future<void> _loadAnalytics() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final now = DateTime.now();
-      final startOfMonth = DateTime(now.year, now.month, 1);
-      final endOfMonth = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
-
-      // Get current month transactions
-      final transactions = await _analyticsService.getTransactionsByDateRange(
-        widget.userId,
-        startOfMonth,
-        endOfMonth,
-      );
-
-      // Calculate all analytics
-      final topCategories = _analyticsService.calculateTopCategories(transactions);
-      final spendingTrends = _analyticsService.calculateSpendingTrends(transactions);
-      final dayOfWeek = _analyticsService.calculateDayOfWeekSpending(transactions);
-      final merchantFreq = _analyticsService.calculateMerchantFrequency(transactions);
-      final budgetHeadroom = await _analyticsService.calculateBudgetHeadroom(
-        widget.userId,
-        now,
-      );
-
-      // Get AI insights
-      final aiInsights = await _analyticsService.generateAIInsights(
-        widget.userId,
-        now,
-      );
-
-      // Get expense prediction
-      final prediction = await _predictionService.predictNextMonthExpenses(
-        widget.userId,
-        lookbackMonths: 6,
-      );
-
-      setState(() {
-        _insightCards = _buildInsightCards(
-          topCategories,
-          spendingTrends,
-          dayOfWeek,
-          merchantFreq,
-          budgetHeadroom,
-        );
-        _aiInsights = aiInsights;
-        _predictionData = prediction;
-        _isLoading = false;
-      });
-    } catch (e) {
-      print('Error loading analytics: $e');
-      setState(() => _isLoading = false);
-    }
+  void _moveCard(int oldIndex, int newIndex) {
+    setState(() {
+      if (newIndex > oldIndex) {
+        newIndex -= 1;
+      }
+      final item = _cardOrder.removeAt(oldIndex);
+      _cardOrder.insert(newIndex, item);
+    });
+    _saveCardOrder();
   }
 
-  List<InsightCardData> _buildInsightCards(
-    Map<String, double> topCategories,
-    Map<DateTime, double> spendingTrends,
-    Map<String, double> dayOfWeek,
-    Map<String, int> merchantFreq,
-    double budgetHeadroom,
-  ) {
-    return [
-      InsightCardData(
-        id: 'top_categories',
-        title: 'Top Spending Categories',
-        icon: Icons.pie_chart,
-        child: InteractiveChart(
-          type: ChartType.pie,
-          data: topCategories,
-          title: 'Category Breakdown',
-        ),
-      ),
-      InsightCardData(
-        id: 'spending_trends',
-        title: 'Spending Trends',
-        icon: Icons.show_chart,
-        child: InteractiveChart(
-          type: ChartType.line,
-          data: spendingTrends.map(
-            (key, value) => MapEntry(key.toString().substring(0, 10), value),
-          ),
-          title: 'Daily Spending',
-        ),
-      ),
-      InsightCardData(
-        id: 'day_of_week',
-        title: 'Day of Week Analysis',
-        icon: Icons.calendar_today,
-        child: InteractiveChart(
-          type: ChartType.bar,
-          data: dayOfWeek,
-          title: 'Average Spending by Day',
-        ),
-      ),
-      InsightCardData(
-        id: 'merchant_frequency',
-        title: 'Merchant Frequency',
-        icon: Icons.store,
-        child: _buildMerchantList(merchantFreq),
-      ),
-      InsightCardData(
-        id: 'budget_headroom',
-        title: 'Budget Headroom',
-        icon: Icons.account_balance_wallet,
-        child: _buildBudgetHeadroom(budgetHeadroom),
-      ),
-      InsightCardData(
-        id: 'expense_prediction',
-        title: 'Next Month Prediction',
-        icon: Icons.psychology,
-        child: _buildPredictionCard(),
-      ),
-    ];
-  }
-
-  Widget _buildMerchantList(Map<String, int> merchantFreq) {
-    if (merchantFreq.isEmpty) {
-      return const Center(child: Text('No merchant data available'));
-    }
-
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: merchantFreq.length,
-      itemBuilder: (context, index) {
-        final entry = merchantFreq.entries.elementAt(index);
-        return ListTile(
-          leading: CircleAvatar(
-            backgroundColor: Colors.blue.withOpacity(0.2),
-            child: Text('${index + 1}'),
-          ),
-          title: Text(entry.key),
-          trailing: Text(
-            '${entry.value} visits',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildBudgetHeadroom(double percentage) {
-    final color = percentage > 50
-        ? Colors.green
-        : percentage > 20
-            ? Colors.orange
-            : Colors.red;
-
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 120,
-            height: 120,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CircularProgressIndicator(
-                  value: percentage / 100,
-                  strokeWidth: 12,
-                  backgroundColor: Colors.grey[300],
-                  valueColor: AlwaysStoppedAnimation<Color>(color),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 120,
+            floating: true,
+            pinned: true,
+            flexibleSpace: FlexibleSpaceBar(
+              title: const Text(
+                'Insights & Analytics',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 24,
                 ),
-                Text(
-                  '${percentage.toStringAsFixed(1)}%',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: color,
+              ),
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Theme.of(context).primaryColor,
+                      Theme.of(context).primaryColor.withOpacity(0.7),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.compare_arrows),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ComparisonScreen(userId: widget.userId),
+                    ),
+                  );
+                },
+                tooltip: 'Compare Months',
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: () {
+                  setState(() {});
+                },
+                tooltip: 'Refresh',
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          Text(
-            percentage > 50
-                ? 'Great! You\'re on track'
-                : percentage > 20
-                    ? 'Watch your spending'
-                    : 'Budget alert!',
-            style: TextStyle(
-              fontSize: 16,
-              color: color,
-              fontWeight: FontWeight.w500,
+          SliverPadding(
+            padding: const EdgeInsets.all(16),
+            sliver: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('transactions')
+                  .where('userId', isEqualTo: widget.userId)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return SliverToBoxAdapter(
+                    child: Center(child: Text('Error: ${snapshot.error}')),
+                  );
+                }
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const SliverToBoxAdapter(
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
+                final transactions = snapshot.data!.docs
+                    .map((doc) => ExpenseTransaction.fromFirestore(doc))
+                    .toList();
+
+                return SliverReorderableList(
+                  itemCount: _cardOrder.length,
+                  onReorder: _moveCard,
+                  itemBuilder: (context, index) {
+                    final cardType = _cardOrder[index];
+                    return ReorderableDelayedDragStartListener(
+                      key: ValueKey(cardType),
+                      index: index,
+                      child: _buildCard(cardType, transactions),
+                    );
+                  },
+                );
+              },
             ),
           ),
         ],
@@ -254,98 +160,63 @@ class _InsightsScreenState extends State<InsightsScreen> {
     );
   }
 
-  Widget _buildPredictionCard() {
-    if (_predictionData == null) {
-      return const Center(child: CircularProgressIndicator());
+  Widget _buildCard(String cardType, List<ExpenseTransaction> transactions) {
+    switch (cardType) {
+      case 'top_categories':
+        return _buildTopCategoriesCard(transactions);
+      case 'spending_trends':
+        return _buildSpendingTrendsCard(transactions);
+      case 'day_analysis':
+        return _buildDayAnalysisCard(transactions);
+      case 'merchant_frequency':
+        return _buildMerchantFrequencyCard(transactions);
+      case 'budget_headroom':
+        return _buildBudgetHeadroomCard(transactions);
+      case 'ai_insights':
+        return _buildAIInsightsCard(transactions);
+      case 'predictions':
+        return _buildPredictionsCard(transactions);
+      default:
+        return const SizedBox.shrink();
     }
+  }
 
-    final prediction = _predictionData!['prediction'] as double;
-    final confidence = _predictionData!['confidence'] as double;
-    final trend = _predictionData!['trend'] as String;
-    final categoryPredictions = _predictionData!['categoryPredictions'] as Map<String, double>;
-
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
+  Widget _buildTopCategoriesCard(List<ExpenseTransaction> transactions) {
+    final categoryData = _analyticsService.getTopCategories(transactions, limit: 5);
+    
+    return InsightCard(
+      title: 'Top Spending Categories',
+      icon: Icons.pie_chart,
+      iconColor: Colors.purple,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Predicted Spending',
-                    style: TextStyle(fontSize: 14, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '₹${prediction.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: trend == 'increasing' 
-                      ? Colors.red.withOpacity(0.2)
-                      : Colors.green.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      trend == 'increasing' ? Icons.trending_up : Icons.trending_down,
-                      size: 16,
-                      color: trend == 'increasing' ? Colors.red : Colors.green,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      trend == 'increasing' ? 'Increasing' : 'Decreasing',
-                      style: TextStyle(
-                        color: trend == 'increasing' ? Colors.red : Colors.green,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          const SizedBox(height: 16),
+          InteractiveChart(
+            type: ChartType.pie,
+            data: categoryData,
+            height: 250,
           ),
           const SizedBox(height: 16),
-          LinearProgressIndicator(
-            value: confidence / 100,
-            backgroundColor: Colors.grey[300],
-            valueColor: AlwaysStoppedAnimation<Color>(
-              confidence > 70 ? Colors.green : Colors.orange,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Confidence: ${confidence.toStringAsFixed(0)}%',
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Top Predicted Categories:',
-            style: TextStyle(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 8),
-          ...categoryPredictions.entries.take(3).map((entry) {
+          ...categoryData.entries.take(5).map((entry) {
+            final total = categoryData.values.fold<double>(0, (sum, val) => sum + val);
+            final percentage = (entry.value / total * 100).toStringAsFixed(1);
             return Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
+              padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(entry.key),
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: _getCategoryColor(entry.key),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(entry.key)),
                   Text(
-                    '₹${entry.value.toStringAsFixed(0)}',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    '₹${entry.value.toStringAsFixed(0)} ($percentage%)',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -356,136 +227,330 @@ class _InsightsScreenState extends State<InsightsScreen> {
     );
   }
 
-  void _moveCardUp(int index) {
-    if (index > 0) {
-      setState(() {
-        final card = _cardOrder.removeAt(index);
-        _cardOrder.insert(index - 1, card);
-        _saveCardOrder();
-      });
-      HapticFeedback.lightImpact();
-    }
-  }
-
-  void _moveCardDown(int index) {
-    if (index < _cardOrder.length - 1) {
-      setState(() {
-        final card = _cardOrder.removeAt(index);
-        _cardOrder.insert(index + 1, card);
-        _saveCardOrder();
-      });
-      HapticFeedback.lightImpact();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Insights & Analytics'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.compare_arrows),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ComparisonScreen(userId: widget.userId),
-                ),
-              );
-            },
-            tooltip: 'Compare Months',
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadAnalytics,
+  Widget _buildSpendingTrendsCard(List<ExpenseTransaction> transactions) {
+    final trendData = _analyticsService.getMonthlyTrends(transactions, months: 6);
+    
+    return InsightCard(
+      title: 'Spending Trends Over Time',
+      icon: Icons.show_chart,
+      iconColor: Colors.blue,
+      child: Column(
+        children: [
+          const SizedBox(height: 16),
+          InteractiveChart(
+            type: ChartType.line,
+            data: trendData,
+            height: 250,
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadAnalytics,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // AI Insights Section
-                    if (_aiInsights.isNotEmpty) ..[
-                      const Text(
-                        'AI-Powered Insights',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      ..._aiInsights.map((insight) => _buildAIInsightCard(insight)),
-                      const SizedBox(height: 24),
-                    ],
-
-                    // Reorderable Cards
-                    const Text(
-                      'Analytics Dashboard',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ..._buildOrderedCards(),
-                  ],
-                ),
-              ),
-            ),
     );
   }
 
-  Widget _buildAIInsightCard(Map<String, dynamic> insight) {
-    final isGood = insight['isGood'] as bool;
-    final color = isGood ? Colors.green : Colors.red;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Row(
+  Widget _buildDayAnalysisCard(List<ExpenseTransaction> transactions) {
+    final dayData = _analyticsService.getDayOfWeekAnalysis(transactions);
+    
+    return InsightCard(
+      title: 'Day of Week Analysis',
+      icon: Icons.calendar_today,
+      iconColor: Colors.orange,
+      child: Column(
         children: [
-          Text(
-            insight['icon'] as String,
-            style: const TextStyle(fontSize: 32),
+          const SizedBox(height: 16),
+          InteractiveChart(
+            type: ChartType.bar,
+            data: dayData,
+            height: 250,
           ),
-          const SizedBox(width: 12),
-          Expanded(
+          const SizedBox(height: 16),
+          ...dayData.entries.map((entry) {
+            final avg = entry.value;
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 80,
+                    child: Text(
+                      entry.key,
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                  Expanded(
+                    child: LinearProgressIndicator(
+                      value: avg / dayData.values.reduce((a, b) => a > b ? a : b),
+                      backgroundColor: Colors.grey[200],
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Theme.of(context).primaryColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '₹${avg.toStringAsFixed(0)}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMerchantFrequencyCard(List<ExpenseTransaction> transactions) {
+    final merchantData = _analyticsService.getMerchantFrequency(transactions, limit: 10);
+    
+    return InsightCard(
+      title: 'Top Merchants',
+      icon: Icons.store,
+      iconColor: Colors.green,
+      child: Column(
+        children: [
+          const SizedBox(height: 16),
+          ...merchantData.entries.map((entry) {
+            return Card(
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Colors.green[100],
+                  child: Text(
+                    entry.value.toString(),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
+                  ),
+                ),
+                title: Text(entry.key),
+                subtitle: Text('${entry.value} transactions'),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBudgetHeadroomCard(List<ExpenseTransaction> transactions) {
+    final now = DateTime.now();
+    final monthStart = DateTime(now.year, now.month, 1);
+    final monthTransactions = transactions
+        .where((t) => t.date.isAfter(monthStart))
+        .toList();
+    
+    final totalSpent = monthTransactions.fold<double>(
+      0,
+      (sum, t) => sum + (t.type == 'expense' ? t.amount : 0),
+    );
+    
+    // Mock budget - in real app, fetch from user settings
+    const budget = 50000.0;
+    final remaining = budget - totalSpent;
+    final percentage = (remaining / budget * 100).clamp(0, 100);
+    
+    return InsightCard(
+      title: 'Budget Headroom',
+      icon: Icons.account_balance_wallet,
+      iconColor: percentage > 30 ? Colors.green : (percentage > 10 ? Colors.orange : Colors.red),
+      child: Column(
+        children: [
+          const SizedBox(height: 24),
+          Text(
+            '₹${remaining.toStringAsFixed(0)}',
+            style: TextStyle(
+              fontSize: 48,
+              fontWeight: FontWeight.bold,
+              color: percentage > 30 ? Colors.green : (percentage > 10 ? Colors.orange : Colors.red),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${percentage.toStringAsFixed(1)}% remaining',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 24),
+          LinearProgressIndicator(
+            value: percentage / 100,
+            minHeight: 12,
+            backgroundColor: Colors.grey[200],
+            valueColor: AlwaysStoppedAnimation<Color>(
+              percentage > 30 ? Colors.green : (percentage > 10 ? Colors.orange : Colors.red),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Spent',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                  Text(
+                    '₹${totalSpent.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'Budget',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                  Text(
+                    '₹${budget.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAIInsightsCard(List<ExpenseTransaction> transactions) {
+    final insights = _analyticsService.getAIInsights(transactions);
+    
+    return InsightCard(
+      title: 'AI-Powered Insights',
+      icon: Icons.psychology,
+      iconColor: Colors.deepPurple,
+      child: Column(
+        children: [
+          const SizedBox(height: 16),
+          ...insights.map((insight) {
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: insight.isPositive ? Colors.green[50] : Colors.red[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: insight.isPositive ? Colors.green : Colors.red,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    insight.isPositive ? Icons.trending_down : Icons.trending_up,
+                    color: insight.isPositive ? Colors.green : Colors.red,
+                    size: 32,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          insight.category,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          insight.message,
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPredictionsCard(List<ExpenseTransaction> transactions) {
+    final prediction = _predictionService.predictNextMonthExpense(transactions);
+    
+    return InsightCard(
+      title: 'Expense Predictions',
+      icon: Icons.analytics,
+      iconColor: Colors.indigo,
+      child: Column(
+        children: [
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.indigo[100]!,
+                  Colors.indigo[50]!,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  insight['message'] as String,
-                  style: const TextStyle(
-                    fontSize: 14,
+                const Text(
+                  'Next Month Prediction',
+                  style: TextStyle(
+                    fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                if (isGood)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      '⭐ Great job!',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: color,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                const SizedBox(height: 12),
+                Text(
+                  '₹${prediction.predicted.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    fontSize: 42,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.indigo,
                   ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Range: ₹${prediction.minPredicted.toStringAsFixed(0)} - ₹${prediction.maxPredicted.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    color: Colors.grey[700],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  prediction.insight,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[700],
+                  ),
+                ),
               ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Based on ${prediction.dataPoints} months of historical data',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+              fontStyle: FontStyle.italic,
             ),
           ),
         ],
@@ -493,39 +558,17 @@ class _InsightsScreenState extends State<InsightsScreen> {
     );
   }
 
-  List<Widget> _buildOrderedCards() {
-    final orderedCards = <Widget>[];
-
-    for (var i = 0; i < _cardOrder.length; i++) {
-      final cardId = _cardOrder[i];
-      final cardData = _insightCards.firstWhere(
-        (card) => card.id == cardId,
-        orElse: () => _insightCards.first,
-      );
-
-      orderedCards.add(
-        InsightCard(
-          data: cardData,
-          onMoveUp: i > 0 ? () => _moveCardUp(i) : null,
-          onMoveDown: i < _cardOrder.length - 1 ? () => _moveCardDown(i) : null,
-        ),
-      );
-    }
-
-    return orderedCards;
+  Color _getCategoryColor(String category) {
+    final colors = [
+      Colors.purple,
+      Colors.blue,
+      Colors.green,
+      Colors.orange,
+      Colors.red,
+      Colors.teal,
+      Colors.pink,
+      Colors.amber,
+    ];
+    return colors[category.hashCode % colors.length];
   }
-}
-
-class InsightCardData {
-  final String id;
-  final String title;
-  final IconData icon;
-  final Widget child;
-
-  InsightCardData({
-    required this.id,
-    required this.title,
-    required this.icon,
-    required this.child,
-  });
 }
