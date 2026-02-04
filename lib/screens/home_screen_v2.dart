@@ -9,7 +9,7 @@ import 'budget_screen.dart';
 import 'products_screen.dart';
 import 'settings_screen_v2.dart';
 import 'buying_list_screen.dart';
-import 'cravings_screen.dart';
+import 'cravings_screen_enhanced.dart'; // Enhanced Cravings v2.8.0
 import 'recurring_bills_screen.dart';
 import 'split_bills_screen.dart';
 import 'notification_center_screen.dart';
@@ -349,7 +349,8 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
       },
       children: [
         SplitBillsScreen(userId: _userId),
-        const CravingsScreen(),
+        // v2.8.0 Enhanced Cravings Feature - Full web app parity!
+        CravingsScreenEnhanced(userId: _userId),
       ],
     );
   }
