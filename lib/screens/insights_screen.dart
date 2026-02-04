@@ -24,7 +24,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
   ExpensePrediction? _prediction;
   bool _isLoading = true;
 
-  // Card order (saved to SharedPreferences in production)
+  // Card order
   List<InsightType> _cardOrder = [
     InsightType.aiInsights,
     InsightType.topSpendingCategories,
@@ -41,6 +41,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
   }
 
   Future<void> _loadAnalytics() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
@@ -63,18 +64,19 @@ class _InsightsScreenState extends State<InsightsScreen> {
         userId: widget.userId,
       );
 
-      setState(() {
-        _analyticsData = data;
-        _aiInsights = insights;
-        _prediction = prediction;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading analytics: $e')),
-        );
+        setState(() {
+          _analyticsData = data;
+          _aiInsights = insights;
+          _prediction = prediction;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        // Show silent error in console, avoid snackbar on init
+        print('Error loading analytics: $e');
       }
     }
   }
@@ -86,46 +88,116 @@ class _InsightsScreenState extends State<InsightsScreen> {
       _cardOrder.insert(newIndex, card);
     });
     HapticFeedback.mediumImpact();
-    // TODO: Save order to SharedPreferences
   }
 
   @override
   Widget build(BuildContext context) {
+    // ✅ FIX: Ensure content is visible in dark mode
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      appBar: GlassAppBar(
-        title: 'Insights & Analytics',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.compare_arrows),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ComparisonScreen(userId: widget.userId),
-                ),
-              );
-            },
-            tooltip: 'Compare Months',
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadAnalytics,
-          ),
-        ],
-      ),
+      backgroundColor: Colors.transparent, // Allow gradient to show through
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _analyticsData == null
-              ? const Center(child: Text('No data available'))
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.insights_outlined, 
+                        size: 64, 
+                        color: isDark ? Colors.white54 : Colors.grey[400]
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No insights available yet',
+                        style: TextStyle(
+                          color: isDark ? Colors.white70 : Colors.grey[600],
+                          fontSize: 16
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: _loadAnalytics,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                )
               : RefreshIndicator(
                   onRefresh: _loadAnalytics,
+                  color: Theme.of(context).primaryColor,
                   child: ReorderableListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _cardOrder.length,
-                    onReorder: _moveCard,
+                    padding: const EdgeInsets.only(
+                      left: 16, 
+                      right: 16, 
+                      top: 16, 
+                      bottom: 80 // Space for bottom nav
+                    ),
+                    itemCount: _cardOrder.length + 1, // +1 for header
+                    onReorder: (oldIndex, newIndex) {
+                      // Adjust indices because of header
+                      if (oldIndex == 0) return; // Can't move header
+                      if (newIndex == 0) newIndex = 1; // Can't move above header
+                      _moveCard(oldIndex - 1, newIndex - 1);
+                    },
                     itemBuilder: (context, index) {
-                      final type = _cardOrder[index];
-                      return _buildInsightCard(type, index);
+                      if (index == 0) {
+                         // ✅ FIX: Add header inside list so it scrolls
+                        return Container(
+                          key: const ValueKey('header'),
+                          margin: const EdgeInsets.only(bottom: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Insights',
+                                    style: TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? Colors.white : Colors.black87,
+                                    ),
+                                  ),
+                                  Text(
+                                    'AI-Powered Analysis',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: isDark ? Colors.white70 : Colors.black54,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.compare_arrows),
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => ComparisonScreen(userId: widget.userId),
+                                        ),
+                                      );
+                                    },
+                                    tooltip: 'Compare Months',
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      
+                      final type = _cardOrder[index - 1];
+                      return Container(
+                        key: ValueKey(type),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        child: _buildInsightCard(type, index - 1),
+                      );
                     },
                   ),
                 ),
@@ -134,7 +206,6 @@ class _InsightsScreenState extends State<InsightsScreen> {
 
   Widget _buildInsightCard(InsightType type, int index) {
     return InsightCard(
-      key: ValueKey(type),
       type: type,
       analyticsData: _analyticsData!,
       aiInsights: _aiInsights ?? [],
