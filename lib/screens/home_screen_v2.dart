@@ -425,7 +425,7 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
                 HapticFeedback.lightImpact();
                 AnimatedBottomSheet.show(
                   context: context,
-                  builder: (context) => AddTransactionBottomSheet(
+                  child: AddTransactionBottomSheet(
                     userId: _userId,
                     onSave: (transaction) async {
                       await _addTransaction(transaction);
