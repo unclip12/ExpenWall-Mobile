@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_config.dart';
+import '../theme/theme_compat.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/glass_card.dart';
 
@@ -95,9 +97,9 @@ class ThemeSelectorScreen extends StatelessWidget {
                   mainAxisSpacing: 16,
                   childAspectRatio: 0.85,
                 ),
-                itemCount: ThemeConfig.allThemes.length,
+                itemCount: AppTheme.allThemes.length,
                 itemBuilder: (context, index) {
-                  final theme = ThemeConfig.allThemes[index];
+                  final theme = AppTheme.allThemes[index];
                   final isSelected =
                       themeProvider.currentThemeConfig.id == theme.id;
 
@@ -170,8 +172,8 @@ class _ThemeCard extends StatelessWidget {
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    begin: bgConfig.gradientBegin,
-                    end: bgConfig.gradientEnd,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                     colors: bgConfig.gradientColors,
                   ),
                 ),
