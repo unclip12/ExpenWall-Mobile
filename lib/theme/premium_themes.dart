@@ -1,249 +1,423 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-/// Premium Theme System for ExpenWall
-/// 10 Carefully crafted themes with liquid glass aesthetics
-class PremiumTheme {
-  final String name;
-  final String id;
-  final Color primaryColor;
-  final Color secondaryColor;
-  final Color accentColor;
-  final Color backgroundColor;
-  final Color surfaceColor;
-  final Color textColor;
-  final List<Color> gradientColors;
-  final List<Color> backgroundGradient;
-  final bool isDark;
+/// Premium Theme System - 10 Beautiful Themes with Liquid Glass Design
+class PremiumThemes {
+  // Theme Names
+  static const List<String> themeNames = [
+    'Midnight Purple',
+    'Ocean Blue',
+    'Forest Emerald',
+    'Sunset Coral',
+    'Cherry Blossom',
+    'Deep Ocean',
+    'Golden Amber',
+    'Royal Violet',
+    'Rose Gold',
+    'Arctic Ice',
+  ];
 
-  const PremiumTheme({
-    required this.name,
-    required this.id,
-    required this.primaryColor,
-    required this.secondaryColor,
-    required this.accentColor,
-    required this.backgroundColor,
-    required this.surfaceColor,
-    required this.textColor,
-    required this.gradientColors,
-    required this.backgroundGradient,
-    required this.isDark,
-  });
+  // Get theme by index
+  static ThemeData getTheme(int index, bool isDark) {
+    switch (index) {
+      case 0:
+        return _midnightPurple(isDark);
+      case 1:
+        return _oceanBlue(isDark);
+      case 2:
+        return _forestEmerald(isDark);
+      case 3:
+        return _sunsetCoral(isDark);
+      case 4:
+        return _cherryBlossom(isDark);
+      case 5:
+        return _deepOcean(isDark);
+      case 6:
+        return _goldenAmber(isDark);
+      case 7:
+        return _royalViolet(isDark);
+      case 8:
+        return _roseGold(isDark);
+      case 9:
+        return _arcticIce(isDark);
+      default:
+        return _midnightPurple(isDark);
+    }
+  }
 
-  ThemeData toThemeData() {
+  // Get background colors for theme
+  static List<Color> getBackgroundColors(int index, bool isDark) {
+    if (isDark) {
+      switch (index) {
+        case 0: // Midnight Purple
+          return [Color(0xFF0A0E1A), Color(0xFF1A1534), Color(0xFF2D1B4E)];
+        case 1: // Ocean Blue
+          return [Color(0xFF0A1929), Color(0xFF132F4C), Color(0xFF1E4976)];
+        case 2: // Forest Emerald
+          return [Color(0xFF0A1A12), Color(0xFF133027), Color(0xFF1E4A3C)];
+        case 3: // Sunset Coral
+          return [Color(0xFF1A0A0F), Color(0xFF2D1520), Color(0xFF4A2332)];
+        case 4: // Cherry Blossom
+          return [Color(0xFF1A0A15), Color(0xFF2D1525), Color(0xFF4A2340)];
+        case 5: // Deep Ocean
+          return [Color(0xFF020617), Color(0xFF0F172A), Color(0xFF1E293B)];
+        case 6: // Golden Amber
+          return [Color(0xFF1A1410), Color(0xFF2D2418), Color(0xFF4A3A20)];
+        case 7: // Royal Violet
+          return [Color(0xFF120A1A), Color(0xFF1F1430), Color(0xFF331E4A)];
+        case 8: // Rose Gold
+          return [Color(0xFF1A1012), Color(0xFF2D1A20), Color(0xFF4A2832)];
+        case 9: // Arctic Ice
+          return [Color(0xFF0A1419), Color(0xFF13232D), Color(0xFF1E3744)];
+        default:
+          return [Color(0xFF0A0E1A), Color(0xFF1A1534), Color(0xFF2D1B4E)];
+      }
+    } else {
+      switch (index) {
+        case 0: // Midnight Purple
+          return [Color(0xFFFAF5FF), Color(0xFFF3E8FF), Color(0xFFE9D5FF)];
+        case 1: // Ocean Blue
+          return [Color(0xFFF0F9FF), Color(0xFFE0F2FE), Color(0xFFBAE6FD)];
+        case 2: // Forest Emerald
+          return [Color(0xFFF0FDF4), Color(0xFFDCFCE7), Color(0xFFBBF7D0)];
+        case 3: // Sunset Coral
+          return [Color(0xFFFFF5F5), Color(0xFFFED7D7), Color(0xFFFBB6B6)];
+        case 4: // Cherry Blossom
+          return [Color(0xFFFFF5F7), Color(0xFFFED7E2), Color(0xFFFBB6CE)];
+        case 5: // Deep Ocean
+          return [Color(0xFFF8FAFC), Color(0xFFF1F5F9), Color(0xFFE2E8F0)];
+        case 6: // Golden Amber
+          return [Color(0xFFFFFBEB), Color(0xFFFEF3C7), Color(0xFFFDE68A)];
+        case 7: // Royal Violet
+          return [Color(0xFFFAF5FF), Color(0xFFF3E8FF), Color(0xFFE9D5FF)];
+        case 8: // Rose Gold
+          return [Color(0xFFFFF5F7), Color(0xFFFED7E2), Color(0xFFFBB6CE)];
+        case 9: // Arctic Ice
+          return [Color(0xFFF0F9FF), Color(0xFFE0F2FE), Color(0xFFBAE6FD)];
+        default:
+          return [Color(0xFFFAF5FF), Color(0xFFF3E8FF), Color(0xFFE9D5FF)];
+      }
+    }
+  }
+
+  // Get primary color for theme
+  static Color getPrimaryColor(int index) {
+    switch (index) {
+      case 0:
+        return Color(0xFF9333EA); // Purple
+      case 1:
+        return Color(0xFF0284C7); // Blue
+      case 2:
+        return Color(0xFF059669); // Emerald
+      case 3:
+        return Color(0xFFDC2626); // Coral/Red
+      case 4:
+        return Color(0xFFDB2777); // Pink
+      case 5:
+        return Color(0xFF0F172A); // Deep Blue
+      case 6:
+        return Color(0xFFD97706); // Amber
+      case 7:
+        return Color(0xFF7C3AED); // Violet
+      case 8:
+        return Color(0xFFBE185D); // Rose
+      case 9:
+        return Color(0xFF0891B2); // Cyan
+      default:
+        return Color(0xFF9333EA);
+    }
+  }
+
+  // Base theme builder
+  static ThemeData _buildTheme({
+    required Color primary,
+    required Color secondary,
+    required Color accent,
+    required Color background,
+    required Color surface,
+    required Color surfaceVariant,
+    required bool isDark,
+  }) {
+    final textColor = isDark ? Colors.white : Color(0xFF1E293B);
+    final brightness = isDark ? Brightness.dark : Brightness.light;
+
     return ThemeData(
       useMaterial3: true,
-      brightness: isDark ? Brightness.dark : Brightness.light,
-      colorScheme: ColorScheme(
-        brightness: isDark ? Brightness.dark : Brightness.light,
-        primary: primaryColor,
-        onPrimary: Colors.white,
-        secondary: secondaryColor,
-        onSecondary: Colors.white,
-        tertiary: accentColor,
-        onTertiary: Colors.white,
-        error: Colors.red,
-        onError: Colors.white,
-        background: backgroundColor,
-        onBackground: textColor,
-        surface: surfaceColor,
-        onSurface: textColor,
+      brightness: brightness,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: primary,
+        brightness: brightness,
+        primary: primary,
+        secondary: secondary,
+        tertiary: accent,
+        surface: surface,
+        background: background,
       ),
-      scaffoldBackgroundColor: Colors.transparent,
+      scaffoldBackgroundColor: background,
+      textTheme: _buildTextTheme(textColor),
       appBarTheme: AppBarTheme(
         elevation: 0,
         centerTitle: false,
         scrolledUnderElevation: 0,
         backgroundColor: Colors.transparent,
         foregroundColor: textColor,
-        titleTextStyle: TextStyle(
-          fontSize: 24,
+        titleTextStyle: GoogleFonts.inter(
+          fontSize: 20,
           fontWeight: FontWeight.bold,
           color: textColor,
-          letterSpacing: -0.5,
         ),
       ),
       cardTheme: CardTheme(
         elevation: 0,
-        color: surfaceColor.withOpacity(0.3),
+        color: surfaceVariant.withOpacity(isDark ? 0.3 : 0.5),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
           side: BorderSide(
-            color: Colors.white.withOpacity(0.2),
+            color: isDark
+                ? Colors.white.withOpacity(0.1)
+                : Colors.white.withOpacity(0.5),
             width: 1.5,
+          ),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          backgroundColor: primary,
+          foregroundColor: Colors.white,
+          textStyle: GoogleFonts.inter(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         elevation: 12,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(20),
         ),
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
+        backgroundColor: primary,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: surfaceVariant.withOpacity(isDark ? 0.2 : 0.3),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: primary.withOpacity(0.2),
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: isDark
+                ? Colors.white.withOpacity(0.1)
+                : primary.withOpacity(0.1),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: primary,
+            width: 2,
+          ),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
       ),
     );
   }
-}
 
-/// 10 Premium Themes
-class PremiumThemes {
-  static const midnightPurple = PremiumTheme(
-    name: 'Midnight Purple',
-    id: 'midnight_purple',
-    primaryColor: Color(0xFF9333EA),
-    secondaryColor: Color(0xFF7C3AED),
-    accentColor: Color(0xFFA855F7),
-    backgroundColor: Color(0xFF0F0A1E),
-    surfaceColor: Color(0xFF1A1338),
-    textColor: Color(0xFFF5F3FF),
-    gradientColors: [Color(0xFF9333EA), Color(0xFF7C3AED), Color(0xFF6B21A8)],
-    backgroundGradient: [Color(0xFF0F0A1E), Color(0xFF1E1033), Color(0xFF2D1B4E)],
-    isDark: true,
-  );
+  static TextTheme _buildTextTheme(Color textColor) {
+    return TextTheme(
+      displayLarge: GoogleFonts.inter(
+        fontSize: 32,
+        fontWeight: FontWeight.bold,
+        color: textColor,
+        letterSpacing: -0.5,
+      ),
+      displayMedium: GoogleFonts.inter(
+        fontSize: 28,
+        fontWeight: FontWeight.bold,
+        color: textColor,
+        letterSpacing: -0.5,
+      ),
+      displaySmall: GoogleFonts.inter(
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+        color: textColor,
+      ),
+      headlineMedium: GoogleFonts.inter(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        color: textColor,
+      ),
+      titleLarge: GoogleFonts.inter(
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        color: textColor,
+      ),
+      titleMedium: GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: textColor,
+      ),
+      bodyLarge: GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.normal,
+        color: textColor,
+      ),
+      bodyMedium: GoogleFonts.inter(
+        fontSize: 14,
+        fontWeight: FontWeight.normal,
+        color: textColor,
+      ),
+      labelLarge: GoogleFonts.inter(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: textColor,
+      ),
+    );
+  }
 
-  static const oceanBlue = PremiumTheme(
-    name: 'Ocean Blue',
-    id: 'ocean_blue',
-    primaryColor: Color(0xFF0EA5E9),
-    secondaryColor: Color(0xFF0284C7),
-    accentColor: Color(0xFF38BDF8),
-    backgroundColor: Color(0xFF0A1929),
-    surfaceColor: Color(0xFF132F4C),
-    textColor: Color(0xFFE3F2FD),
-    gradientColors: [Color(0xFF0EA5E9), Color(0xFF0284C7), Color(0xFF0369A1)],
-    backgroundGradient: [Color(0xFF0A1929), Color(0xFF0C2744), Color(0xFF0F3460)],
-    isDark: true,
-  );
+  // Theme 1: Midnight Purple
+  static ThemeData _midnightPurple(bool isDark) {
+    return _buildTheme(
+      primary: Color(0xFF9333EA),
+      secondary: Color(0xFF8B5CF6),
+      accent: Color(0xFF6366F1),
+      background: isDark ? Color(0xFF0A0E1A) : Color(0xFFFAF5FF),
+      surface: isDark ? Color(0xFF151B2E) : Color(0xFFFFFFFF),
+      surfaceVariant: isDark ? Color(0xFF1A1F36) : Color(0xFFF3E8FF),
+      isDark: isDark,
+    );
+  }
 
-  static const forestEmerald = PremiumTheme(
-    name: 'Forest Emerald',
-    id: 'forest_emerald',
-    primaryColor: Color(0xFF10B981),
-    secondaryColor: Color(0xFF059669),
-    accentColor: Color(0xFF34D399),
-    backgroundColor: Color(0xFF0A1F1A),
-    surfaceColor: Color(0xFF133B2E),
-    textColor: Color(0xFFD1FAE5),
-    gradientColors: [Color(0xFF10B981), Color(0xFF059669), Color(0xFF047857)],
-    backgroundGradient: [Color(0xFF0A1F1A), Color(0xFF0F2E23), Color(0xFF143D2E)],
-    isDark: true,
-  );
+  // Theme 2: Ocean Blue
+  static ThemeData _oceanBlue(bool isDark) {
+    return _buildTheme(
+      primary: Color(0xFF0284C7),
+      secondary: Color(0xFF0EA5E9),
+      accent: Color(0xFF06B6D4),
+      background: isDark ? Color(0xFF0A1929) : Color(0xFFF0F9FF),
+      surface: isDark ? Color(0xFF132F4C) : Color(0xFFFFFFFF),
+      surfaceVariant: isDark ? Color(0xFF1E4976) : Color(0xFFE0F2FE),
+      isDark: isDark,
+    );
+  }
 
-  static const sunsetCoral = PremiumTheme(
-    name: 'Sunset Coral',
-    id: 'sunset_coral',
-    primaryColor: Color(0xFFF97316),
-    secondaryColor: Color(0xFFEA580C),
-    accentColor: Color(0xFFFB923C),
-    backgroundColor: Color(0xFF1F0A0A),
-    surfaceColor: Color(0xFF3B1311),
-    textColor: Color(0xFFFED7AA),
-    gradientColors: [Color(0xFFF97316), Color(0xFFEA580C), Color(0xFFC2410C)],
-    backgroundGradient: [Color(0xFF1F0A0A), Color(0xFF2E100E), Color(0xFF3D1612)],
-    isDark: true,
-  );
+  // Theme 3: Forest Emerald
+  static ThemeData _forestEmerald(bool isDark) {
+    return _buildTheme(
+      primary: Color(0xFF059669),
+      secondary: Color(0xFF10B981),
+      accent: Color(0xFF14B8A6),
+      background: isDark ? Color(0xFF0A1A12) : Color(0xFFF0FDF4),
+      surface: isDark ? Color(0xFF133027) : Color(0xFFFFFFFF),
+      surfaceVariant: isDark ? Color(0xFF1E4A3C) : Color(0xFFDCFCE7),
+      isDark: isDark,
+    );
+  }
 
-  static const cherryBlossom = PremiumTheme(
-    name: 'Cherry Blossom',
-    id: 'cherry_blossom',
-    primaryColor: Color(0xFFEC4899),
-    secondaryColor: Color(0xFFDB2777),
-    accentColor: Color(0xFFF472B6),
-    backgroundColor: Color(0xFFFFF5F7),
-    surfaceColor: Color(0xFFFFF1F2),
-    textColor: Color(0xFF4A1A2E),
-    gradientColors: [Color(0xFFEC4899), Color(0xFFDB2777), Color(0xFFBE185D)],
-    backgroundGradient: [Color(0xFFFFF5F7), Color(0xFFFFE4E9), Color(0xFFFFD4DC)],
-    isDark: false,
-  );
+  // Theme 4: Sunset Coral
+  static ThemeData _sunsetCoral(bool isDark) {
+    return _buildTheme(
+      primary: Color(0xFFDC2626),
+      secondary: Color(0xFFEF4444),
+      accent: Color(0xFFF97316),
+      background: isDark ? Color(0xFF1A0A0F) : Color(0xFFFFF5F5),
+      surface: isDark ? Color(0xFF2D1520) : Color(0xFFFFFFFF),
+      surfaceVariant: isDark ? Color(0xFF4A2332) : Color(0xFFFED7D7),
+      isDark: isDark,
+    );
+  }
 
-  static const deepOcean = PremiumTheme(
-    name: 'Deep Ocean',
-    id: 'deep_ocean',
-    primaryColor: Color(0xFF0891B2),
-    secondaryColor: Color(0xFF0E7490),
-    accentColor: Color(0xFF06B6D4),
-    backgroundColor: Color(0xFF042F3E),
-    surfaceColor: Color(0xFF164E63),
-    textColor: Color(0xFFCFFAFE),
-    gradientColors: [Color(0xFF0891B2), Color(0xFF0E7490), Color(0xFF155E75)],
-    backgroundGradient: [Color(0xFF042F3E), Color(0xFF083D4F), Color(0xFF0C4A60)],
-    isDark: true,
-  );
+  // Theme 5: Cherry Blossom
+  static ThemeData _cherryBlossom(bool isDark) {
+    return _buildTheme(
+      primary: Color(0xFFDB2777),
+      secondary: Color(0xFFEC4899),
+      accent: Color(0xFFF472B6),
+      background: isDark ? Color(0xFF1A0A15) : Color(0xFFFFF5F7),
+      surface: isDark ? Color(0xFF2D1525) : Color(0xFFFFFFFF),
+      surfaceVariant: isDark ? Color(0xFF4A2340) : Color(0xFFFED7E2),
+      isDark: isDark,
+    );
+  }
 
-  static const goldenAmber = PremiumTheme(
-    name: 'Golden Amber',
-    id: 'golden_amber',
-    primaryColor: Color(0xFFF59E0B),
-    secondaryColor: Color(0xFFD97706),
-    accentColor: Color(0xFFFBBF24),
-    backgroundColor: Color(0xFFFFFBEB),
-    surfaceColor: Color(0xFFFEF3C7),
-    textColor: Color(0xFF78350F),
-    gradientColors: [Color(0xFFF59E0B), Color(0xFFD97706), Color(0xFFB45309)],
-    backgroundGradient: [Color(0xFFFFFBEB), Color(0xFFFEF3C7), Color(0xFFFDE68A)],
-    isDark: false,
-  );
+  // Theme 6: Deep Ocean
+  static ThemeData _deepOcean(bool isDark) {
+    return _buildTheme(
+      primary: Color(0xFF0F172A),
+      secondary: Color(0xFF1E293B),
+      accent: Color(0xFF334155),
+      background: isDark ? Color(0xFF020617) : Color(0xFFF8FAFC),
+      surface: isDark ? Color(0xFF0F172A) : Color(0xFFFFFFFF),
+      surfaceVariant: isDark ? Color(0xFF1E293B) : Color(0xFFF1F5F9),
+      isDark: isDark,
+    );
+  }
 
-  static const royalViolet = PremiumTheme(
-    name: 'Royal Violet',
-    id: 'royal_violet',
-    primaryColor: Color(0xFF8B5CF6),
-    secondaryColor: Color(0xFF7C3AED),
-    accentColor: Color(0xFFA78BFA),
-    backgroundColor: Color(0xFF1E1B4B),
-    surfaceColor: Color(0xFF312E81),
-    textColor: Color(0xFFEDE9FE),
-    gradientColors: [Color(0xFF8B5CF6), Color(0xFF7C3AED), Color(0xFF6D28D9)],
-    backgroundGradient: [Color(0xFF1E1B4B), Color(0xFF2E2761), Color(0xFF3E3378)],
-    isDark: true,
-  );
+  // Theme 7: Golden Amber
+  static ThemeData _goldenAmber(bool isDark) {
+    return _buildTheme(
+      primary: Color(0xFFD97706),
+      secondary: Color(0xFFF59E0B),
+      accent: Color(0xFFFBBF24),
+      background: isDark ? Color(0xFF1A1410) : Color(0xFFFFFBEB),
+      surface: isDark ? Color(0xFF2D2418) : Color(0xFFFFFFFF),
+      surfaceVariant: isDark ? Color(0xFF4A3A20) : Color(0xFFFEF3C7),
+      isDark: isDark,
+    );
+  }
 
-  static const roseGold = PremiumTheme(
-    name: 'Rose Gold',
-    id: 'rose_gold',
-    primaryColor: Color(0xFFF43F5E),
-    secondaryColor: Color(0xFFE11D48),
-    accentColor: Color(0xFFFB7185),
-    backgroundColor: Color(0xFFFFF1F2),
-    surfaceColor: Color(0xFFFFE4E6),
-    textColor: Color(0xFF4C0519),
-    gradientColors: [Color(0xFFF43F5E), Color(0xFFE11D48), Color(0xFFBE123C)],
-    backgroundGradient: [Color(0xFFFFF1F2), Color(0xFFFFE4E6), Color(0xFFFECDD3)],
-    isDark: false,
-  );
+  // Theme 8: Royal Violet
+  static ThemeData _royalViolet(bool isDark) {
+    return _buildTheme(
+      primary: Color(0xFF7C3AED),
+      secondary: Color(0xFF8B5CF6),
+      accent: Color(0xFFA78BFA),
+      background: isDark ? Color(0xFF120A1A) : Color(0xFFFAF5FF),
+      surface: isDark ? Color(0xFF1F1430) : Color(0xFFFFFFFF),
+      surfaceVariant: isDark ? Color(0xFF331E4A) : Color(0xFFF3E8FF),
+      isDark: isDark,
+    );
+  }
 
-  static const arcticIce = PremiumTheme(
-    name: 'Arctic Ice',
-    id: 'arctic_ice',
-    primaryColor: Color(0xFF06B6D4),
-    secondaryColor: Color(0xFF0891B2),
-    accentColor: Color(0xFF22D3EE),
-    backgroundColor: Color(0xFFECFEFF),
-    surfaceColor: Color(0xFFCFFAFE),
-    textColor: Color(0xFF083344),
-    gradientColors: [Color(0xFF06B6D4), Color(0xFF0891B2), Color(0xFF0E7490)],
-    backgroundGradient: [Color(0xFFECFEFF), Color(0xFFCFFAFE), Color(0xFFA5F3FC)],
-    isDark: false,
-  );
+  // Theme 9: Rose Gold
+  static ThemeData _roseGold(bool isDark) {
+    return _buildTheme(
+      primary: Color(0xFFBE185D),
+      secondary: Color(0xFFE11D48),
+      accent: Color(0xFFF43F5E),
+      background: isDark ? Color(0xFF1A1012) : Color(0xFFFFF5F7),
+      surface: isDark ? Color(0xFF2D1A20) : Color(0xFFFFFFFF),
+      surfaceVariant: isDark ? Color(0xFF4A2832) : Color(0xFFFED7E2),
+      isDark: isDark,
+    );
+  }
 
-  static List<PremiumTheme> get all => [
-        midnightPurple,
-        oceanBlue,
-        forestEmerald,
-        sunsetCoral,
-        cherryBlossom,
-        deepOcean,
-        goldenAmber,
-        royalViolet,
-        roseGold,
-        arcticIce,
-      ];
-
-  static PremiumTheme getById(String id) {
-    return all.firstWhere(
-      (theme) => theme.id == id,
-      orElse: () => midnightPurple,
+  // Theme 10: Arctic Ice
+  static ThemeData _arcticIce(bool isDark) {
+    return _buildTheme(
+      primary: Color(0xFF0891B2),
+      secondary: Color(0xFF06B6D4),
+      accent: Color(0xFF22D3EE),
+      background: isDark ? Color(0xFF0A1419) : Color(0xFFF0F9FF),
+      surface: isDark ? Color(0xFF13232D) : Color(0xFFFFFFFF),
+      surfaceVariant: isDark ? Color(0xFF1E3744) : Color(0xFFE0F2FE),
+      isDark: isDark,
     );
   }
 }
