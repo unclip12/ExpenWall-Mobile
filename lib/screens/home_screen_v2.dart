@@ -172,7 +172,7 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
 
     // ✅ FIX: Close bottom sheet FIRST, then show animation
     if (mounted && Navigator.canPop(context)) {
-      Navigator.of(context).pop(); // Close the bottom sheet
+      Navigator.of(context, rootNavigator: true).pop(); // Close the bottom sheet
       
       // Wait a tiny bit for smooth transition
       await Future.delayed(const Duration(milliseconds: 150));
