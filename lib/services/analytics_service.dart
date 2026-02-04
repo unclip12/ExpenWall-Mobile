@@ -1,7 +1,7 @@
 // lib/services/analytics_service.dart
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/transaction.dart';
+import '../models/transaction.dart' as models;
 import '../models/analytics_data.dart';
 import 'dart:math';
 
@@ -22,11 +22,11 @@ class AnalyticsService {
     final monthlyTrends = await _calculateMonthlyTrends(userId, endDate);
 
     final totalExpenses = transactions
-        .where((t) => t.type == TransactionType.expense)
+        .where((t) => t.type == models.TransactionType.expense)
         .fold(0.0, (sum, t) => sum + t.amount);
 
     final totalIncome = transactions
-        .where((t) => t.type == TransactionType.income)
+        .where((t) => t.type == models.TransactionType.income)
         .fold(0.0, (sum, t) => sum + t.amount);
 
     // Get budget for the period
@@ -138,7 +138,7 @@ class AnalyticsService {
     final targetMonth = DateTime(now.year, now.month + 1, 1);
 
     // Get last 6 months of data
-    final transactions = <Transaction>[];
+    final transactions = <models.Transaction>[];
     final monthlyTotals = <double>[];
     final categoryTotals = <String, List<double>>{};
 
@@ -151,12 +151,12 @@ class AnalyticsService {
       transactions.addAll(monthTransactions);
 
       final monthTotal = monthTransactions
-          .where((t) => t.type == TransactionType.expense)
+          .where((t) => t.type == models.TransactionType.expense)
           .fold(0.0, (sum, t) => sum + t.amount);
       monthlyTotals.add(monthTotal);
 
       // Track category spending per month
-      for (final t in monthTransactions.where((t) => t.type == TransactionType.expense)) {
+      for (final t in monthTransactions.where((t) => t.type == models.TransactionType.expense)) {
         categoryTotals.putIfAbsent(t.category.label, () => []);
         categoryTotals[t.category.label]!.add(t.amount);
       }
@@ -199,7 +199,7 @@ class AnalyticsService {
 
     if (lastYearTransactions.isNotEmpty) {
       final lastYearTotal = lastYearTransactions
-          .where((t) => t.type == TransactionType.expense)
+          .where((t) => t.type == models.TransactionType.expense)
           .fold(0.0, (sum, t) => sum + t.amount);
 
       // Adjust prediction with last year's data
@@ -310,7 +310,7 @@ class AnalyticsService {
   }
 
   // Private helper methods
-  Future<List<Transaction>> _getTransactions(
+  Future<List<models.Transaction>> _getTransactions(
     String userId,
     DateTime startDate,
     DateTime endDate,
@@ -324,21 +324,21 @@ class AnalyticsService {
         .get();
 
     return snapshot.docs
-        .map((doc) => Transaction.fromFirestore(doc))
+        .map((doc) => models.Transaction.fromFirestore(doc))
         .toList();
   }
 
   Map<String, double> _calculateCategorySpending(
-      List<Transaction> transactions) {
+      List<models.Transaction> transactions) {
     final spending = <String, double>{};
-    for (final t in transactions.where((t) => t.type == TransactionType.expense)) {
+    for (final t in transactions.where((t) => t.type == models.TransactionType.expense)) {
       spending[t.category.label] = (spending[t.category.label] ?? 0) + t.amount;
     }
     return spending;
   }
 
   Map<String, double> _calculateDayOfWeekSpending(
-      List<Transaction> transactions) {
+      List<models.Transaction> transactions) {
     final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     final spending = <String, double>{};
 
@@ -346,7 +346,7 @@ class AnalyticsService {
       spending[day] = 0;
     }
 
-    for (final t in transactions.where((t) => t.type == TransactionType.expense)) {
+    for (final t in transactions.where((t) => t.type == models.TransactionType.expense)) {
       final dayIndex = t.date.weekday - 1;
       spending[days[dayIndex]] = (spending[days[dayIndex]] ?? 0) + t.amount;
     }
@@ -355,7 +355,7 @@ class AnalyticsService {
   }
 
   Map<String, dynamic> _calculateMerchantData(
-      List<Transaction> transactions) {
+      List<models.Transaction> transactions) {
     final frequency = <String, int>{};
     final spending = <String, double>{};
 
@@ -378,7 +378,7 @@ class AnalyticsService {
 
       final transactions = await _getTransactions(userId, monthStart, monthEnd);
       final total = transactions
-          .where((t) => t.type == TransactionType.expense)
+          .where((t) => t.type == models.TransactionType.expense)
           .fold(0.0, (sum, t) => sum + t.amount);
 
       final monthLabel =
