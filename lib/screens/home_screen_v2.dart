@@ -160,22 +160,22 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
 
     await _localStorageService.saveTransactions(_userId, _transactions);
 
-    // Show enhanced money flow animation
+    // Show enhanced money flow animation with strong haptic feedback
     if (mounted) {
+      // Strong haptic feedback on transaction save
+      HapticFeedback.heavyImpact();
+      
       _showMoneyFlowAnimation(
         transaction.amount,
         transaction.type == models.TransactionType.income,
       );
     }
 
-    // Wait for animation to complete
-    await Future.delayed(const Duration(milliseconds: 2500));
+    // Wait for animation to complete (4 seconds)
+    await Future.delayed(const Duration(milliseconds: 4000));
   }
 
   void _showMoneyFlowAnimation(double amount, bool isIncome) {
-    // Haptic feedback
-    HapticFeedback.mediumImpact();
-    
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -422,7 +422,7 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
       floatingActionButton: (_currentMainTab == 0 || _currentMainTab == 1) && !_isLoading
           ? GlassFAB(
               onPressed: () {
-                HapticFeedback.lightImpact();
+                HapticFeedback.mediumImpact();
                 AnimatedBottomSheet.show(
                   context: context,
                   child: AddTransactionBottomSheet(
@@ -447,7 +447,11 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
           TabItem(icon: Icons.insights, label: 'Insights'),
         ],
         selectedIndex: _currentMainTab,
-        onTabSelected: (index) => setState(() => _currentMainTab = index),
+        onTabSelected: (index) {
+          // Haptic feedback on tab change
+          HapticFeedback.selectionClick();
+          setState(() => _currentMainTab = index);
+        },
       ),
     );
   }
@@ -460,7 +464,11 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
         TabItem(icon: Icons.shopping_cart, label: 'Buying List'),
       ],
       selectedIndex: _planningSubTab,
-      onTabSelected: (index) => setState(() => _planningSubTab = index),
+      onTabSelected: (index) {
+        // Haptic feedback on sub-tab change
+        HapticFeedback.selectionClick();
+        setState(() => _planningSubTab = index);
+      },
     );
   }
 
@@ -471,7 +479,11 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
         TabItem(icon: Icons.favorite, label: 'Cravings'),
       ],
       selectedIndex: _socialSubTab,
-      onTabSelected: (index) => setState(() => _socialSubTab = index),
+      onTabSelected: (index) {
+        // Haptic feedback on sub-tab change
+        HapticFeedback.selectionClick();
+        setState(() => _socialSubTab = index);
+      },
     );
   }
 
