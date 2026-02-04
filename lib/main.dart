@@ -43,6 +43,7 @@ class MyApp extends StatelessWidget {
           theme: themeProvider.currentTheme,
           home: ThemedBackground(
             config: themeProvider.backgroundConfig,
+            isDark: themeProvider.isDarkMode,
             child: const SplashScreen(
               nextScreen: HomeScreenV2(),
             ),
