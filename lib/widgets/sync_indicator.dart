@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
-import '../theme/app_theme.dart';
+import '../theme/theme_compat.dart';
 
 /// Sync status indicator that shows in top-right corner
 class SyncIndicator extends StatefulWidget {
@@ -102,7 +102,7 @@ class _SyncIndicatorState extends State<SyncIndicator>
                       child: Icon(
                         Icons.sync_rounded,
                         size: 16,
-                        color: AppTheme.primaryPurple,
+                        color: AppThemeCompat.primaryPurple,
                       ),
                     )
                   else if (widget.hasError)
@@ -119,7 +119,7 @@ class _SyncIndicatorState extends State<SyncIndicator>
                       fontWeight: FontWeight.w600,
                       color: widget.hasError
                           ? Colors.red
-                          : AppTheme.primaryPurple,
+                          : AppThemeCompat.primaryPurple,
                     ),
                   ),
                 ],
@@ -191,10 +191,10 @@ class _SyncDotState extends State<SyncDot>
           height: 8,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: AppTheme.primaryPurple,
+            color: AppThemeCompat.primaryPurple,
             boxShadow: [
               BoxShadow(
-                color: AppTheme.primaryPurple.withOpacity(0.6),
+                color: AppThemeCompat.primaryPurple.withOpacity(0.6),
                 blurRadius: 8 * _pulseAnimation.value,
                 spreadRadius: 2 * _pulseAnimation.value,
               ),
