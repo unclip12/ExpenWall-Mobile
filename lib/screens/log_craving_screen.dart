@@ -288,9 +288,9 @@ class _LogCravingScreenState extends State<LogCravingScreen> with SingleTickerPr
                   // Craving Name
                   GlassInputField(
                     controller: _nameController,
-                    label: 'What did you crave?',
+                    labelText: 'What did you crave?',
                     hintText: 'e.g., Ice cream, Biryani, Pizza',
-                    prefixIcon: Icons.restaurant_menu,
+                    prefixIcon: const Icon(Icons.restaurant_menu),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Please enter what you craved';
@@ -303,28 +303,41 @@ class _LogCravingScreenState extends State<LogCravingScreen> with SingleTickerPr
                   // Description
                   GlassInputField(
                     controller: _descriptionController,
-                    label: 'Description (optional)',
+                    labelText: 'Description (optional)',
                     hintText: 'Any details about the craving',
-                    prefixIcon: Icons.description,
+                    prefixIcon: const Icon(Icons.description),
                     maxLines: 2,
                   ),
                   const SizedBox(height: 16),
 
                   // Category
-                  GlassInputField(
-                    type: GlassInputType.dropdown,
-                    label: 'Category (optional)',
-                    prefixIcon: Icons.category,
-                    dropdownValue: _selectedCategory?.label,
-                    dropdownItems: Category.values.map((c) => c.label).toList(),
-                    onDropdownChanged: (value) {
-                      setState(() {
-                        _selectedCategory = Category.values.firstWhere(
-                          (c) => c.label == value,
-                          orElse: () => Category.other,
-                        );
-                      });
-                    },
+                  GlassCard(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedCategory?.label,
+                      decoration: const InputDecoration(
+                        labelText: 'Category (optional)',
+                        border: InputBorder.none,
+                        prefixIcon: Icon(Icons.category),
+                      ),
+                      hint: const Text('Select category'),
+                      items: Category.values
+                          .map((c) => DropdownMenuItem<String>(
+                                value: c.label,
+                                child: Text(c.label),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedCategory = value == null
+                              ? null
+                              : Category.values.firstWhere(
+                                  (c) => c.label == value,
+                                  orElse: () => Category.other,
+                                );
+                        });
+                      },
+                    ),
                   ),
 
                   // Gave In Details
@@ -336,9 +349,9 @@ class _LogCravingScreenState extends State<LogCravingScreen> with SingleTickerPr
                     // Merchant
                     GlassInputField(
                       controller: _merchantController,
-                      label: 'Merchant',
+                      labelText: 'Merchant',
                       hintText: 'Where did you buy from?',
-                      prefixIcon: Icons.store,
+                      prefixIcon: const Icon(Icons.store),
                     ),
                     const SizedBox(height: 8),
                     Wrap(
@@ -362,9 +375,9 @@ class _LogCravingScreenState extends State<LogCravingScreen> with SingleTickerPr
                     // Merchant Area
                     GlassInputField(
                       controller: _merchantAreaController,
-                      label: 'Location/Area (optional)',
+                      labelText: 'Location/Area (optional)',
                       hintText: 'e.g., MG Road, Koramangala',
-                      prefixIcon: Icons.location_on,
+                      prefixIcon: const Icon(Icons.location_on),
                     ),
                     const SizedBox(height: 24),
 
@@ -479,9 +492,9 @@ class _LogCravingScreenState extends State<LogCravingScreen> with SingleTickerPr
                   // Notes
                   GlassInputField(
                     controller: _notesController,
-                    label: 'Notes (optional)',
+                    labelText: 'Notes (optional)',
                     hintText: 'Any additional notes',
-                    prefixIcon: Icons.note,
+                    prefixIcon: const Icon(Icons.note),
                     maxLines: 3,
                   ),
 
@@ -490,7 +503,6 @@ class _LogCravingScreenState extends State<LogCravingScreen> with SingleTickerPr
                   // Save Button
                   GlassButton(
                     onPressed: _isLoading ? null : _saveCraving,
-                    style: GlassButtonStyle.button,
                     child: _isLoading
                         ? const SizedBox(
                             height: 20,
