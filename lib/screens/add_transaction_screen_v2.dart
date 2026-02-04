@@ -5,6 +5,7 @@ import '../models/recurring_rule.dart';
 import '../screens/receipt_review_screen.dart';
 import '../widgets/glass_card.dart';
 import '../utils/category_icons.dart';
+import '../utils/indian_currency_formatter.dart';
 import '../services/local_storage_service.dart';
 import '../services/recurring_bill_service.dart';
 import '../services/item_recognition_service.dart';
@@ -46,7 +47,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
   String? _subcategory;
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
-  String _paymentMethod = 'Cash'; // NEW: Payment method
+  String _paymentMethod = 'Cash';
   List<TransactionItem> _items = [];
   bool _isSubmitting = false;
   bool _showItemsForm = false;
@@ -55,12 +56,10 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
   List<Transaction> _previousTransactions = [];
   RecurringRule? _matchingRecurringRule;
   
-  // Phase 5: Receipt data
   String? _receiptImagePath;
   Map<String, dynamic>? _receiptData;
   bool _hasReceiptData = false;
 
-  // NEW: Item editing state
   int? _editingItemIndex;
   final _itemNameController = TextEditingController();
   final _itemBrandController = TextEditingController();
@@ -68,7 +67,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
   final _itemPriceController = TextEditingController();
   final _itemNameFocusNode = FocusNode();
   bool _showItemSuggestions = false;
-  List<ItemSuggestion> _itemSuggestions = [];  // FIXED: Changed from ItemRecognitionMatch
+  List<ItemSuggestion> _itemSuggestions = [];
 
   @override
   void initState() {
@@ -91,14 +90,9 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
     ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
     _animController.forward();
 
-    // Load previous transactions for suggestions
     _loadPreviousTransactions();
-
-    // Listen to merchant input for autocomplete
     _merchantController.addListener(_onMerchantChanged);
     _merchantFocusNode.addListener(_onMerchantFocusChanged);
-
-    // NEW: Listen to item name input for autocomplete
     _itemNameController.addListener(_onItemNameChanged);
     _itemNameFocusNode.addListener(_onItemNameFocusChanged);
 
@@ -133,6 +127,21 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
     super.dispose();
   }
 
+  // NEW: Calculate total from all items
+  double _calculateItemsTotal() {
+    if (_items.isEmpty) return 0.0;
+    return _items.fold(0.0, (sum, item) => sum + (item.price * item.quantity));
+  }
+
+  // NEW: Auto-fill amount from items total
+  void _autoFillFromItems() {
+    final total = _calculateItemsTotal();
+    setState(() {
+      _amountController.text = total.toStringAsFixed(2);
+    });
+    HapticFeedback.selectionClick();
+  }
+
   Future<void> _loadPreviousTransactions() async {
     try {
       final transactions = await _localStorageService.loadTransactions(widget.userId);
@@ -155,17 +164,14 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
       return;
     }
 
-    // Check for matching recurring rule
     _checkForRecurringRule(query);
 
-    // Get unique merchants from previous transactions
     final allMerchants = _previousTransactions
         .map((t) => t.merchant)
         .toSet()
         .where((m) => m.toLowerCase().contains(query))
         .toList();
 
-    // Sort by frequency
     allMerchants.sort((a, b) {
       final aCount = _previousTransactions.where((t) => t.merchant == a).length;
       final bCount = _previousTransactions.where((t) => t.merchant == b).length;
@@ -177,7 +183,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
       _showMerchantSuggestions = _merchantSuggestions.isNotEmpty;
     });
 
-    // Auto-categorize if merchant is recognized
     if (_merchantSuggestions.isNotEmpty) {
       final exactMatch = _previousTransactions
           .where((t) => t.merchant.toLowerCase() == query)
@@ -192,7 +197,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
     }
   }
 
-  // NEW: Item name autocomplete
   void _onItemNameChanged() {
     final query = _itemNameController.text.trim();
     if (query.length < 2) {
@@ -203,8 +207,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
       return;
     }
 
-    // Search for items using ItemRecognitionService
-    final suggestions = _itemRecognitionService.getSuggestions(query);  // FIXED: Changed from searchItems
+    final suggestions = _itemRecognitionService.getSuggestions(query);
     
     setState(() {
       _itemSuggestions = suggestions.take(10).toList();
@@ -214,7 +217,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
 
   void _onItemNameFocusChanged() {
     if (!_itemNameFocusNode.hasFocus) {
-      // Delay to allow tap on suggestion
       Future.delayed(const Duration(milliseconds: 200), () {
         if (mounted) {
           setState(() {
@@ -225,12 +227,11 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
     }
   }
 
-  void _selectItemSuggestion(ItemSuggestion match) {  // FIXED: Changed from ItemRecognitionMatch
+  void _selectItemSuggestion(ItemSuggestion match) {
     setState(() {
       _itemNameController.text = match.itemName;
       _showItemSuggestions = false;
       
-      // Auto-select category if available
       if (match.category.isNotEmpty) {
         try {
           _category = Category.values.firstWhere(
@@ -275,7 +276,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
       _showMerchantSuggestions = false;
     });
 
-    // Auto-fill category and subcategory
     final previousTx = _previousTransactions
         .where((t) => t.merchant == merchant)
         .toList();
@@ -289,7 +289,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
     }
   }
 
-  /// Open receipt camera scanner
   Future<void> _openReceiptScanner() async {
     final result = await Navigator.push<Map<String, dynamic>>(
       context,
@@ -302,22 +301,18 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
 
     if (result != null) {
       setState(() {
-        // Auto-fill merchant
         if (result['merchant'] != null) {
           _merchantController.text = result['merchant'];
         }
 
-        // Auto-fill amount
         if (result['amount'] != null) {
           _amountController.text = result['amount'].toString();
         }
 
-        // Auto-fill date
         if (result['date'] != null) {
           _selectedDate = result['date'];
         }
 
-        // Auto-fill items
         if (result['items'] != null) {
           final receiptItems = result['items'] as List<EditableReceiptItem>;
           _items = receiptItems.map((item) {
@@ -330,7 +325,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
           }).toList();
         }
 
-        // Store receipt metadata
         _receiptImagePath = result['receiptImagePath'];
         _receiptData = result['receiptData'];
         _hasReceiptData = true;
@@ -359,7 +353,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Check for recurring rule match before saving
     if (_matchingRecurringRule != null) {
       final isRecurringPayment = await _showRecurringRuleDialog();
       
@@ -374,7 +367,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
     setState(() => _isSubmitting = true);
 
     try {
-      // Combine date and time
       final dateTime = DateTime(
         _selectedDate.year,
         _selectedDate.month,
@@ -462,7 +454,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '₹${_matchingRecurringRule!.amount.toStringAsFixed(0)}',
+                    IndianCurrencyFormatter.format(_matchingRecurringRule!.amount),
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[700],
@@ -656,7 +648,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
 
   List<Widget> _buildMainForm() {
     return [
-      // REORDERED: Items first (Priority #1)
+      // Items section with total display
       GlassCard(
         padding: const EdgeInsets.all(0),
         child: ListTile(
@@ -677,7 +669,11 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
           ),
           subtitle: _items.isNotEmpty
               ? Text(
-                  'Total: ₹${_items.fold(0.0, (sum, item) => sum + (item.price * item.quantity)).toStringAsFixed(2)}',
+                  'Total: ${IndianCurrencyFormatter.format(_calculateItemsTotal())}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 )
               : null,
           trailing: const Icon(Icons.chevron_right),
@@ -686,7 +682,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
       ),
       const SizedBox(height: 16),
 
-      // Merchant with Autocomplete
+      // Merchant
       GlassCard(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -794,7 +790,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
       ),
       const SizedBox(height: 16),
 
-      // NEW: Payment Method (Cash/Card/UPI/Wallet)
+      // Payment Method
       GlassCard(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -823,7 +819,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
       ),
       const SizedBox(height: 16),
 
-      // Type - Spent or Received
+      // Type
       GlassCard(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -860,7 +856,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
       ),
       const SizedBox(height: 16),
 
-      // FIXED: Category - No duplicate icon
+      // Category
       GlassCard(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -874,7 +870,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
             DropdownButtonFormField<Category>(
               value: _category,
               decoration: const InputDecoration(
-                // REMOVED: prefixIcon to fix duplicate icon issue
                 prefixIcon: null,
               ),
               items: Category.values
@@ -897,7 +892,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
       ),
       const SizedBox(height: 16),
 
-      // NEW: Date & Time in one row
+      // Date & Time
       GlassCard(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -910,7 +905,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
             const SizedBox(height: 12),
             Row(
               children: [
-                // Date picker (left)
                 Expanded(
                   child: InkWell(
                     onTap: _pickDate,
@@ -940,7 +934,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Time picker (right)
                 Expanded(
                   child: InkWell(
                     onTap: _pickTime,
@@ -976,7 +969,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
       ),
       const SizedBox(height: 16),
 
-      // Subcategory (optional)
+      // Subcategory
       GlassCard(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -1001,15 +994,29 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
       ),
       const SizedBox(height: 16),
 
-      // Amount
+      // Amount with auto-fill button
       GlassCard(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Amount',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            Row(
+              children: [
+                const Text(
+                  'Amount',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const Spacer(),
+                if (_items.isNotEmpty)
+                  TextButton.icon(
+                    onPressed: _autoFillFromItems,
+                    icon: const Icon(Icons.calculate, size: 16),
+                    label: const Text('Auto-fill', style: TextStyle(fontSize: 12)),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -1030,6 +1037,18 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
                 return null;
               },
             ),
+            if (_items.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Items total: ${IndianCurrencyFormatter.format(_calculateItemsTotal())}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -1145,10 +1164,8 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
       ),
       const SizedBox(height: 20),
       
-      // Item entry form with autocomplete
       if (_editingItemIndex != null) ..._buildItemEditForm(),
       
-      // List of added items
       ..._items.asMap().entries.map((entry) {
         final index = entry.key;
         final item = entry.value;
@@ -1167,7 +1184,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
     ];
   }
 
-  // NEW: Item edit form with autocomplete
   List<Widget> _buildItemEditForm() {
     return [
       GlassCard(
@@ -1181,7 +1197,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
             ),
             const SizedBox(height: 16),
             
-            // Item name with autocomplete
             TextFormField(
               controller: _itemNameController,
               focusNode: _itemNameFocusNode,
@@ -1193,7 +1208,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
               textCapitalization: TextCapitalization.words,
             ),
             
-            // Autocomplete suggestions
             if (_showItemSuggestions && _itemSuggestions.isNotEmpty)
               Container(
                 margin: const EdgeInsets.only(top: 8),
@@ -1213,7 +1227,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
                     return ListTile(
                       dense: true,
                       leading: Text(
-                        suggestion.emoji,  // FIXED: Use emoji property instead of CategoryIcons.getIconForCategory
+                        suggestion.emoji,
                         style: const TextStyle(fontSize: 20),
                       ),
                       title: Text(suggestion.itemName),
@@ -1236,7 +1250,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
             
             const SizedBox(height: 12),
             
-            // Brand (optional)
             TextFormField(
               controller: _itemBrandController,
               decoration: const InputDecoration(
@@ -1247,7 +1260,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
             ),
             const SizedBox(height: 12),
             
-            // Quantity and Price
             Row(
               children: [
                 Expanded(
@@ -1276,7 +1288,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
             ),
             const SizedBox(height: 16),
             
-            // Action buttons
             Row(
               children: [
                 Expanded(
@@ -1390,7 +1401,7 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
                   ),
                 const SizedBox(height: 4),
                 Text(
-                  '${item.quantity} x ₹${item.price.toStringAsFixed(2)} = ₹${(item.quantity * item.price).toStringAsFixed(2)}',
+                  '${item.quantity} x ${IndianCurrencyFormatter.format(item.price)} = ${IndianCurrencyFormatter.format(item.quantity * item.price)}',
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.grey[700],
@@ -1475,7 +1486,6 @@ class _AddTransactionScreenV2State extends State<AddTransactionScreenV2>
     }
   }
 
-  // NEW: Time picker
   Future<void> _pickTime() async {
     final time = await showTimePicker(
       context: context,
