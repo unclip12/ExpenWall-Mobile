@@ -4,9 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/transaction.dart' as models;
 import '../models/analytics_data.dart';
 import 'dart:math';
+import 'local_storage_service.dart';
 
 class AnalyticsService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final LocalStorageService _localStorageService = LocalStorageService();
 
   // Get comprehensive analytics for a date range
   Future<AnalyticsData> getAnalytics({
@@ -315,17 +317,26 @@ class AnalyticsService {
     DateTime startDate,
     DateTime endDate,
   ) async {
-    final snapshot = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('transactions')
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
-        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
-        .get();
+    if (userId == 'local_user') {
+      return _getLocalTransactions(startDate, endDate);
+    }
 
-    return snapshot.docs
-        .map((doc) => models.Transaction.fromFirestore(doc))
-        .toList();
+    try {
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('transactions')
+          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
+          .get();
+
+      return snapshot.docs
+          .map((doc) => models.Transaction.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      print('Error loading cloud transactions: $e');
+      return _getLocalTransactions(startDate, endDate);
+    }
   }
 
   Map<String, double> _calculateCategorySpending(
@@ -391,6 +402,10 @@ class AnalyticsService {
 
   Future<double> _getBudgetForPeriod(
       String userId, DateTime startDate, DateTime endDate) async {
+    if (userId == 'local_user') {
+      return _getLocalBudgetForPeriod(startDate, endDate);
+    }
+
     try {
       final doc = await _firestore
           .collection('users')
@@ -404,8 +419,44 @@ class AnalyticsService {
       }
     } catch (e) {
       print('Error getting budget: $e');
+      if (userId == 'local_user') {
+        return _getLocalBudgetForPeriod(startDate, endDate);
+      }
     }
     return 0;
+  }
+
+  Future<List<models.Transaction>> _getLocalTransactions(
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
+    final transactions = await _localStorageService.loadTransactions('local_user');
+    return transactions
+        .where((t) => !t.date.isBefore(startDate) && !t.date.isAfter(endDate))
+        .toList();
+  }
+
+  Future<double> _getLocalBudgetForPeriod(
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
+    final budgets = await _localStorageService.loadBudgets('local_user');
+    if (budgets.isEmpty) {
+      return 0;
+    }
+
+    final matching = budgets.where((budget) {
+      if (budget.period.toLowerCase() == 'monthly') {
+        return true;
+      }
+      return false;
+    }).toList();
+
+    if (matching.isEmpty) {
+      return 0;
+    }
+
+    return matching.fold<double>(0.0, (sum, budget) => sum + budget.amount);
   }
 
   String _generateInsightText(

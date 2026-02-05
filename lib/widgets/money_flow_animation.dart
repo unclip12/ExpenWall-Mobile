@@ -42,19 +42,19 @@ class _MoneyFlowAnimationState extends State<MoneyFlowAnimation>
       vsync: this,
     );
 
-    // ✅ FIX: Amount slides from TOP (0.05) to middle, then exits
+    // ✅ FIX: Amount slides from VERY TOP to mid, then exits
     _amountSlideAnimation = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween<double>(begin: 0.05, end: 0.15)
+        tween: Tween<double>(begin: 0.0, end: 0.18)
             .chain(CurveTween(curve: Curves.easeOutCubic)),
         weight: 20,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: 0.15, end: 0.15),
+        tween: Tween<double>(begin: 0.18, end: 0.18),
         weight: 60,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: 0.15, end: 0.3)
+        tween: Tween<double>(begin: 0.18, end: 0.35)
             .chain(CurveTween(curve: Curves.easeInCubic)),
         weight: 20,
       ),
@@ -112,9 +112,9 @@ class _MoneyFlowAnimationState extends State<MoneyFlowAnimation>
     return List.generate(count, (index) {
       return MoneyParticle(
         startX: 0.2 + _random.nextDouble() * 0.6,
-        startY: 0.0, // Start from very top
+        startY: -0.2, // Start above the top edge
         endX: 0.1 + _random.nextDouble() * 0.8,
-        endY: 1.0 + _random.nextDouble() * 0.3,
+        endY: 1.2 + _random.nextDouble() * 0.3,
         delay: _random.nextDouble() * 0.3,
         size: 16 + _random.nextDouble() * 20,
         rotation: _random.nextDouble() * 6.28,
@@ -137,6 +137,15 @@ class _MoneyFlowAnimationState extends State<MoneyFlowAnimation>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final amountColor =
+        widget.isIncome ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+    final secondaryText = isDark ? Colors.white70 : Colors.black54;
+    final cardBackground = isDark
+        ? Colors.black.withOpacity(0.45)
+        : Colors.white.withOpacity(0.85);
+
     return Stack(
       children: [
         // ✅ FIX: Subtle pulse glow behind amount card ONLY
@@ -151,15 +160,12 @@ class _MoneyFlowAnimationState extends State<MoneyFlowAnimation>
               child: Opacity(
                 opacity: _amountOpacityAnimation.value * 0.3,
                 child: Container(
-                  height: 200,
+                  height: 240,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        (widget.isIncome
-                            ? const Color(0xFF10B981)
-                            : const Color(0xFFEF4444))
-                            .withOpacity(0.4 * pulseValue),
+                        amountColor.withOpacity(0.35 * pulseValue),
                         Colors.transparent,
                       ],
                     ),
@@ -202,23 +208,15 @@ class _MoneyFlowAnimationState extends State<MoneyFlowAnimation>
                     vertical: 20,
                   ),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: widget.isIncome
-                          ? [
-                              const Color(0xFF10B981).withOpacity(0.95),
-                              const Color(0xFF059669).withOpacity(0.95),
-                            ]
-                          : [
-                              const Color(0xFFEF4444).withOpacity(0.95),
-                              const Color(0xFFDC2626).withOpacity(0.95),
-                            ],
-                    ),
+                    color: cardBackground,
                     borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: amountColor.withOpacity(0.25),
+                      width: 1.2,
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: widget.isIncome
-                            ? const Color(0xFF10B981).withOpacity(0.5)
-                            : const Color(0xFFEF4444).withOpacity(0.5),
+                        color: amountColor.withOpacity(0.35),
                         blurRadius: 30,
                         spreadRadius: 5,
                       ),
@@ -229,20 +227,20 @@ class _MoneyFlowAnimationState extends State<MoneyFlowAnimation>
                     children: [
                       Text(
                         widget.isIncome ? 'Received' : 'Spent',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                          color: secondaryText,
                           letterSpacing: 1,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         '${widget.isIncome ? '+' : '-'}${IndianCurrencyFormatter.format(widget.amount)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 42,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: amountColor,
                           letterSpacing: -1,
                         ),
                         textAlign: TextAlign.center,

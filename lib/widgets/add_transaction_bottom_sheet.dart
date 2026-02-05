@@ -70,9 +70,6 @@ class AddTransactionBottomSheet extends StatelessWidget {
             child: AddTransactionScreenV2(
               onSave: (transaction) async {
                 await onSave(transaction);
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
               },
               initialData: initialData,
               userId: userId,

@@ -23,37 +23,41 @@ class InsightCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: GlassCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(context),
+            _buildHeader(context, isDark),
             const SizedBox(height: 16),
-            _buildContent(context),
+            _buildContent(context, isDark),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, bool isDark) {
+    final primaryText = isDark ? Colors.white : Colors.black87;
+    final secondaryText = isDark ? Colors.white70 : Colors.black54;
     return Row(
       children: [
         if (onReorder) ...[
-          const Icon(Icons.drag_handle, color: Colors.white70, size: 20),
+          Icon(Icons.drag_handle, color: secondaryText, size: 20),
           const SizedBox(width: 8),
         ],
-        Icon(_getIcon(), color: Colors.white, size: 24),
+        Icon(_getIcon(), color: primaryText, size: 24),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
             _getTitle(),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: primaryText,
             ),
           ),
         ),
@@ -61,20 +65,20 @@ class InsightCard extends StatelessWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context) {
+  Widget _buildContent(BuildContext context, bool isDark) {
     switch (type) {
       case InsightType.topSpendingCategories:
-        return _buildTopCategories();
+        return _buildTopCategories(isDark);
       case InsightType.spendingTrends:
-        return _buildTrendChart();
+        return _buildTrendChart(isDark);
       case InsightType.dayOfWeekAnalysis:
-        return _buildDayOfWeekChart();
+        return _buildDayOfWeekChart(isDark);
       case InsightType.merchantFrequency:
-        return _buildMerchantList();
+        return _buildMerchantList(isDark);
       case InsightType.budgetProgress:
-        return _buildBudgetProgress();
+        return _buildBudgetProgress(isDark);
       case InsightType.aiInsights:
-        return _buildAIInsights();
+        return _buildAIInsights(isDark);
     }
   }
 
@@ -112,14 +116,16 @@ class InsightCard extends StatelessWidget {
     }
   }
 
-  Widget _buildTopCategories() {
+  Widget _buildTopCategories(bool isDark) {
+    final primaryText = isDark ? Colors.white : Colors.black87;
+    final secondaryText = isDark ? Colors.white70 : Colors.black54;
     final sortedCategories = analyticsData.categorySpending.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
     final topCategories = sortedCategories.take(5).toList();
 
     if (topCategories.isEmpty) {
-      return const Text('No spending data', style: TextStyle(color: Colors.white70));
+      return Text('No spending data', style: TextStyle(color: secondaryText));
     }
 
     return Column(
@@ -135,10 +141,10 @@ class InsightCard extends StatelessWidget {
                   value: entry.value,
                   title: '${percentage.toStringAsFixed(0)}%',
                   radius: 80,
-                  titleStyle: const TextStyle(
+                  titleStyle: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: primaryText,
                   ),
                 );
               }).toList(),
@@ -156,12 +162,12 @@ class InsightCard extends StatelessWidget {
               children: [
                 Text(
                   entry.key,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: primaryText),
                 ),
                 Text(
                   '₹${entry.value.toStringAsFixed(0)}',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: primaryText,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -173,9 +179,10 @@ class InsightCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTrendChart() {
+  Widget _buildTrendChart(bool isDark) {
+    final secondaryText = isDark ? Colors.white70 : Colors.black54;
     if (analyticsData.monthlyTrends.isEmpty) {
-      return const Text('No trend data', style: TextStyle(color: Colors.white70));
+      return Text('No trend data', style: TextStyle(color: secondaryText));
     }
 
     final spots = analyticsData.monthlyTrends.entries
@@ -220,8 +227,8 @@ class InsightCard extends StatelessWidget {
                   if (value.toInt() >= 0 && value.toInt() < labels.length) {
                     return Text(
                       labels[value.toInt()],
-                      style: const TextStyle(
-                        color: Colors.white70,
+                      style: TextStyle(
+                        color: secondaryText,
                         fontSize: 10,
                       ),
                     );
@@ -235,7 +242,8 @@ class InsightCard extends StatelessWidget {
             show: true,
             drawVerticalLine: false,
             getDrawingHorizontalLine: (value) => FlLine(
-              color: Colors.white.withOpacity(0.1),
+              color: (isDark ? Colors.white : Colors.black)
+                  .withOpacity(0.08),
               strokeWidth: 1,
             ),
           ),
@@ -245,9 +253,11 @@ class InsightCard extends StatelessWidget {
     );
   }
 
-  Widget _buildDayOfWeekChart() {
+  Widget _buildDayOfWeekChart(bool isDark) {
+    final primaryText = isDark ? Colors.white : Colors.black87;
+    final secondaryText = isDark ? Colors.white70 : Colors.black54;
     if (analyticsData.dayOfWeekSpending.isEmpty) {
-      return const Text('No day data', style: TextStyle(color: Colors.white70));
+      return Text('No day data', style: TextStyle(color: secondaryText));
     }
 
     final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -269,15 +279,15 @@ class InsightCard extends StatelessWidget {
                 children: [
                   Text(
                     day,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: primaryText,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   Text(
                     '₹${amount.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: primaryText,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -286,7 +296,8 @@ class InsightCard extends StatelessWidget {
               const SizedBox(height: 4),
               LinearProgressIndicator(
                 value: percentage.toDouble(),
-                backgroundColor: Colors.white.withOpacity(0.1),
+                backgroundColor: (isDark ? Colors.white : Colors.black)
+                    .withOpacity(0.08),
                 valueColor: const AlwaysStoppedAnimation(Colors.blue),
               ),
             ],
@@ -296,14 +307,16 @@ class InsightCard extends StatelessWidget {
     );
   }
 
-  Widget _buildMerchantList() {
+  Widget _buildMerchantList(bool isDark) {
+    final primaryText = isDark ? Colors.white : Colors.black87;
+    final secondaryText = isDark ? Colors.white70 : Colors.black54;
     final sortedMerchants = analyticsData.merchantFrequency.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
     final topMerchants = sortedMerchants.take(5).toList();
 
     if (topMerchants.isEmpty) {
-      return const Text('No merchant data', style: TextStyle(color: Colors.white70));
+      return Text('No merchant data', style: TextStyle(color: secondaryText));
     }
 
     return Column(
@@ -329,15 +342,15 @@ class InsightCard extends StatelessWidget {
                   children: [
                     Text(
                       entry.key,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: primaryText,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     Text(
                       '${entry.value} transactions',
-                      style: const TextStyle(
-                        color: Colors.white70,
+                      style: TextStyle(
+                        color: secondaryText,
                         fontSize: 12,
                       ),
                     ),
@@ -346,8 +359,8 @@ class InsightCard extends StatelessWidget {
               ),
               Text(
                 '₹${spending.toStringAsFixed(0)}',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: primaryText,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -358,7 +371,9 @@ class InsightCard extends StatelessWidget {
     );
   }
 
-  Widget _buildBudgetProgress() {
+  Widget _buildBudgetProgress(bool isDark) {
+    final primaryText = isDark ? Colors.white : Colors.black87;
+    final secondaryText = isDark ? Colors.white70 : Colors.black54;
     final percentage = analyticsData.budgetUsedPercentage;
     final remaining = analyticsData.budgetAmount - analyticsData.totalExpenses;
     final color = percentage > 90
@@ -375,14 +390,14 @@ class InsightCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Budget',
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                  style: TextStyle(color: secondaryText, fontSize: 12),
                 ),
                 Text(
                   '₹${analyticsData.budgetAmount.toStringAsFixed(0)}',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: primaryText,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -392,9 +407,9 @@ class InsightCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const Text(
+                Text(
                   'Spent',
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                  style: TextStyle(color: secondaryText, fontSize: 12),
                 ),
                 Text(
                   '₹${analyticsData.totalExpenses.toStringAsFixed(0)}',
@@ -414,7 +429,8 @@ class InsightCard extends StatelessWidget {
           child: LinearProgressIndicator(
             value: (percentage / 100).clamp(0.0, 1.0).toDouble(),
             minHeight: 20,
-            backgroundColor: Colors.white.withOpacity(0.1),
+            backgroundColor:
+                (isDark ? Colors.white : Colors.black).withOpacity(0.08),
             valueColor: AlwaysStoppedAnimation(color),
           ),
         ),
@@ -431,8 +447,8 @@ class InsightCard extends StatelessWidget {
             ),
             Text(
               '₹${remaining.toStringAsFixed(0)} left',
-              style: const TextStyle(
-                color: Colors.white70,
+              style: TextStyle(
+                color: secondaryText,
               ),
             ),
           ],
@@ -453,17 +469,17 @@ class InsightCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Next Month Prediction',
                         style: TextStyle(
-                          color: Colors.white70,
                           fontSize: 12,
+                          color: secondaryText,
                         ),
                       ),
                       Text(
                         '₹${prediction!.predictedAmount.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: primaryText,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -486,11 +502,13 @@ class InsightCard extends StatelessWidget {
     );
   }
 
-  Widget _buildAIInsights() {
+  Widget _buildAIInsights(bool isDark) {
+    final primaryText = isDark ? Colors.white : Colors.black87;
+    final secondaryText = isDark ? Colors.white70 : Colors.black54;
     if (aiInsights.isEmpty) {
-      return const Text(
+      return Text(
         'No significant changes detected',
-        style: TextStyle(color: Colors.white70),
+        style: TextStyle(color: secondaryText),
       );
     }
 
@@ -535,8 +553,8 @@ class InsightCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       insight.insight,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: primaryText,
                         fontSize: 13,
                       ),
                     ),

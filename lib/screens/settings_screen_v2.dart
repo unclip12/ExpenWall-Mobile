@@ -366,60 +366,69 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        const SizedBox(height: 10),
-        
-        // Appearance Section
-        _buildSectionTitle('Appearance'),
-        const SizedBox(height: 12),
-        _buildAppearanceCard(),
-        const SizedBox(height: 32),
-        
-        // Cloud Backup Section
-        _buildSectionTitle('Cloud Backup'),
-        const SizedBox(height: 12),
-        
-        if (!_isSignedIn)
-          _buildSignInCard()
-        else
-          _buildCloudBackupCard(),
-        
-        const SizedBox(height: 32),
-        
-        // Manual Backup Section
-        _buildSectionTitle('Manual Backup'),
-        const SizedBox(height: 12),
-        _buildManualBackupCard(),
-        
-        const SizedBox(height: 32),
-        
-        // About Section
-        _buildSectionTitle('About'),
-        const SizedBox(height: 12),
-        _buildAboutCard(),
-        
-        const SizedBox(height: 80),
-      ],
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final mutedText = isDark ? Colors.white70 : Colors.grey[600];
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        title: const Text('Settings'),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          const SizedBox(height: 10),
+          
+          // Appearance Section
+          _buildSectionTitle('Appearance', isDark),
+          const SizedBox(height: 12),
+          _buildAppearanceCard(mutedText),
+          const SizedBox(height: 32),
+          
+          // Cloud Backup Section
+          _buildSectionTitle('Cloud Backup', isDark),
+          const SizedBox(height: 12),
+          
+          if (!_isSignedIn)
+            _buildSignInCard(mutedText)
+          else
+            _buildCloudBackupCard(mutedText),
+          
+          const SizedBox(height: 32),
+          
+          // Manual Backup Section
+          _buildSectionTitle('Manual Backup', isDark),
+          const SizedBox(height: 12),
+          _buildManualBackupCard(mutedText),
+          
+          const SizedBox(height: 32),
+          
+          // About Section
+          _buildSectionTitle('About', isDark),
+          const SizedBox(height: 12),
+          _buildAboutCard(mutedText),
+          
+          const SizedBox(height: 80),
+        ],
+      ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, bool isDark) {
     return Padding(
       padding: const EdgeInsets.only(left: 4),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: Colors.grey,
+          color: isDark ? Colors.white60 : Colors.grey,
         ),
       ),
     );
   }
 
-  Widget _buildAppearanceCard() {
+  Widget _buildAppearanceCard(Color? mutedText) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final currentTheme = themeProvider.currentThemeConfig;
     
@@ -451,7 +460,7 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
                       themeProvider.isDarkMode ? 'Enabled' : 'Disabled',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: mutedText,
                       ),
                     ),
                   ],
@@ -553,7 +562,7 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
     );
   }
 
-  Widget _buildSignInCard() {
+  Widget _buildSignInCard(Color? mutedText) {
     return GlassCard(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -590,7 +599,7 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[600],
+              color: mutedText,
             ),
           ),
           const SizedBox(height: 24),
@@ -607,7 +616,7 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
     );
   }
 
-  Widget _buildCloudBackupCard() {
+  Widget _buildCloudBackupCard(Color? mutedText) {
     return GlassCard(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -638,7 +647,7 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
                       _userEmail ?? '',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: mutedText,
                       ),
                     ),
                   ],
@@ -687,7 +696,7 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
                             : 'Disabled',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey[600],
+                          color: mutedText,
                         ),
                       ),
                     ],
@@ -729,7 +738,7 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
                     'Last backup: ${_formatBackupTime(_lastBackupTime!)}',
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.grey[600],
+                      color: mutedText,
                     ),
                   ),
                 ],
@@ -787,7 +796,7 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
     );
   }
 
-  Widget _buildManualBackupCard() {
+  Widget _buildManualBackupCard(Color? mutedText) {
     return GlassCard(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -805,7 +814,7 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
             'Backup your data to a file or restore from a previous backup.',
             style: TextStyle(
               fontSize: 13,
-              color: Colors.grey[600],
+              color: mutedText,
             ),
           ),
           const SizedBox(height: 16),
@@ -839,7 +848,7 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
     );
   }
 
-  Widget _buildAboutCard() {
+  Widget _buildAboutCard(Color? mutedText) {
     return GlassCard(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -857,7 +866,7 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
             'Version 2.7.0 (Premium UI Overhaul)',
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[600],
+              color: mutedText,
             ),
           ),
           const SizedBox(height: 16),
@@ -865,7 +874,7 @@ class _SettingsScreenV2State extends State<SettingsScreenV2> {
             'Smart expense tracking with complete privacy. Your data stays on your device and optionally syncs to your own Google Drive.',
             style: TextStyle(
               fontSize: 13,
-              color: Colors.grey[600],
+              color: mutedText,
             ),
           ),
         ],
