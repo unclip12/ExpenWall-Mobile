@@ -141,15 +141,15 @@ jobs:
         echo "- Build Number: ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
         echo "- 🔐 Firebase: Configured from secrets" >> $GITHUB_STEP_SUMMARY
 
-    - name: 🔥 Deploy to Firebase App Distribution
-      uses: wzieba/Firebase-Distribution-Github-Action@v1
-      with:
-        appId: ${{ secrets.FIREBASE_APP_ID }}
-        serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        groups: testers
-        file: build/app/outputs/flutter-apk/app-release.apk
-        releaseNotes: |
-          🎉 ExpenWall v3.0 - Phase 1 Complete!
+    - name: Upload to Firebase App Distribution
+  uses: wzieba/Firebase-Distribution-Github-Action@v1
+  with:
+    appId: ${{ secrets.FIREBASE_APP_ID }}
+    serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_CREDENTIALS }}
+    groups: testers
+    file: build/app/outputs/flutter-apk/app-release.apk
+    releaseNotes: "Build from commit ${{ github.sha }}"
+
           
           ✅ New Features:
           - Liquid morphism themes (Ocean Wave & Sunset Glow)
