@@ -140,3 +140,26 @@ jobs:
         echo "- Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
         echo "- Build Number: ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
         echo "- 🔐 Firebase: Configured from secrets" >> $GITHUB_STEP_SUMMARY
+
+    - name: 🔥 Deploy to Firebase App Distribution
+      uses: wzieba/Firebase-Distribution-Github-Action@v1
+      with:
+        appId: ${{ secrets.FIREBASE_APP_ID }}
+        serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        groups: testers
+        file: build/app/outputs/flutter-apk/app-release.apk
+        releaseNotes: |
+          🎉 ExpenWall v3.0 - Phase 1 Complete!
+          
+          ✅ New Features:
+          - Liquid morphism themes (Ocean Wave & Sunset Glow)
+          - Glass morphism effects
+          - 5-tab navigation with haptic feedback
+          - Material 3 design
+          - Coming Soon screens for 4 tabs
+          - Dashboard showing Phase 1 status
+          
+          📱 Install and test the new beautiful UI!
+          
+          Build: ${{ github.run_number }}
+          Commit: ${{ github.sha }}
