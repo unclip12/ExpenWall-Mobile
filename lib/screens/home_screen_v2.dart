@@ -251,12 +251,10 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
     if (_currentMainTab != index) {
       HapticFeedback.mediumImpact();
       setState(() => _currentMainTab = index);
-      _mainPageController.animateToPage(
-        index,
-        // ✅ WATER: Liquid settling curve (fast start, slow graceful end)
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.fastLinearToSlowEaseIn,
-      );
+      
+      // ✅ CRITICAL FIX: Use jumpToPage for instant, stable switching
+      // No animation = no gesture conflicts with vertical scrolling
+      _mainPageController.jumpToPage(index);
     }
   }
 
@@ -264,12 +262,9 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
     if (_planningSubTab != index) {
       HapticFeedback.mediumImpact();
       setState(() => _planningSubTab = index);
-      _planningPageController.animateToPage(
-        index,
-        // ✅ WATER: Liquid settling curve
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.fastLinearToSlowEaseIn,
-      );
+      
+      // ✅ CRITICAL FIX: Use jumpToPage for instant, stable switching
+      _planningPageController.jumpToPage(index);
     }
   }
 
@@ -277,20 +272,18 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
     if (_socialSubTab != index) {
       HapticFeedback.mediumImpact();
       setState(() => _socialSubTab = index);
-      _socialPageController.animateToPage(
-        index,
-        // ✅ WATER: Liquid settling curve
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.fastLinearToSlowEaseIn,
-      );
+      
+      // ✅ CRITICAL FIX: Use jumpToPage for instant, stable switching
+      _socialPageController.jumpToPage(index);
     }
   }
 
   Widget _getPlanningScreen() {
-    // ✅ WATER: Bouncing physics + smooth horizontal swipe
+    // ✅ CRITICAL FIX: NeverScrollableScrollPhysics to prevent horizontal swipe conflicts
+    // TAP ONLY navigation for stable vertical scrolling
     return PageView(
       controller: _planningPageController,
-      physics: const BouncingScrollPhysics(), // iOS-like rubber band
+      physics: const NeverScrollableScrollPhysics(), // NO horizontal swipe
       onPageChanged: (index) {
         if (_planningSubTab != index) {
           HapticFeedback.mediumImpact();
@@ -311,10 +304,11 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
   }
 
   Widget _getSocialScreen() {
-    // ✅ WATER: Bouncing physics + smooth horizontal swipe
+    // ✅ CRITICAL FIX: NeverScrollableScrollPhysics to prevent horizontal swipe conflicts
+    // TAP ONLY navigation for stable vertical scrolling
     return PageView(
       controller: _socialPageController,
-      physics: const BouncingScrollPhysics(), // iOS-like rubber band
+      physics: const NeverScrollableScrollPhysics(), // NO horizontal swipe
       onPageChanged: (index) {
         if (_socialSubTab != index) {
           HapticFeedback.mediumImpact();
@@ -438,10 +432,9 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
                         ? _buildErrorState()
                         : PageView(
                             controller: _mainPageController,
-                            // ✅ WATER: Disable horizontal swipe on main PageView
-                            // This prevents conflicts with vertical scrolling in child screens
-                            // Users will use bottom navigation to switch tabs (more predictable)
-                            // BUT we use bouncing physics for any programmatic animations
+                            // ✅ CRITICAL: NeverScrollableScrollPhysics prevents ALL horizontal swipe
+                            // This ensures vertical scrolling NEVER conflicts with horizontal gestures
+                            // Navigation is TAP ONLY via bottom nav bar
                             physics: const NeverScrollableScrollPhysics(),
                             onPageChanged: (index) {
                               if (_currentMainTab != index) {
