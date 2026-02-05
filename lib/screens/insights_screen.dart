@@ -25,8 +25,8 @@ class _InsightsScreenState extends State<InsightsScreen> with AutomaticKeepAlive
   ExpensePrediction? _prediction;
   bool _isLoading = true;
 
-  // Card order
-  List<InsightType> _cardOrder = [
+  // Card order (fixed list to avoid drag-state overlays blocking interactions)
+  static const List<InsightType> _cardOrder = [
     InsightType.aiInsights,
     InsightType.topSpendingCategories,
     InsightType.spendingTrends,
@@ -53,20 +53,24 @@ class _InsightsScreenState extends State<InsightsScreen> with AutomaticKeepAlive
       final startDate = DateTime(now.year, now.month, 1);
       final endDate = DateTime(now.year, now.month + 1, 0);
 
-      final data = await _analyticsService.getAnalytics(
-        userId: widget.userId,
-        startDate: startDate,
-        endDate: endDate,
-      );
+      final results = await Future.wait([
+        _analyticsService.getAnalytics(
+          userId: widget.userId,
+          startDate: startDate,
+          endDate: endDate,
+        ),
+        _analyticsService.generateAIInsights(
+          userId: widget.userId,
+          currentMonth: now,
+        ),
+        _analyticsService.predictNextMonthExpenses(
+          userId: widget.userId,
+        ),
+      ]).timeout(const Duration(seconds: 20));
 
-      final insights = await _analyticsService.generateAIInsights(
-        userId: widget.userId,
-        currentMonth: now,
-      );
-
-      final prediction = await _analyticsService.predictNextMonthExpenses(
-        userId: widget.userId,
-      );
+      final data = results[0] as AnalyticsData;
+      final insights = results[1] as List<AIInsight>;
+      final prediction = results[2] as ExpensePrediction;
 
       if (mounted) {
         setState(() {
@@ -82,15 +86,6 @@ class _InsightsScreenState extends State<InsightsScreen> with AutomaticKeepAlive
         print('Error loading analytics: $e');
       }
     }
-  }
-
-  void _moveCard(int oldIndex, int newIndex) {
-    setState(() {
-      if (newIndex > oldIndex) newIndex--;
-      final card = _cardOrder.removeAt(oldIndex);
-      _cardOrder.insert(newIndex, card);
-    });
-    HapticFeedback.mediumImpact();
   }
 
   @override
@@ -204,7 +199,7 @@ class _InsightsScreenState extends State<InsightsScreen> with AutomaticKeepAlive
     return RefreshIndicator(
       onRefresh: _loadAnalytics,
       color: theme.primaryColor,
-      child: ReorderableListView.builder(
+      child: ListView.builder(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.only(
           left: 16, 
@@ -213,11 +208,6 @@ class _InsightsScreenState extends State<InsightsScreen> with AutomaticKeepAlive
           bottom: 100,
         ),
         itemCount: _cardOrder.length + 1,
-        onReorder: (oldIndex, newIndex) {
-          if (oldIndex == 0) return;
-          if (newIndex == 0) newIndex = 1;
-          _moveCard(oldIndex - 1, newIndex - 1);
-        },
         itemBuilder: (context, index) {
           if (index == 0) {
             return Container(
@@ -275,20 +265,20 @@ class _InsightsScreenState extends State<InsightsScreen> with AutomaticKeepAlive
           return Container(
             key: ValueKey(type),
             margin: const EdgeInsets.only(bottom: 16),
-            child: _buildInsightCard(type, index - 1),
+            child: _buildInsightCard(type),
           );
         },
       ),
     );
   }
 
-  Widget _buildInsightCard(InsightType type, int index) {
+  Widget _buildInsightCard(InsightType type) {
     return InsightCard(
       type: type,
       analyticsData: _analyticsData!,
       aiInsights: _aiInsights ?? [],
       prediction: _prediction,
-      onReorder: true,
+      onReorder: false,
     );
   }
 }
