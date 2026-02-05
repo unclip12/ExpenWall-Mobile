@@ -253,8 +253,9 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
       setState(() => _currentMainTab = index);
       _mainPageController.animateToPage(
         index,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
+        // ✅ WATER: Liquid settling curve (fast start, slow graceful end)
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.fastLinearToSlowEaseIn,
       );
     }
   }
@@ -265,8 +266,9 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
       setState(() => _planningSubTab = index);
       _planningPageController.animateToPage(
         index,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
+        // ✅ WATER: Liquid settling curve
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.fastLinearToSlowEaseIn,
       );
     }
   }
@@ -277,17 +279,18 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
       setState(() => _socialSubTab = index);
       _socialPageController.animateToPage(
         index,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
+        // ✅ WATER: Liquid settling curve
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.fastLinearToSlowEaseIn,
       );
     }
   }
 
   Widget _getPlanningScreen() {
-    // ✅ FIX: Use PageScrollPhysics for smooth horizontal swipe in sub-tabs
+    // ✅ WATER: Bouncing physics + smooth horizontal swipe
     return PageView(
       controller: _planningPageController,
-      physics: const PageScrollPhysics(), // Allows horizontal swipe
+      physics: const BouncingScrollPhysics(), // iOS-like rubber band
       onPageChanged: (index) {
         if (_planningSubTab != index) {
           HapticFeedback.mediumImpact();
@@ -308,10 +311,10 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
   }
 
   Widget _getSocialScreen() {
-    // ✅ FIX: Use PageScrollPhysics for smooth horizontal swipe in sub-tabs
+    // ✅ WATER: Bouncing physics + smooth horizontal swipe
     return PageView(
       controller: _socialPageController,
-      physics: const PageScrollPhysics(), // Allows horizontal swipe
+      physics: const BouncingScrollPhysics(), // iOS-like rubber band
       onPageChanged: (index) {
         if (_socialSubTab != index) {
           HapticFeedback.mediumImpact();
@@ -435,9 +438,10 @@ class _HomeScreenV2State extends State<HomeScreenV2> {
                         ? _buildErrorState()
                         : PageView(
                             controller: _mainPageController,
-                            // ✅ CRITICAL FIX: Disable horizontal swipe on main PageView
+                            // ✅ WATER: Disable horizontal swipe on main PageView
                             // This prevents conflicts with vertical scrolling in child screens
                             // Users will use bottom navigation to switch tabs (more predictable)
+                            // BUT we use bouncing physics for any programmatic animations
                             physics: const NeverScrollableScrollPhysics(),
                             onPageChanged: (index) {
                               if (_currentMainTab != index) {
