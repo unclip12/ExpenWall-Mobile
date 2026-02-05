@@ -3,10 +3,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/transaction.dart' as models;
 import '../models/analytics_data.dart';
+import 'local_storage_service.dart';
 import 'dart:math';
 
 class AnalyticsService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final LocalStorageService _localStorageService = LocalStorageService();
 
   // Get comprehensive analytics for a date range
   Future<AnalyticsData> getAnalytics({
@@ -315,17 +317,30 @@ class AnalyticsService {
     DateTime startDate,
     DateTime endDate,
   ) async {
-    final snapshot = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('transactions')
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
-        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
-        .get();
+    try {
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('transactions')
+          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
+          .get();
 
-    return snapshot.docs
-        .map((doc) => models.Transaction.fromFirestore(doc))
-        .toList();
+      return snapshot.docs
+          .map((doc) => models.Transaction.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      print('Firestore unavailable for analytics transactions, using local cache: $e');
+      final localTransactions = await _localStorageService.loadTransactions(userId);
+
+      return localTransactions
+          .where(
+            (t) => !t.date.isBefore(startDate) &&
+                !t.date.isAfter(endDate) &&
+                t.userId == userId,
+          )
+          .toList();
+    }
   }
 
   Map<String, double> _calculateCategorySpending(
@@ -403,8 +418,20 @@ class AnalyticsService {
         return (doc.data()?['amount'] ?? 0).toDouble();
       }
     } catch (e) {
-      print('Error getting budget: $e');
+      print('Firestore unavailable for analytics budgets, using local cache: $e');
     }
+
+    try {
+      final localBudgets = await _localStorageService.loadBudgets(userId);
+      if (localBudgets.isEmpty) return 0;
+
+      return localBudgets
+          .where((budget) => budget.period.toLowerCase() == 'monthly')
+          .fold(0.0, (sum, budget) => sum + budget.amount);
+    } catch (e) {
+      print('Error getting local budget for analytics: $e');
+    }
+
     return 0;
   }
 
