@@ -426,6 +426,11 @@ class AppTheme {
       scaffoldBackgroundColor: Colors.transparent,
       textTheme: _buildTextTheme(const Color(0xFF1E293B)),
       
+      // ✅ WATER: Global scroll physics for liquid feel (iOS-like on all platforms)
+      scrollbarTheme: const ScrollbarThemeData(
+        thumbVisibility: WidgetStatePropertyAll(false),
+      ),
+      
       appBarTheme: AppBarTheme(
         elevation: 0,
         centerTitle: false,
@@ -534,6 +539,11 @@ class AppTheme {
       colorScheme: colorScheme,
       scaffoldBackgroundColor: Colors.transparent,
       textTheme: _buildTextTheme(Colors.white),
+      
+      // ✅ WATER: Global scroll physics for liquid feel (iOS-like on all platforms)
+      scrollbarTheme: const ScrollbarThemeData(
+        thumbVisibility: WidgetStatePropertyAll(false),
+      ),
       
       appBarTheme: AppBarTheme(
         elevation: 0,
