@@ -65,7 +65,7 @@ jobs:
         if [ -n "$KEYSTORE_BASE64" ]; then
           echo "🔑 Decoding release keystore..."
           echo "$KEYSTORE_BASE64" | base64 -d > android/app/release-keystore.jks
-          echo "KEYSTORE_FILE=android/app/release-keystore.jks" >> $GITHUB_ENV
+          echo "KEYSTORE_FILE=release-keystore.jks" >> $GITHUB_ENV
           echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> $GITHUB_ENV
           echo "KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
           echo "KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
