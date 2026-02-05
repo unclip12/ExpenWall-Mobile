@@ -48,40 +48,77 @@ class _InsightsScreenState extends State<InsightsScreen> with AutomaticKeepAlive
     if (!mounted) return;
     setState(() => _isLoading = true);
 
+    final now = DateTime.now();
+    final startDate = DateTime(now.year, now.month, 1);
+    final endDate = DateTime(now.year, now.month + 1, 0);
+
     try {
-      final now = DateTime.now();
-      final startDate = DateTime(now.year, now.month, 1);
-      final endDate = DateTime(now.year, now.month + 1, 0);
+      final data = await _analyticsService
+          .getAnalytics(
+            userId: widget.userId,
+            startDate: startDate,
+            endDate: endDate,
+          )
+          .timeout(const Duration(seconds: 12));
 
-      final data = await _analyticsService.getAnalytics(
-        userId: widget.userId,
-        startDate: startDate,
-        endDate: endDate,
-      );
-
-      final insights = await _analyticsService.generateAIInsights(
-        userId: widget.userId,
-        currentMonth: now,
-      );
-
-      final prediction = await _analyticsService.predictNextMonthExpenses(
-        userId: widget.userId,
-      );
-
-      if (mounted) {
-        setState(() {
-          _analyticsData = data;
-          _aiInsights = insights;
-          _prediction = prediction;
-          _isLoading = false;
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _analyticsData = data;
+        _isLoading = false;
+      });
     } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        print('Error loading analytics: $e');
-      }
+      // Keep screen usable even when analytics source is slow/offline.
+      if (!mounted) return;
+      setState(() {
+        _analyticsData ??= AnalyticsData(
+          categorySpending: const {},
+          monthlyTrends: const {},
+          dayOfWeekSpending: const {},
+          merchantFrequency: const {},
+          merchantSpending: const {},
+          totalIncome: 0,
+          totalExpenses: 0,
+          budgetAmount: 0,
+          budgetUsedPercentage: 0,
+          startDate: startDate,
+          endDate: endDate,
+        );
+        _isLoading = false;
+      });
+      debugPrint('Error loading analytics: $e');
     }
+
+    _loadSecondaryInsights(now);
+  }
+
+  Future<void> _loadSecondaryInsights(DateTime now) async {
+    final aiInsightsFuture = _analyticsService
+        .generateAIInsights(
+          userId: widget.userId,
+          currentMonth: now,
+        )
+        .timeout(const Duration(seconds: 10));
+
+    final predictionFuture = _analyticsService
+        .predictNextMonthExpenses(userId: widget.userId)
+        .timeout(const Duration(seconds: 10));
+
+    final aiInsights = await aiInsightsFuture.catchError((error) {
+      debugPrint('Error loading AI insights: $error');
+      return <AIInsight>[];
+    });
+
+    final prediction =
+        await predictionFuture.catchError((error) {
+      debugPrint('Error loading prediction: $error');
+      return null;
+    });
+
+    if (!mounted) return;
+    setState(() {
+      _aiInsights = aiInsights;
+      _prediction = prediction;
+    });
   }
 
   void _moveCard(int oldIndex, int newIndex) {
