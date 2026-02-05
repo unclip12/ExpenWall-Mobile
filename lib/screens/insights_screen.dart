@@ -17,7 +17,9 @@ class InsightsScreen extends StatefulWidget {
   State<InsightsScreen> createState() => _InsightsScreenState();
 }
 
-class _InsightsScreenState extends State<InsightsScreen> {
+// ✅ CRITICAL FIX: Implements AutomaticKeepAliveClientMixin to prevent rebuilds
+// This keeps the screen alive during tab switches for "water" fluidity
+class _InsightsScreenState extends State<InsightsScreen> with AutomaticKeepAliveClientMixin {
   final AnalyticsService _analyticsService = AnalyticsService();
   AnalyticsData? _analyticsData;
   List<AIInsight>? _aiInsights;
@@ -39,6 +41,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
     super.initState();
     _loadAnalytics();
   }
+
+  // ✅ Keep the screen alive (prevents rebuild lag during tab switching)
+  @override
+  bool get wantKeepAlive => true;
 
   Future<void> _loadAnalytics() async {
     if (!mounted) return;
@@ -92,115 +98,125 @@ class _InsightsScreenState extends State<InsightsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ CRITICAL: Call super.build when using AutomaticKeepAliveClientMixin
+    super.build(context);
+    
     // ✅ FIX: Ensure content is visible in dark mode
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    return Scaffold(
-      backgroundColor: Colors.transparent, // Allow gradient to show through
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _analyticsData == null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.insights_outlined, 
-                        size: 64, 
-                        color: isDark ? Colors.white54 : Colors.grey[400]
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No insights available yet',
-                        style: TextStyle(
-                          color: isDark ? Colors.white70 : Colors.grey[600],
-                          fontSize: 16
+    // ✅ CRITICAL FIX: Wrap entire content in SizedBox.expand()
+    // This forces the widget to take all available space in PageView
+    // Without this, the Scaffold with transparent background renders as grey
+    return SizedBox.expand(
+      child: Scaffold(
+        backgroundColor: Colors.transparent, // Allow gradient to show through
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _analyticsData == null
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.insights_outlined, 
+                          size: 64, 
+                          color: isDark ? Colors.white54 : Colors.grey[400]
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: _loadAnalytics,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadAnalytics,
-                  color: Theme.of(context).primaryColor,
-                  child: ReorderableListView.builder(
-                    padding: const EdgeInsets.only(
-                      left: 16, 
-                      right: 16, 
-                      top: 16, 
-                      bottom: 80 // Space for bottom nav
-                    ),
-                    itemCount: _cardOrder.length + 1, // +1 for header
-                    onReorder: (oldIndex, newIndex) {
-                      // Adjust indices because of header
-                      if (oldIndex == 0) return; // Can't move header
-                      if (newIndex == 0) newIndex = 1; // Can't move above header
-                      _moveCard(oldIndex - 1, newIndex - 1);
-                    },
-                    itemBuilder: (context, index) {
-                      if (index == 0) {
-                         // ✅ FIX: Add header inside list so it scrolls
-                        return Container(
-                          key: const ValueKey('header'),
-                          margin: const EdgeInsets.only(bottom: 16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Insights',
-                                    style: TextStyle(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.bold,
-                                      color: isDark ? Colors.white : Colors.black87,
-                                    ),
-                                  ),
-                                  Text(
-                                    'AI-Powered Analysis',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: isDark ? Colors.white70 : Colors.black54,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Row(
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.compare_arrows),
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => ComparisonScreen(userId: widget.userId),
-                                        ),
-                                      );
-                                    },
-                                    tooltip: 'Compare Months',
-                                  ),
-                                ],
-                              ),
-                            ],
+                        const SizedBox(height: 16),
+                        Text(
+                          'No insights available yet',
+                          style: TextStyle(
+                            color: isDark ? Colors.white70 : Colors.grey[600],
+                            fontSize: 16
                           ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: _loadAnalytics,
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _loadAnalytics,
+                    color: Theme.of(context).primaryColor,
+                    child: ReorderableListView.builder(
+                      // ✅ WATER: Use BouncingScrollPhysics for iOS-like rubber band effect
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.only(
+                        left: 16, 
+                        right: 16, 
+                        top: 16, 
+                        bottom: 80 // Space for bottom nav
+                      ),
+                      itemCount: _cardOrder.length + 1, // +1 for header
+                      onReorder: (oldIndex, newIndex) {
+                        // Adjust indices because of header
+                        if (oldIndex == 0) return; // Can't move header
+                        if (newIndex == 0) newIndex = 1; // Can't move above header
+                        _moveCard(oldIndex - 1, newIndex - 1);
+                      },
+                      itemBuilder: (context, index) {
+                        if (index == 0) {
+                           // ✅ FIX: Add header inside list so it scrolls
+                          return Container(
+                            key: const ValueKey('header'),
+                            margin: const EdgeInsets.only(bottom: 16),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Insights',
+                                      style: TextStyle(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.bold,
+                                        color: isDark ? Colors.white : Colors.black87,
+                                      ),
+                                    ),
+                                    Text(
+                                      'AI-Powered Analysis',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: isDark ? Colors.white70 : Colors.black54,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Row(
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.compare_arrows),
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => ComparisonScreen(userId: widget.userId),
+                                          ),
+                                        );
+                                      },
+                                      tooltip: 'Compare Months',
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        
+                        final type = _cardOrder[index - 1];
+                        return Container(
+                          key: ValueKey(type),
+                          margin: const EdgeInsets.only(bottom: 16),
+                          child: _buildInsightCard(type, index - 1),
                         );
-                      }
-                      
-                      final type = _cardOrder[index - 1];
-                      return Container(
-                        key: ValueKey(type),
-                        margin: const EdgeInsets.only(bottom: 16),
-                        child: _buildInsightCard(type, index - 1),
-                      );
-                    },
+                      },
+                    ),
                   ),
-                ),
+      ),
     );
   }
 
