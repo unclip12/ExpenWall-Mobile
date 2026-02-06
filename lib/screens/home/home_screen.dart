@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../dashboard/dashboard_screen.dart';
@@ -65,63 +66,144 @@ class _HomeScreenState extends State<HomeScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark 
-            ? Colors.black.withOpacity(0.9) 
-            : Colors.white.withOpacity(0.9),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                theme.colorScheme.primary.withOpacity(0.15),
+                theme.colorScheme.secondary.withOpacity(0.12),
+                theme.colorScheme.tertiary.withOpacity(0.1),
+              ],
+            ),
+            border: Border(
+              top: BorderSide(
+                color: (isDark ? Colors.white : Colors.white).withOpacity(0.2),
+                width: 1,
+              ),
+            ),
           ),
-        ],
+          child: SafeArea(
+            child: SizedBox(
+              height: 65,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildNavItem(
+                    index: 0,
+                    icon: Icons.home_outlined,
+                    activeIcon: Icons.home,
+                    label: 'Dashboard',
+                    theme: theme,
+                    isDark: isDark,
+                  ),
+                  _buildNavItem(
+                    index: 1,
+                    icon: Icons.receipt_long_outlined,
+                    activeIcon: Icons.receipt_long,
+                    label: 'Expenses',
+                    theme: theme,
+                    isDark: isDark,
+                  ),
+                  _buildNavItem(
+                    index: 2,
+                    icon: Icons.calendar_month_outlined,
+                    activeIcon: Icons.calendar_month,
+                    label: 'Planning',
+                    theme: theme,
+                    isDark: isDark,
+                  ),
+                  _buildNavItem(
+                    index: 3,
+                    icon: Icons.people_outline,
+                    activeIcon: Icons.people,
+                    label: 'Social',
+                    theme: theme,
+                    isDark: isDark,
+                  ),
+                  _buildNavItem(
+                    index: 4,
+                    icon: Icons.insights_outlined,
+                    activeIcon: Icons.insights,
+                    label: 'Insights',
+                    theme: theme,
+                    isDark: isDark,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
-      child: SafeArea(
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: _onTabTapped,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.transparent,
-          selectedItemColor: theme.colorScheme.primary,
-          unselectedItemColor: isDark ? Colors.white54 : Colors.black54,
-          selectedFontSize: 12,
-          unselectedFontSize: 11,
-          selectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
+    );
+  }
+
+  Widget _buildNavItem({
+    required int index,
+    required IconData icon,
+    required IconData activeIcon,
+    required String label,
+    required ThemeData theme,
+    required bool isDark,
+  }) {
+    final isActive = _currentIndex == index;
+    
+    return Expanded(
+      child: InkWell(
+        onTap: () => _onTabTapped(index),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          decoration: BoxDecoration(
+            gradient: isActive
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      theme.colorScheme.primary.withOpacity(0.25),
+                      theme.colorScheme.secondary.withOpacity(0.2),
+                    ],
+                  )
+                : null,
+            borderRadius: BorderRadius.circular(16),
+            border: isActive
+                ? Border.all(
+                    color: theme.colorScheme.primary.withOpacity(0.4),
+                    width: 1.5,
+                  )
+                : null,
           ),
-          unselectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w500,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isActive ? activeIcon : icon,
+                size: isActive ? 26 : 24,
+                color: isActive
+                    ? Colors.white
+                    : (isDark ? Colors.white70 : Colors.white70),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: isActive ? 11 : 10,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                  color: isActive
+                      ? Colors.white
+                      : (isDark ? Colors.white70 : Colors.white70),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
-          elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Dashboard',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.receipt_long_outlined),
-              activeIcon: Icon(Icons.receipt_long),
-              label: 'Expenses',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_month_outlined),
-              activeIcon: Icon(Icons.calendar_month),
-              label: 'Planning',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.people_outline),
-              activeIcon: Icon(Icons.people),
-              label: 'Social',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.insights_outlined),
-              activeIcon: Icon(Icons.insights),
-              label: 'Insights',
-            ),
-          ],
         ),
       ),
     );
