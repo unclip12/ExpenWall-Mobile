@@ -146,7 +146,7 @@ jobs:
       with:
         appId: ${{ secrets.FIREBASE_APP_ID }}
         serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_CREDENTIALS }}
-        testers: unclip-kite-stooge@duck.com
+        testers: arshath1012@gmail.com
         file: build/app/outputs/flutter-apk/app-release.apk
         releaseNotes: |
           🎉 ExpenWall v3.0 - Phase 2 Feature A Complete!
@@ -156,6 +156,8 @@ jobs:
           - Time-based greeting (Morning/Afternoon/Evening/Night)
           - Animated balance counter with count-up effect
           - Indian currency formatting (₹)
+          - Enhanced bottom navigation with liquid morphism
+          - Centered card layout
           
           Phase 1 Features:
           - Liquid morphism themes (Ocean Wave & Sunset Glow)
@@ -163,7 +165,7 @@ jobs:
           - 5-tab navigation with haptic feedback
           - Material 3 design
           
-          📱 Install and test Feature A!
+          📱 Install and test Feature A + Enhanced Navigation!
           
           Build: ${{ github.run_number }}
           Commit: ${{ github.sha }}
