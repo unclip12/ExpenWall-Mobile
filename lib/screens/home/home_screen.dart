@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../dashboard/dashboard_screen.dart';
@@ -64,61 +65,121 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBottomNavigationBar() {
     final theme = Theme.of(context);
     
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A237E), // Dark blue/navy background
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          decoration: BoxDecoration(
+            // Darker semi-opaque background for better contrast
+            color: const Color(0xFF1A237E).withOpacity(0.7),
+            border: Border(
+              top: BorderSide(
+                color: Colors.white.withOpacity(0.3),
+                width: 1.5,
+              ),
+            ),
           ),
-        ],
+          child: SafeArea(
+            child: SizedBox(
+              height: 68,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildNavItem(
+                    index: 0,
+                    icon: Icons.home_outlined,
+                    activeIcon: Icons.home,
+                    label: 'Dashboard',
+                    theme: theme,
+                  ),
+                  _buildNavItem(
+                    index: 1,
+                    icon: Icons.receipt_long_outlined,
+                    activeIcon: Icons.receipt_long,
+                    label: 'Expenses',
+                    theme: theme,
+                  ),
+                  _buildNavItem(
+                    index: 2,
+                    icon: Icons.calendar_month_outlined,
+                    activeIcon: Icons.calendar_month,
+                    label: 'Planning',
+                    theme: theme,
+                  ),
+                  _buildNavItem(
+                    index: 3,
+                    icon: Icons.people_outline,
+                    activeIcon: Icons.people,
+                    label: 'Social',
+                    theme: theme,
+                  ),
+                  _buildNavItem(
+                    index: 4,
+                    icon: Icons.insights_outlined,
+                    activeIcon: Icons.insights,
+                    label: 'Insights',
+                    theme: theme,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
-      child: SafeArea(
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: _onTabTapped,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.transparent,
-          selectedItemColor: Colors.white,
-          unselectedItemColor: Colors.white70,
-          selectedFontSize: 12,
-          unselectedFontSize: 11,
-          selectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w700,
+    );
+  }
+
+  Widget _buildNavItem({
+    required int index,
+    required IconData icon,
+    required IconData activeIcon,
+    required String label,
+    required ThemeData theme,
+  }) {
+    final isActive = _currentIndex == index;
+    
+    return Expanded(
+      child: InkWell(
+        onTap: () => _onTabTapped(index),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          decoration: BoxDecoration(
+            // Darker blue background for active tab
+            color: isActive
+                ? const Color(0xFF0D47A1).withOpacity(0.6)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            border: isActive
+                ? Border.all(
+                    color: Colors.white.withOpacity(0.4),
+                    width: 2,
+                  )
+                : null,
           ),
-          unselectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w500,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isActive ? activeIcon : icon,
+                size: isActive ? 27 : 24,
+                color: Colors.white, // Pure white for all icons
+              ),
+              const SizedBox(height: 5),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: isActive ? 11.5 : 10.5,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                  color: Colors.white, // Pure white for all text
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
-          elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Dashboard',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.receipt_long_outlined),
-              activeIcon: Icon(Icons.receipt_long),
-              label: 'Expenses',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_month_outlined),
-              activeIcon: Icon(Icons.calendar_month),
-              label: 'Planning',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.people_outline),
-              activeIcon: Icon(Icons.people),
-              label: 'Social',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.insights_outlined),
-              activeIcon: Icon(Icons.insights),
-              label: 'Insights',
-            ),
-          ],
         ),
       ),
     );
