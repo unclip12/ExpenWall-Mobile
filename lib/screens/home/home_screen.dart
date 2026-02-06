@@ -64,24 +64,32 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildBottomNavigationBar() {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     return ClipRRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
           decoration: BoxDecoration(
-            // Darker semi-opaque background for better contrast
-            color: const Color(0xFF1A237E).withOpacity(0.7),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                theme.colorScheme.primary.withOpacity(0.5),   // Darker: was 0.15
+                theme.colorScheme.secondary.withOpacity(0.45), // Darker: was 0.12
+                theme.colorScheme.tertiary.withOpacity(0.4),  // Darker: was 0.1
+              ],
+            ),
             border: Border(
               top: BorderSide(
-                color: Colors.white.withOpacity(0.3),
-                width: 1.5,
+                color: (isDark ? Colors.white : Colors.white).withOpacity(0.2),
+                width: 1,
               ),
             ),
           ),
           child: SafeArea(
             child: SizedBox(
-              height: 68,
+              height: 65,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
@@ -91,6 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     activeIcon: Icons.home,
                     label: 'Dashboard',
                     theme: theme,
+                    isDark: isDark,
                   ),
                   _buildNavItem(
                     index: 1,
@@ -98,6 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     activeIcon: Icons.receipt_long,
                     label: 'Expenses',
                     theme: theme,
+                    isDark: isDark,
                   ),
                   _buildNavItem(
                     index: 2,
@@ -105,6 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     activeIcon: Icons.calendar_month,
                     label: 'Planning',
                     theme: theme,
+                    isDark: isDark,
                   ),
                   _buildNavItem(
                     index: 3,
@@ -112,6 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     activeIcon: Icons.people,
                     label: 'Social',
                     theme: theme,
+                    isDark: isDark,
                   ),
                   _buildNavItem(
                     index: 4,
@@ -119,6 +131,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     activeIcon: Icons.insights,
                     label: 'Insights',
                     theme: theme,
+                    isDark: isDark,
                   ),
                 ],
               ),
@@ -135,6 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required IconData activeIcon,
     required String label,
     required ThemeData theme,
+    required bool isDark,
   }) {
     final isActive = _currentIndex == index;
     
@@ -143,18 +157,24 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: () => _onTabTapped(index),
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          margin: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
-            // Darker blue background for active tab
-            color: isActive
-                ? const Color(0xFF0D47A1).withOpacity(0.6)
-                : Colors.transparent,
+            gradient: isActive
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      theme.colorScheme.primary.withOpacity(0.45),  // Darker: was 0.25
+                      theme.colorScheme.secondary.withOpacity(0.4),  // Darker: was 0.2
+                    ],
+                  )
+                : null,
             borderRadius: BorderRadius.circular(16),
             border: isActive
                 ? Border.all(
-                    color: Colors.white.withOpacity(0.4),
-                    width: 2,
+                    color: theme.colorScheme.primary.withOpacity(0.4),
+                    width: 1.5,
                   )
                 : null,
           ),
@@ -164,16 +184,20 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Icon(
                 isActive ? activeIcon : icon,
-                size: isActive ? 27 : 24,
-                color: Colors.white, // Pure white for all icons
+                size: isActive ? 26 : 24,
+                color: isActive
+                    ? Colors.white
+                    : (isDark ? Colors.white70 : Colors.white70),
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 4),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: isActive ? 11.5 : 10.5,
-                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                  color: Colors.white, // Pure white for all text
+                  fontSize: isActive ? 11 : 10,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                  color: isActive
+                      ? Colors.white
+                      : (isDark ? Colors.white70 : Colors.white70),
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
