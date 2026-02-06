@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../widgets/glass_card.dart';
+import '../../widgets/welcome_balance_card.dart';
 
-/// Dashboard Screen - Will be built in Phase 2
-/// Currently shows placeholder for Phase 1
+/// Dashboard Screen - Phase 2 Development
+/// Feature A: Welcome + Total Balance (Implemented)
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({Key? key}) : super(key: key);
 
@@ -42,26 +43,15 @@ class DashboardScreen extends StatelessWidget {
               children: [
                 const SizedBox(height: 20),
                 
-                // Welcome Message
-                Text(
-                  'Good ${_getGreeting()}!',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.white,
-                  ),
+                // Feature A: Welcome + Total Balance
+                const WelcomeBalanceCard(
+                  userName: 'Unclip',
+                  totalBalance: 45230.50,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Welcome to ExpenWall',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: (isDark ? Colors.white : Colors.white).withOpacity(0.8),
-                  ),
-                ),
-                const SizedBox(height: 40),
                 
-                // Phase 1 Complete Card
+                const SizedBox(height: 24),
+                
+                // Phase 1 Complete Status Card (Keep for reference)
                 GlassCard(
                   child: Column(
                     children: [
@@ -112,7 +102,7 @@ class DashboardScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Text(
-                          'Ready for Phase 2',
+                          'Phase 2 In Progress',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -125,7 +115,7 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
                 
-                // Next Steps Card
+                // Phase 2 Progress Card
                 GlassCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,9 +123,9 @@ class DashboardScreen extends StatelessWidget {
                       Row(
                         children: [
                           Icon(
-                            Icons.architecture,
+                            Icons.construction,
                             size: 32,
-                            color: theme.colorScheme.primary,
+                            color: Colors.orangeAccent,
                           ),
                           const SizedBox(width: 12),
                           Text(
@@ -150,13 +140,13 @@ class DashboardScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Features to build:\n\n'
-                        'A. Welcome + Total Balance\n'
-                        'B. Financial Overview Card\n'
-                        'C. Spending Chart (7 days)\n'
-                        'D. Budget Summary Cards\n'
-                        'E. Recent Transactions\n'
-                        'F. Add Transaction FAB',
+                        'Features Progress:\n\n'
+                        '\u2705 A. Welcome + Total Balance\n'
+                        '\u23f3 B. Financial Overview Card\n'
+                        '\u23f3 C. Spending Chart (7 days)\n'
+                        '\u23f3 D. Budget Summary Cards\n'
+                        '\u23f3 E. Recent Transactions\n'
+                        '\u23f3 F. Add Transaction FAB',
                         style: TextStyle(
                           fontSize: 15,
                           height: 1.8,
@@ -173,12 +163,5 @@ class DashboardScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _getGreeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Morning';
-    if (hour < 17) return 'Afternoon';
-    return 'Evening';
   }
 }
