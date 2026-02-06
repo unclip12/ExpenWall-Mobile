@@ -39,7 +39,7 @@ class DashboardScreen extends StatelessWidget {
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.all(20),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const SizedBox(height: 20),
                 
@@ -54,6 +54,7 @@ class DashboardScreen extends StatelessWidget {
                 // Phase 1 Complete Status Card (Keep for reference)
                 GlassCard(
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Icon(
                         Icons.check_circle,
@@ -62,7 +63,7 @@ class DashboardScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Phase 1 Complete! \u2705',
+                        'Phase 1 Complete! ✅',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -73,12 +74,12 @@ class DashboardScreen extends StatelessWidget {
                       const SizedBox(height: 12),
                       Text(
                         'Foundation Setup:\n\n'
-                        '\u2705 Liquid Morphism Themes\n'
-                        '\u2705 Glass Morphism Effects\n'
-                        '\u2705 5-Tab Navigation\n'
-                        '\u2705 Coming Soon Screens\n'
-                        '\u2705 Material 3 Design\n'
-                        '\u2705 Haptic Feedback',
+                        '✅ Liquid Morphism Themes\n'
+                        '✅ Glass Morphism Effects\n'
+                        '✅ 5-Tab Navigation\n'
+                        '✅ Coming Soon Screens\n'
+                        '✅ Material 3 Design\n'
+                        '✅ Haptic Feedback',
                         style: TextStyle(
                           fontSize: 16,
                           height: 1.6,
@@ -118,9 +119,10 @@ class DashboardScreen extends StatelessWidget {
                 // Phase 2 Progress Card
                 GlassCard(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
                             Icons.construction,
@@ -141,17 +143,18 @@ class DashboardScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       Text(
                         'Features Progress:\n\n'
-                        '\u2705 A. Welcome + Total Balance\n'
-                        '\u23f3 B. Financial Overview Card\n'
-                        '\u23f3 C. Spending Chart (7 days)\n'
-                        '\u23f3 D. Budget Summary Cards\n'
-                        '\u23f3 E. Recent Transactions\n'
-                        '\u23f3 F. Add Transaction FAB',
+                        '✅ A. Welcome + Total Balance\n'
+                        '⏳ B. Financial Overview Card\n'
+                        '⏳ C. Spending Chart (7 days)\n'
+                        '⏳ D. Budget Summary Cards\n'
+                        '⏳ E. Recent Transactions\n'
+                        '⏳ F. Add Transaction FAB',
                         style: TextStyle(
                           fontSize: 15,
                           height: 1.8,
                           color: (isDark ? Colors.white : Colors.white).withOpacity(0.9),
                         ),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
