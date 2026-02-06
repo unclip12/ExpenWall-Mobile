@@ -1,263 +1,264 @@
-# 📱 ExpenWall Mobile
+# 💸 ExpenWall Mobile v3.0
 
-**Your intelligent wallet manager - now on mobile!**
+**Smart Expense Tracking with Liquid Morphism Design**
 
-## ⚠️ For Contributors & AI Assistants
-
-**🔴 IMPORTANT:** Before making any commits or working on this project, read:
-
-### 📋 [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md)
-
-**This file contains critical rules about:**
-- ✅ Phase-based commit strategy (1 Phase = 1 Commit)
-- ✅ When builds trigger (version tags only)
-- ✅ How to structure work
-- ✅ Testing workflow
-
-**Also check:**
-- [PROGRESS.md](PROGRESS.md) - Current development status
-- [.github/workflows/build-apk.yml](.github/workflows/build-apk.yml) - Build configuration
+[![Flutter](https://img.shields.io/badge/Flutter-3.24.3-02569B?logo=flutter)](https://flutter.dev)
+[![Material 3](https://img.shields.io/badge/Material%203-Enabled-6200EE)](https://m3.material.io/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
 
-## ✨ Features
+## 🎉 What's New in v3.0?
 
-### Core Functionality
-- 💰 Smart expense tracking with categories
-- 📊 Budget management with visual progress
-- 🔄 Recurring bills automation
-- 👥 Split bills with friends
-- 🛒 Shopping list (Buying List)
-- 🍕 Cravings tracker
-- 🏪 Merchant rules & auto-categorization
-- ☁️ Google Drive cloud sync
+**Complete Clean Rebuild** with modern architecture and beautiful design!
 
-### UI/UX
-- 📱 Beautiful Material 3 UI with glassmorphism
-- 🌙 10 theme options (Dark/Light modes)
-- ✨ Money flow animations
-- 🎨 Gradient backgrounds
-- 📊 Expandable tab navigation
-- 💫 Smooth 60fps animations
+✅ **Phase 1 Complete (Feb 2026):**
+- 🌊 Liquid morphism themes (Ocean Wave & Sunset Glow)
+- 💎 Glass morphism UI components
+- 📱 5-tab navigation with haptic feedback
+- 🎨 Material 3 design system
+- ⚡ Lightning-fast performance (120fps)
+- 🔥 Auto-deploy to Firebase App Distribution
 
-### Smart Features
-- 🤖 Auto-categorization (1000+ keywords)
-- 📸 Receipt OCR (Phase 1 complete)
-- 🔔 Smart notifications
-- 📈 Analytics & insights (coming soon)
-- 📄 PDF reports (coming soon)
+🟡 **Phase 2 Next:** Dashboard Features (6 features)
 
-## 🚀 Getting Started
+---
 
-### Prerequisites
+## 📱 Features
 
-- Flutter SDK 3.24.3 or higher
-- Dart 3.0+
-- Firebase project (configured)
-- Java 17+ (for Android builds)
+### **5-Tab Structure:**
 
-### Installation
+1. **🏠 Dashboard** - Financial overview at a glance
+2. **📊 Expenses** - Track all transactions (Coming Soon)
+3. **📅 Planning** - Budgets & bills (Coming Soon)
+4. **👥 Social** - Split bills & groups (Coming Soon)
+5. **💡 Insights** - AI-powered analytics (Coming Soon)
+
+---
+
+## 🚀 Quick Start
+
+### **For Users:**
+
+**Install via Firebase App Distribution:**
+1. Get invited to beta testing
+2. Install Firebase App Distribution app
+3. Download latest ExpenWall build
+4. Install and enjoy!
+
+**Primary Device:** Samsung Galaxy S21 FE (Android 14)
+
+### **For Developers:**
 
 ```bash
-# Clone the repository
+# Clone repository
 git clone https://github.com/unclip12/ExpenWall-Mobile.git
 cd ExpenWall-Mobile
 
 # Install dependencies
 flutter pub get
 
-# Run the app
+# Run app
 flutter run
 ```
 
-## 📦 Building
+**Requirements:**
+- Flutter 3.24.3+
+- Dart 3.5+
+- Android SDK 24+ (Android 7.0+)
 
-### APK (Android)
-```bash
-flutter build apk --release
-```
+---
 
-### App Bundle (Android)
-```bash
-flutter build appbundle --release
-```
+## 📚 Documentation
 
-### iOS
-```bash
-flutter build ios --release
-```
+### **🤖 For AI Assistants:**
+**START HERE:** [AI_INSTRUCTIONS.md](AI_INSTRUCTIONS.md)
 
-### GitHub Actions Builds
+### **📝 For Developers:**
 
-APK builds are automated via GitHub Actions:
-- **Triggered by:** Version tags (`v2.3.1`, `v2.4.0`, etc.) OR manual trigger
-- **NOT triggered by:** Regular commits to main
-- **Download:** Go to Actions tab → Latest successful build → Artifacts
+**v3.0 Documentation:**
+- 🏗️ [App Structure](docs/v3/APP_STRUCTURE.md) - Visual blueprint
+- 🗺️ [Rebuild Plan](docs/v3/REBUILD_PLAN.md) - 6-phase roadmap
+- 🛠️ [Technology Stack](docs/v3/TECHNOLOGY_STACK.md) - Modern standards
+- ✅ [Phase 1 Complete](docs/v3/PHASE1_COMPLETE.md) - Foundation status
 
-See [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md) for details.
+**Old v2.x Documentation:**
+- 📦 [Archive](docs/archive_v2/) - Deprecated, reference only
 
-## 🔧 Firebase Setup
-
-This app uses Firebase for:
-- **Authentication** - Anonymous/Secret ID login
-- **Firestore Database** - Real-time data sync
-- **Cloud Storage** - Future use
-
-Firebase configuration is managed via GitHub Secrets for security.
-
-### Required Secrets
-- `FIREBASE_OPTIONS_DART` - Firebase options file
-- `GOOGLE_SERVICES_JSON` - Google services configuration
+---
 
 ## 🎨 Design System
 
-### Themes (10 Available)
-1. Midnight Purple (default)
-2. Ocean Blue
-3. Forest Green
-4. Sunset Orange
-5. Cherry Blossom
-6. Deep Ocean
-7. Golden Hour
-8. Royal Purple
-9. Emerald Dream
-10. Rose Gold
+### **Liquid Morphism Themes:**
 
-### Design Elements
-- **GlassCard** - Liquid glass morphism effects
-- **ExpandableTabBar** - 65%-35% expansion animation
-- **MoneyFlowAnimation** - Particle system for transactions
-- **AnimatedGradientBackground** - Pulsating gradients
-- **FloatingCurrencySymbols** - Ambient animations
+**Ocean Wave (Default):**
+- Gradient: Blue → Navy → Deep Blue
+- Primary: #1976D2
+- Accent: #00BCD4
 
-## 📱 Screens & Features
+**Sunset Glow:**
+- Gradient: Orange → Dark Orange → Red-Orange
+- Primary: #FF6F00
+- Accent: #E91E63
 
-### Dashboard Tab
-- Financial overview with summary cards
-- Quick stats (income, expenses, balance)
-- Recent transactions preview
+### **Glass Morphism:**
+- Backdrop blur: 10px
+- Background opacity: 10%
+- Border radius: 24px
+- Frosted glass effect
 
-### Expenses Tab  
-- Complete transaction history
-- Advanced filters (category, date, merchant)
-- Swipe actions (edit, delete)
-- Multi-item transaction support
+---
 
-### Planning Tab
-- **Buying List** - Shopping list with price tracking
-- **Cravings** - Track desired purchases with priority
-- **Recurring Bills** - Automated bill reminders
-- **Split Bills** - Split expenses with friends
+## 🛠️ Tech Stack
 
-### Social Tab
-- **Contacts** - Manage contact list
-- **Groups** - Create groups for split bills
+**Core:**
+- Flutter 3.24.3 with Impeller
+- Material 3
+- Provider (state management)
 
-### Insights Tab
-- Analytics dashboard (coming soon)
-- Spending patterns
-- Budget analysis
+**Backend:**
+- Firebase Auth
+- Cloud Firestore
+- Firebase Storage
+- Firebase Analytics
 
-## 🏗️ Architecture
+**UI/UX:**
+- BackdropFilter (glass morphism)
+- HapticFeedback
+- AnimatedContainer
+- fl_chart (charts)
 
-### State Management
-- Flutter's built-in `StatefulWidget`
-- Service-based architecture
-- Local storage with JSON files
+---
 
-### Data Flow
+## 📋 Development Phases
+
+| Phase | Features | Status | Timeline |
+|-------|----------|--------|----------|
+| **Phase 1** | Foundation & Themes | ✅ Complete | Feb 1-5 |
+| **Phase 2** | Dashboard (6 features) | 🟡 Next | Feb 6-19 |
+| **Phase 3** | Expenses Tab | ⏳ Planned | Feb 20-Mar 5 |
+| **Phase 4** | Planning Tab | ⏳ Planned | Mar 6-19 |
+| **Phase 5** | Social Tab | ⏳ Planned | Mar 20-Apr 2 |
+| **Phase 6** | Insights Tab | ⏳ Planned | Apr 3-16 |
+
+**Timeline:** 10 weeks (Feb-Apr 2026)
+
+---
+
+## 🎯 Project Structure
+
 ```
-UI Layer (Screens/Widgets)
-    ↓
-Service Layer (Business Logic)
-    ↓
-Storage Layer (Local + Cloud)
+ExpenWall-Mobile/
+├── lib/                    # Active v3.0 code
+│   ├── main.dart
+│   ├── core/            # Themes & utilities
+│   ├── screens/         # Full-screen pages
+│   ├── widgets/         # Reusable components
+│   └── models/          # Data models
+│
+├── lib_v2_backup/      # Archived v2 code (57 files)
+├── docs/
+│   ├── v3/             # Active v3.0 docs
+│   └── archive_v2/     # Old v2 docs
+│
+├── .github/
+│   └── workflows/      # CI/CD (auto-build & deploy)
+│
+└── AI_INSTRUCTIONS.md  # Master guide for AI assistants
 ```
 
-### Key Services
-- `TransactionService` - Transaction CRUD
-- `BudgetService` - Budget management
-- `RecurringBillService` - Recurring bills automation
-- `SplitBillService` - Split bills logic
-- `ContactService` - Contacts & groups
-- `LocalStorageService` - JSON file storage
-- `CloudSyncService` - Google Drive sync
-- `ThemeService` - Theme management
-- `ItemRecognitionService` - Smart categorization
+---
 
-## 📊 Current Status
+## 🚀 CI/CD Pipeline
 
-**Version:** v2.3.1 (Split Bills - Testing)  
-**Progress:** 85% Complete  
-**Next:** Analytics & PDF Reports
+**GitHub Actions** automatically:
+1. ✅ Builds release APK on every push
+2. ✅ Signs with release keystore
+3. ✅ Deploys to Firebase App Distribution
+4. ✅ Sends notification to test devices
 
-See [PROGRESS.md](PROGRESS.md) for detailed status.
+**Build time:** ~6-7 minutes
 
-## 🔐 Security
+---
 
-- Firebase credentials stored in GitHub Secrets
-- Secure authentication with Secret ID
-- Firestore security rules
-- No sensitive data in source code
-- User data isolated by userId
+## 📱 Testing
 
-## 🧪 Testing
+**Primary Device:**
+- Samsung Galaxy S21 FE
+- Android 14
+- 120Hz display
+- Install via Firebase App Distribution
 
-### Current Testing
-- Manual testing via APK builds
-- User acceptance testing per phase
+**Performance Targets:**
+- App launch: <3 seconds
+- Frame rate: 120fps
+- Memory: <150MB
+- APK size: <50MB
 
-### Planned
-- Unit tests for services
-- Widget tests for UI components
-- Integration tests for flows
+---
 
 ## 🤝 Contributing
 
-**Before contributing:**
+**For AI Assistants:**
+1. Read [AI_INSTRUCTIONS.md](AI_INSTRUCTIONS.md) FIRST
+2. Check current phase status
+3. Follow [REBUILD_PLAN.md](docs/v3/REBUILD_PLAN.md)
+4. Build features one at a time
+5. Test before moving on
 
-1. Read [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md) - **MANDATORY**
-2. Check [PROGRESS.md](PROGRESS.md) for current status
-3. Follow phase-based commit strategy
-4. Test changes before committing
-5. Update documentation
-
-### Commit Message Format
-Use conventional commits:
-- `feat:` - New features
-- `fix:` - Bug fixes
-- `docs:` - Documentation only
-- `refactor:` - Code refactoring
-- `test:` - Testing
-- `ci:` - CI/CD changes
-- `chore:` - Maintenance
-
-## 📄 License
-
-MIT License - See LICENSE file for details
-
-## 👨‍💻 Author
-
-**unclip12**  
-Repository: [github.com/unclip12/ExpenWall-Mobile](https://github.com/unclip12/ExpenWall-Mobile)
+**For Humans:**
+1. Fork the repository
+2. Create feature branch
+3. Follow [TECHNOLOGY_STACK.md](docs/v3/TECHNOLOGY_STACK.md) standards
+4. Submit pull request
 
 ---
 
-## 🗺️ Roadmap
+## 📞 Contact
 
-- ✅ Core expense tracking
-- ✅ Budget management
-- ✅ Cloud sync (Google Drive)
-- ✅ Themes & animations
-- ✅ Recurring bills
-- ✅ Split bills
-- ✅ Smart categorization (1000+ keywords)
-- 🔄 Receipt OCR (Phase 1 done)
-- ⏳ Analytics & insights
-- ⏳ PDF reports
-- ⏳ Advanced charts
-- ⏳ SQLite database migration
+**Developer:** unclip12  
+**Location:** Vijayawada, Andhra Pradesh, India  
+**Testing Device:** Samsung Galaxy S21 FE
 
 ---
 
-**Built with ❤️ using Flutter**
+## 📊 Project Status
+
+**Version:** v3.0-phase1  
+**Status:** ✅ Phase 1 Complete, Testing in Progress  
+**Next:** Phase 2 - Dashboard Features  
+**Updated:** February 7, 2026, 12:06 AM IST
+
+**Achievements:**
+- ✅ 8 clean v3.0 files created
+- ✅ 57 old v2 files backed up
+- ✅ Build succeeds automatically
+- ✅ Deploys to Firebase
+- 🟡 User testing in progress
+
+---
+
+## 🔗 Links
+
+- 💻 [Repository](https://github.com/unclip12/ExpenWall-Mobile)
+- 🛠️ [GitHub Actions](https://github.com/unclip12/ExpenWall-Mobile/actions)
+- 📚 [Documentation](docs/v3/)
+- 🤖 [AI Instructions](AI_INSTRUCTIONS.md)
+
+---
+
+## 📝 License
+
+MIT License - See [LICENSE](LICENSE) for details
+
+---
+
+## ⭐ Star History
+
+If you find ExpenWall useful, please star the repository!
+
+---
+
+**Built with ❤️ using Flutter & Firebase**
+
+**v3.0: A Complete Clean Rebuild** 🎉
