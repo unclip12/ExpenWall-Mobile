@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 /// Displays:
 /// - Current month income vs expense
 /// - Visual progress bars with percentages
-/// - Net savings calculation with arrow indicator
+/// - Net savings calculation with arrow indicator and percentage
 class FinancialOverviewCard extends StatelessWidget {
   final double income;
   final double expense;
@@ -26,6 +26,7 @@ class FinancialOverviewCard extends StatelessWidget {
     final maxAmount = income > expense ? income : expense;
     final incomePercent = maxAmount > 0 ? (income / maxAmount * 100).round() : 0;
     final expensePercent = maxAmount > 0 ? (expense / maxAmount * 100).round() : 0;
+    final savingsPercent = income > 0 ? (savings / income * 100).round() : 0;
     
     return GlassCard(
       child: Column(
@@ -83,7 +84,7 @@ class FinancialOverviewCard extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      _formatCurrency(savings.abs()),
+                      '${_formatCurrency(savings.abs())} (${savingsPercent.abs()}%)',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
