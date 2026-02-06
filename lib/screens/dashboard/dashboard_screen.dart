@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../widgets/glass_card.dart';
 import '../../widgets/welcome_balance_card.dart';
+import '../../widgets/financial_overview_card.dart';
 
 /// Dashboard Screen - Phase 2 Development
-/// Feature A: Welcome + Total Balance (Implemented)
+/// Feature A: Welcome + Total Balance (Complete)
+/// Feature B: Financial Overview Card (Implemented)
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({Key? key}) : super(key: key);
 
@@ -49,6 +51,14 @@ class DashboardScreen extends StatelessWidget {
                   totalBalance: 45230.50,
                 ),
                 
+                const SizedBox(height: 20),
+                
+                // Feature B: Financial Overview
+                const FinancialOverviewCard(
+                  income: 50000,
+                  expense: 32450,
+                ),
+                
                 const SizedBox(height: 24),
                 
                 // Phase 1 Complete Status Card (Keep for reference)
@@ -63,7 +73,7 @@ class DashboardScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Phase 1 Complete! ✅',
+                        'Phase 1 Complete! \u2705',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -74,12 +84,12 @@ class DashboardScreen extends StatelessWidget {
                       const SizedBox(height: 12),
                       Text(
                         'Foundation Setup:\n\n'
-                        '✅ Liquid Morphism Themes\n'
-                        '✅ Glass Morphism Effects\n'
-                        '✅ 5-Tab Navigation\n'
-                        '✅ Coming Soon Screens\n'
-                        '✅ Material 3 Design\n'
-                        '✅ Haptic Feedback',
+                        '\u2705 Liquid Morphism Themes\n'
+                        '\u2705 Glass Morphism Effects\n'
+                        '\u2705 5-Tab Navigation\n'
+                        '\u2705 Coming Soon Screens\n'
+                        '\u2705 Material 3 Design\n'
+                        '\u2705 Haptic Feedback',
                         style: TextStyle(
                           fontSize: 16,
                           height: 1.6,
@@ -143,12 +153,12 @@ class DashboardScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       Text(
                         'Features Progress:\n\n'
-                        '✅ A. Welcome + Total Balance\n'
-                        '⏳ B. Financial Overview Card\n'
-                        '⏳ C. Spending Chart (7 days)\n'
-                        '⏳ D. Budget Summary Cards\n'
-                        '⏳ E. Recent Transactions\n'
-                        '⏳ F. Add Transaction FAB',
+                        '\u2705 A. Welcome + Total Balance\n'
+                        '\u2705 B. Financial Overview Card\n'
+                        '\u23f3 C. Spending Chart (7 days)\n'
+                        '\u23f3 D. Budget Summary Cards\n'
+                        '\u23f3 E. Recent Transactions\n'
+                        '\u23f3 F. Add Transaction FAB',
                         style: TextStyle(
                           fontSize: 15,
                           height: 1.8,
