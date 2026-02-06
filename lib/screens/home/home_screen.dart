@@ -75,21 +75,21 @@ class _HomeScreenState extends State<HomeScreen> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                theme.colorScheme.primary.withOpacity(0.15),
-                theme.colorScheme.secondary.withOpacity(0.12),
-                theme.colorScheme.tertiary.withOpacity(0.1),
+                theme.colorScheme.primary.withOpacity(0.2),
+                theme.colorScheme.secondary.withOpacity(0.18),
+                theme.colorScheme.tertiary.withOpacity(0.15),
               ],
             ),
             border: Border(
               top: BorderSide(
-                color: (isDark ? Colors.white : Colors.white).withOpacity(0.2),
-                width: 1,
+                color: Colors.white.withOpacity(0.3),
+                width: 1.5,
               ),
             ),
           ),
           child: SafeArea(
             child: SizedBox(
-              height: 65,
+              height: 68,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
@@ -157,24 +157,24 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: () => _onTabTapped(index),
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          margin: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
           decoration: BoxDecoration(
             gradient: isActive
                 ? LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      theme.colorScheme.primary.withOpacity(0.25),
-                      theme.colorScheme.secondary.withOpacity(0.2),
+                      theme.colorScheme.primary.withOpacity(0.4),
+                      theme.colorScheme.secondary.withOpacity(0.35),
                     ],
                   )
                 : null,
             borderRadius: BorderRadius.circular(16),
             border: isActive
                 ? Border.all(
-                    color: theme.colorScheme.primary.withOpacity(0.4),
-                    width: 1.5,
+                    color: Colors.white.withOpacity(0.5),
+                    width: 2,
                   )
                 : null,
           ),
@@ -184,20 +184,28 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Icon(
                 isActive ? activeIcon : icon,
-                size: isActive ? 26 : 24,
-                color: isActive
-                    ? Colors.white
-                    : (isDark ? Colors.white70 : Colors.white70),
+                size: isActive ? 27 : 24,
+                color: Colors.white,
+                shadows: [
+                  Shadow(
+                    color: Colors.black.withOpacity(0.5),
+                    blurRadius: 4,
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 5),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: isActive ? 11 : 10,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                  color: isActive
-                      ? Colors.white
-                      : (isDark ? Colors.white70 : Colors.white70),
+                  fontSize: isActive ? 11.5 : 10.5,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                  color: Colors.white,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black.withOpacity(0.6),
+                      blurRadius: 3,
+                    ),
+                  ],
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
