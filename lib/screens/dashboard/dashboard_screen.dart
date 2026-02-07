@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import '../../widgets/glass_card.dart';
 import '../../widgets/welcome_balance_card.dart';
 import '../../widgets/financial_overview_card.dart';
+import '../../widgets/spending_chart_card.dart';
 
 /// Dashboard Screen - Phase 2 Development
 /// Feature A: Welcome + Total Balance (Complete)
-/// Feature B: Financial Overview Card (Implemented)
+/// Feature B: Financial Overview Card (Complete)
+/// Feature C: Spending Chart (7 Days) (Implemented)
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({Key? key}) : super(key: key);
 
@@ -13,6 +15,9 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    
+    // Dummy spending data for Feature C
+    final spendingData = _generateDummySpendingData();
     
     return Scaffold(
       body: Container(
@@ -57,6 +62,13 @@ class DashboardScreen extends StatelessWidget {
                 const FinancialOverviewCard(
                   income: 50000,
                   expense: 32450,
+                ),
+                
+                const SizedBox(height: 20),
+                
+                // Feature C: Spending Chart (7 Days)
+                SpendingChartCard(
+                  spendingData: spendingData,
                 ),
                 
                 const SizedBox(height: 24),
@@ -155,7 +167,7 @@ class DashboardScreen extends StatelessWidget {
                         'Features Progress:\n\n'
                         '\u2705 A. Welcome + Total Balance\n'
                         '\u2705 B. Financial Overview Card\n'
-                        '\u23f3 C. Spending Chart (7 days)\n'
+                        '\u2705 C. Spending Chart (7 days)\n'
                         '\u23f3 D. Budget Summary Cards\n'
                         '\u23f3 E. Recent Transactions\n'
                         '\u23f3 F. Add Transaction FAB',
@@ -176,5 +188,47 @@ class DashboardScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Generate dummy spending data for last 7 days
+  List<DailySpending> _generateDummySpendingData() {
+    final now = DateTime.now();
+    return [
+      DailySpending(
+        day: 'Mon',
+        amount: 3500,
+        date: now.subtract(const Duration(days: 6)),
+      ),
+      DailySpending(
+        day: 'Tue',
+        amount: 5200,
+        date: now.subtract(const Duration(days: 5)),
+      ),
+      DailySpending(
+        day: 'Wed',
+        amount: 4100,
+        date: now.subtract(const Duration(days: 4)),
+      ),
+      DailySpending(
+        day: 'Thu',
+        amount: 6800,
+        date: now.subtract(const Duration(days: 3)),
+      ),
+      DailySpending(
+        day: 'Fri',
+        amount: 4500,
+        date: now.subtract(const Duration(days: 2)),
+      ),
+      DailySpending(
+        day: 'Sat',
+        amount: 7200,
+        date: now.subtract(const Duration(days: 1)),
+      ),
+      DailySpending(
+        day: 'Sun',
+        amount: 3800,
+        date: now,
+      ),
+    ];
   }
 }
