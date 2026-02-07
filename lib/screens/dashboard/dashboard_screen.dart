@@ -7,7 +7,7 @@ import '../../widgets/spending_chart_card.dart';
 /// Dashboard Screen - Phase 2 Development
 /// Feature A: Welcome + Total Balance (Complete)
 /// Feature B: Financial Overview Card (Complete)
-/// Feature C: Spending Chart (7 Days) (Implemented)
+/// Feature C: Spending Chart - Enhanced (Implemented)
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({Key? key}) : super(key: key);
 
@@ -16,8 +16,8 @@ class DashboardScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
-    // Dummy spending data for Feature C
-    final spendingData = _generateDummySpendingData();
+    // Extended dummy spending data for Feature C testing
+    final spendingData = _generateExtendedSpendingData();
     
     return Scaffold(
       body: Container(
@@ -66,14 +66,14 @@ class DashboardScreen extends StatelessWidget {
                 
                 const SizedBox(height: 20),
                 
-                // Feature C: Spending Chart (7 Days)
+                // Feature C: Enhanced Spending Chart
                 SpendingChartCard(
                   spendingData: spendingData,
                 ),
                 
                 const SizedBox(height: 24),
                 
-                // Phase 1 Complete Status Card (Keep for reference)
+                // Phase 1 Complete Status Card
                 GlassCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -167,7 +167,7 @@ class DashboardScreen extends StatelessWidget {
                         'Features Progress:\n\n'
                         '\u2705 A. Welcome + Total Balance\n'
                         '\u2705 B. Financial Overview Card\n'
-                        '\u2705 C. Spending Chart (7 days)\n'
+                        '\u2705 C. Spending Chart (Enhanced)\n'
                         '\u23f3 D. Budget Summary Cards\n'
                         '\u23f3 E. Recent Transactions\n'
                         '\u23f3 F. Add Transaction FAB',
@@ -190,45 +190,45 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  /// Generate dummy spending data for last 7 days
-  List<DailySpending> _generateDummySpendingData() {
+  /// Generate 21 days of dummy spending data (3 pages for scrolling test)
+  List<DailySpending> _generateExtendedSpendingData() {
     final now = DateTime.now();
+    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final categories = [
+      SpendingCategory.food,
+      SpendingCategory.transport,
+      SpendingCategory.shopping,
+      SpendingCategory.bills,
+      SpendingCategory.entertainment,
+    ];
+    
     return [
-      DailySpending(
-        day: 'Mon',
-        amount: 3500,
-        date: now.subtract(const Duration(days: 6)),
-      ),
-      DailySpending(
-        day: 'Tue',
-        amount: 5200,
-        date: now.subtract(const Duration(days: 5)),
-      ),
-      DailySpending(
-        day: 'Wed',
-        amount: 4100,
-        date: now.subtract(const Duration(days: 4)),
-      ),
-      DailySpending(
-        day: 'Thu',
-        amount: 6800,
-        date: now.subtract(const Duration(days: 3)),
-      ),
-      DailySpending(
-        day: 'Fri',
-        amount: 4500,
-        date: now.subtract(const Duration(days: 2)),
-      ),
-      DailySpending(
-        day: 'Sat',
-        amount: 7200,
-        date: now.subtract(const Duration(days: 1)),
-      ),
-      DailySpending(
-        day: 'Sun',
-        amount: 3800,
-        date: now,
-      ),
+      // Week 1 (21 days ago)
+      DailySpending(day: 'Mon', amount: 4200, date: now.subtract(const Duration(days: 20)), category: SpendingCategory.food),
+      DailySpending(day: 'Tue', amount: 3800, date: now.subtract(const Duration(days: 19)), category: SpendingCategory.transport),
+      DailySpending(day: 'Wed', amount: 5100, date: now.subtract(const Duration(days: 18)), category: SpendingCategory.shopping),
+      DailySpending(day: 'Thu', amount: 4500, date: now.subtract(const Duration(days: 17)), category: SpendingCategory.bills),
+      DailySpending(day: 'Fri', amount: 6200, date: now.subtract(const Duration(days: 16)), category: SpendingCategory.entertainment),
+      DailySpending(day: 'Sat', amount: 7500, date: now.subtract(const Duration(days: 15)), category: SpendingCategory.food),
+      DailySpending(day: 'Sun', amount: 3200, date: now.subtract(const Duration(days: 14)), category: SpendingCategory.entertainment),
+      
+      // Week 2 (14 days ago)
+      DailySpending(day: 'Mon', amount: 3900, date: now.subtract(const Duration(days: 13)), category: SpendingCategory.food),
+      DailySpending(day: 'Tue', amount: 4700, date: now.subtract(const Duration(days: 12)), category: SpendingCategory.transport),
+      DailySpending(day: 'Wed', amount: 5300, date: now.subtract(const Duration(days: 11)), category: SpendingCategory.bills),
+      DailySpending(day: 'Thu', amount: 6100, date: now.subtract(const Duration(days: 10)), category: SpendingCategory.shopping),
+      DailySpending(day: 'Fri', amount: 4800, date: now.subtract(const Duration(days: 9)), category: SpendingCategory.entertainment),
+      DailySpending(day: 'Sat', amount: 8200, date: now.subtract(const Duration(days: 8)), category: SpendingCategory.food),
+      DailySpending(day: 'Sun', amount: 3600, date: now.subtract(const Duration(days: 7)), category: SpendingCategory.entertainment),
+      
+      // Week 3 (Current week)
+      DailySpending(day: 'Mon', amount: 3500, date: now.subtract(const Duration(days: 6)), category: SpendingCategory.food),
+      DailySpending(day: 'Tue', amount: 5200, date: now.subtract(const Duration(days: 5)), category: SpendingCategory.transport),
+      DailySpending(day: 'Wed', amount: 4100, date: now.subtract(const Duration(days: 4)), category: SpendingCategory.bills),
+      DailySpending(day: 'Thu', amount: 6800, date: now.subtract(const Duration(days: 3)), category: SpendingCategory.shopping),
+      DailySpending(day: 'Fri', amount: 4500, date: now.subtract(const Duration(days: 2)), category: SpendingCategory.entertainment),
+      DailySpending(day: 'Sat', amount: 7200, date: now.subtract(const Duration(days: 1)), category: SpendingCategory.food),
+      DailySpending(day: 'Sun', amount: 3800, date: now, category: SpendingCategory.entertainment),
     ];
   }
 }
