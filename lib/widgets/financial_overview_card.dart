@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'glass_card.dart';
-import '../utils/color_utils.dart';
 import 'package:intl/intl.dart';
 
 /// Feature B: Financial Overview Card
@@ -9,7 +8,7 @@ import 'package:intl/intl.dart';
 /// - Current month income vs expense
 /// - Visual progress bars with percentages
 /// - Net savings calculation with arrow indicator and percentage
-/// - Adaptive text colors for perfect readability
+/// - High contrast colors for perfect readability
 class FinancialOverviewCard extends StatelessWidget {
   final double income;
   final double expense;
@@ -30,10 +29,9 @@ class FinancialOverviewCard extends StatelessWidget {
     final expensePercent = maxAmount > 0 ? (expense / maxAmount * 100).round() : 0;
     final savingsPercent = income > 0 ? (savings / income * 100).round() : 0;
     
-    // Get adaptive colors based on card background
-    final cardBackgroundColor = theme.colorScheme.primary.withOpacity(0.15);
-    final adaptiveGreen = ColorUtils.getAdaptiveGreen(cardBackgroundColor);
-    final adaptiveRed = ColorUtils.getAdaptiveRed(cardBackgroundColor);
+    // Use very dark, high-contrast colors for visibility on light cyan background
+    const darkGreen = Color(0xFF1B5E20);  // Very dark green
+    const darkRed = Color(0xFFC62828);    // Dark red
     
     return GlassCard(
       child: Column(
@@ -55,7 +53,7 @@ class FinancialOverviewCard extends StatelessWidget {
             label: 'Income',
             amount: income,
             percentage: incomePercent,
-            color: adaptiveGreen,
+            color: darkGreen,
             isDark: isDark,
           ),
           const SizedBox(height: 16),
@@ -65,7 +63,7 @@ class FinancialOverviewCard extends StatelessWidget {
             label: 'Expense',
             amount: expense,
             percentage: expensePercent,
-            color: adaptiveRed,
+            color: darkRed,
             isDark: isDark,
           ),
           const SizedBox(height: 20),
@@ -95,13 +93,13 @@ class FinancialOverviewCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: savings >= 0 ? adaptiveGreen : adaptiveRed,
+                        color: savings >= 0 ? darkGreen : darkRed,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Icon(
                       savings >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
-                      color: savings >= 0 ? adaptiveGreen : adaptiveRed,
+                      color: savings >= 0 ? darkGreen : darkRed,
                       size: 20,
                     ),
                   ],
@@ -142,7 +140,7 @@ class FinancialOverviewCard extends StatelessWidget {
                   _formatCurrency(amount),
                   style: TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,  // Bolder for better visibility
                     color: color,
                   ),
                 ),
