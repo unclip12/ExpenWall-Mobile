@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/theme_provider.dart';
-import 'screens/home/home_screen.dart';
+import 'screens/splash/wallet_splash_screen.dart';
 
 /// ExpenWall Mobile v3.0 - Clean Rebuild
-/// Phase 1: Foundation with Liquid Morphism
+/// Phase 1: Foundation with Liquid Morphism + Animated Splash
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -44,8 +44,8 @@ class ExpenWallApp extends StatelessWidget {
           // Use Material 3 theme from liquid_theme
           theme: themeProvider.themeData,
           
-          // Home screen with 5-tab navigation
-          home: const HomeScreen(),
+          // Start with animated wallet splash screen
+          home: const WalletSplashScreen(),
         );
       },
     );
