@@ -139,7 +139,7 @@ class _SpendingChartCardState extends State<SpendingChartCard> with SingleTicker
             Icon(icon, size: 20, color: Colors.white),
             const SizedBox(width: 12),
             Text(label, style: const TextStyle(color: Colors.white)),
-            if (_selectedPeriod == period) ..[
+            if (_selectedPeriod == period) ...[
               const Spacer(),
               const Icon(Icons.check, size: 18, color: Colors.white),
             ],
@@ -196,7 +196,7 @@ class _SpendingChartCardState extends State<SpendingChartCard> with SingleTicker
             Icon(icon, size: 20, color: Colors.white),
             const SizedBox(width: 12),
             Text(label, style: const TextStyle(color: Colors.white)),
-            if (_selectedChartType == type) ..[
+            if (_selectedChartType == type) ...[
               const Spacer(),
               const Icon(Icons.check, size: 18, color: Colors.white),
             ],
