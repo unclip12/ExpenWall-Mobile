@@ -1,10 +1,9 @@
 import 'dart:math';
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../home/home_screen.dart';
+import 'wallet_painter.dart';
 
-/// Premium animated splash screen with cosmic design
 class WalletSplashScreen extends StatefulWidget {
   const WalletSplashScreen({Key? key}) : super(key: key);
 
@@ -12,172 +11,78 @@ class WalletSplashScreen extends StatefulWidget {
   State<WalletSplashScreen> createState() => _WalletSplashScreenState();
 }
 
-class _WalletSplashScreenState extends State<WalletSplashScreen>
-    with TickerProviderStateMixin {
+class _WalletSplashScreenState extends State<WalletSplashScreen> with TickerProviderStateMixin {
+  late AnimationController _walletOpenController;
+  late AnimationController _cardsEjectController;
+  late AnimationController _dashboardTransformController;
   late AnimationController _bgController;
-  late AnimationController _particleController;
-  late AnimationController _ringController;
-  late AnimationController _logoController;
-  late AnimationController _textController;
-  late AnimationController _progressController;
-  late AnimationController _exitController;
 
-  late Animation<double> _bgFade;
-  late Animation<double> _ringRotation;
-  late Animation<double> _logoScale;
-  late Animation<double> _logoGlow;
-  late Animation<double> _textFade;
-  late Animation<double> _textSlide;
-  late Animation<double> _taglineFade;
-  late Animation<double> _progressValue;
-  late Animation<double> _exitFade;
-  late Animation<double> _exitScale;
-
-  final List<_Particle> _particles = [];
-  final Random _random = Random();
+  late Animation<double> _walletOpen;
+  late Animation<double> _cardsEject;
+  late Animation<double> _dashboardTransform;
+  late Animation<double> _walletFade;
 
   @override
   void initState() {
     super.initState();
-    _generateParticles();
     _setupAnimations();
     _startSequence();
   }
 
-  void _generateParticles() {
-    for (int i = 0; i < 40; i++) {
-      _particles.add(_Particle(
-        x: _random.nextDouble(),
-        y: _random.nextDouble(),
-        size: _random.nextDouble() * 2.2 + 0.6,
-        opacity: _random.nextDouble() * 0.5 + 0.15,
-        phaseOffset: _random.nextDouble() * 2 * pi,
-      ));
-    }
-  }
-
   void _setupAnimations() {
-    // Background fade in
-    _bgController = AnimationController(
-      duration: const Duration(milliseconds: 900),
-      vsync: this,
-    );
-    _bgFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _bgController, curve: Curves.easeOut),
-    );
+    _bgController = AnimationController(duration: const Duration(milliseconds: 800), vsync: this);
+    
+    _walletOpenController = AnimationController(duration: const Duration(milliseconds: 800), vsync: this);
+    _walletOpen = CurvedAnimation(parent: _walletOpenController, curve: Curves.easeOutBack);
 
-    // Particle twinkling
-    _particleController = AnimationController(
-      duration: const Duration(seconds: 3),
-      vsync: this,
-    )..repeat();
+    _cardsEjectController = AnimationController(duration: const Duration(milliseconds: 900), vsync: this);
+    _cardsEject = CurvedAnimation(parent: _cardsEjectController, curve: Curves.easeOutBack);
 
-    // Ring rotation (continuous)
-    _ringController = AnimationController(
-      duration: const Duration(seconds: 6),
-      vsync: this,
-    )..repeat();
-    _ringRotation = Tween<double>(begin: 0.0, end: 2 * pi).animate(
-      CurvedAnimation(parent: _ringController, curve: Curves.linear),
-    );
-
-    // Logo spring pop-in
-    _logoController = AnimationController(
-      duration: const Duration(milliseconds: 900),
-      vsync: this,
-    );
-    _logoScale = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _logoController, curve: Curves.elasticOut),
-    );
-    _logoGlow = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _logoController, curve: Curves.easeOut),
-    );
-
-    // Text slide-up reveal
-    _textController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    _textFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _textController, curve: Curves.easeOut),
-    );
-    _textSlide = Tween<double>(begin: 28.0, end: 0.0).animate(
-      CurvedAnimation(parent: _textController, curve: Curves.easeOutCubic),
-    );
-    _taglineFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _textController,
-        curve: const Interval(0.5, 1.0, curve: Curves.easeOut),
-      ),
-    );
-
-    // Thin glowing progress bar
-    _progressController = AnimationController(
-      duration: const Duration(milliseconds: 1400),
-      vsync: this,
-    );
-    _progressValue = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _progressController, curve: Curves.easeInOut),
-    );
-
-    // Exit: scale up + fade out
-    _exitController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    _exitFade = Tween<double>(begin: 1.0, end: 0.0).animate(
-      CurvedAnimation(parent: _exitController, curve: Curves.easeIn),
-    );
-    _exitScale = Tween<double>(begin: 1.0, end: 1.12).animate(
-      CurvedAnimation(parent: _exitController, curve: Curves.easeIn),
+    _dashboardTransformController = AnimationController(duration: const Duration(milliseconds: 1100), vsync: this);
+    _dashboardTransform = CurvedAnimation(parent: _dashboardTransformController, curve: Curves.easeInOutCubic);
+    
+    // Fade out wallet and background text as dashboard expands
+    _walletFade = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _dashboardTransformController, curve: const Interval(0.0, 0.4, curve: Curves.easeOut)),
     );
   }
 
   void _startSequence() async {
-    HapticFeedback.lightImpact();
     _bgController.forward();
-
-    await Future.delayed(const Duration(milliseconds: 350));
+    
+    await Future.delayed(const Duration(milliseconds: 400));
     if (!mounted) return;
-    _logoController.forward();
-    HapticFeedback.mediumImpact();
-
-    await Future.delayed(const Duration(milliseconds: 550));
-    if (!mounted) return;
-    _textController.forward();
-
-    await Future.delayed(const Duration(milliseconds: 200));
-    if (!mounted) return;
-    _progressController.forward();
-
-    await Future.delayed(const Duration(milliseconds: 1700));
-    if (!mounted) return;
-    HapticFeedback.selectionClick();
-    _exitController.forward();
+    HapticFeedback.lightImpact();
+    _walletOpenController.forward();
 
     await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
+    HapticFeedback.mediumImpact();
+    _cardsEjectController.forward();
+
+    await Future.delayed(const Duration(milliseconds: 1100));
+    if (!mounted) return;
+    HapticFeedback.heavyImpact();
+    _dashboardTransformController.forward();
+
+    await Future.delayed(const Duration(milliseconds: 1400));
+    if (!mounted) return;
+    
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (_, __, ___) => const HomeScreen(),
-        transitionsBuilder: (_, animation, __, child) => FadeTransition(
-          opacity: animation,
-          child: child,
-        ),
-        transitionDuration: const Duration(milliseconds: 400),
+        transitionsBuilder: (_, animation, __, child) => FadeTransition(opacity: animation, child: child),
+        transitionDuration: const Duration(milliseconds: 500),
       ),
     );
   }
 
   @override
   void dispose() {
+    _walletOpenController.dispose();
+    _cardsEjectController.dispose();
+    _dashboardTransformController.dispose();
     _bgController.dispose();
-    _particleController.dispose();
-    _ringController.dispose();
-    _logoController.dispose();
-    _textController.dispose();
-    _progressController.dispose();
-    _exitController.dispose();
     super.dispose();
   }
 
@@ -189,366 +94,241 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
     final secondary = theme.colorScheme.secondary;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF07071A),
       body: AnimatedBuilder(
         animation: Listenable.merge([
-          _bgController,
-          _particleController,
-          _ringController,
-          _logoController,
-          _textController,
-          _progressController,
-          _exitController,
+          _walletOpenController,
+          _cardsEjectController,
+          _dashboardTransformController,
         ]),
         builder: (context, _) {
-          return Opacity(
-            opacity: _exitFade.value,
-            child: Transform.scale(
-              scale: _exitScale.value,
-              child: Container(
-                width: size.width,
-                height: size.height,
+          return Stack(
+            children: [
+              // Background Gradient
+              Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0xFF07071A),
-                      Color(0xFF0F0F2E),
-                      Color(0xFF07071A),
-                    ],
-                    stops: [0.0, 0.5, 1.0],
+                    colors: [Color(0xFF07071A), Color(0xFF0F0F2E), Color(0xFF07071A)],
                   ),
                 ),
-                child: Stack(
-                  children: [
-                    // --- Twinkling star particles ---
-                    ..._particles.asMap().entries.map((e) {
-                      final p = e.value;
-                      final t = _particleController.value;
-                      final twinkle = (sin(t * 2 * pi + p.phaseOffset) + 1) / 2;
-                      return Positioned(
-                        left: p.x * size.width,
-                        top: p.y * size.height,
-                        child: Opacity(
-                          opacity: p.opacity * twinkle * _bgFade.value,
-                          child: Container(
-                            width: p.size,
-                            height: p.size,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: primary.withOpacity(0.6),
-                                  blurRadius: p.size * 3,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
-
-                    // --- Radial glow bloom ---
-                    Positioned.fill(
-                      child: Opacity(
-                        opacity: _bgFade.value * 0.6,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: RadialGradient(
-                              center: Alignment.center,
-                              radius: 0.65,
-                              colors: [
-                                primary.withOpacity(0.22),
-                                Colors.transparent,
-                              ],
-                            ),
-                          ),
-                        ),
+              ),
+              
+              // App Name (Fades out when transforming)
+              Positioned(
+                top: size.height * 0.18,
+                left: 0,
+                right: 0,
+                child: Opacity(
+                  opacity: _walletFade.value,
+                  child: Center(
+                    child: Text(
+                      'ExpenWall',
+                      style: theme.textTheme.displaySmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 4.0,
+                        color: Colors.white,
                       ),
                     ),
-
-                    // --- Centre: logo + rings + text ---
-                    Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Logo with dual rotating rings
-                          Transform.scale(
-                            scale: _logoScale.value,
-                            child: SizedBox(
-                              width: 160,
-                              height: 160,
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  // Outer sweep-gradient ring (clockwise)
-                                  Transform.rotate(
-                                    angle: _ringRotation.value,
-                                    child: CustomPaint(
-                                      size: const Size(160, 160),
-                                      painter: _SweepRingPainter(
-                                        primaryColor: primary,
-                                        secondaryColor: secondary,
-                                        intensity: _logoGlow.value,
-                                        strokeWidth: 2.5,
-                                      ),
-                                    ),
-                                  ),
-                                  // Inner dashed ring (counter-clockwise)
-                                  Transform.rotate(
-                                    angle: -_ringRotation.value * 0.6,
-                                    child: CustomPaint(
-                                      size: const Size(116, 116),
-                                      painter: _DashedRingPainter(
-                                        color: secondary,
-                                        intensity: _logoGlow.value * 0.55,
-                                      ),
-                                    ),
-                                  ),
-                                  // Glowing logo circle
-                                  Container(
-                                    width: 84,
-                                    height: 84,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          primary,
-                                          Color.lerp(primary, secondary, 0.55)!,
-                                        ],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: primary.withOpacity(
-                                              _logoGlow.value * 0.75),
-                                          blurRadius: 38 * _logoGlow.value,
-                                          spreadRadius: 7 * _logoGlow.value,
-                                        ),
-                                        BoxShadow(
-                                          color: secondary.withOpacity(
-                                              _logoGlow.value * 0.35),
-                                          blurRadius: 60 * _logoGlow.value,
-                                          spreadRadius: 2,
-                                        ),
-                                      ],
-                                    ),
-                                    child: const Icon(
-                                      Icons.account_balance_wallet_rounded,
-                                      size: 40,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 38),
-
-                          // App name — shimmer gradient
-                          Transform.translate(
-                            offset: Offset(0, _textSlide.value),
-                            child: Opacity(
-                              opacity: _textFade.value,
-                              child: ShaderMask(
-                                shaderCallback: (bounds) => LinearGradient(
-                                  colors: [
-                                    Colors.white.withOpacity(0.95),
-                                    primary.withOpacity(0.9),
-                                    Colors.white.withOpacity(0.95),
-                                  ],
-                                  stops: const [0.0, 0.5, 1.0],
-                                ).createShader(bounds),
-                                child: Text(
-                                  'ExpenWall',
-                                  style: theme.textTheme.displaySmall?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 4.0,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 10),
-
-                          // Tagline — spaced uppercase
-                          Transform.translate(
-                            offset: Offset(0, _textSlide.value * 0.5),
-                            child: Opacity(
-                              opacity: _textFade.value * _taglineFade.value,
-                              child: Text(
-                                'SMART EXPENSE TRACKING',
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: Colors.white.withOpacity(0.42),
-                                  letterSpacing: 3.8,
-                                  fontWeight: FontWeight.w400,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // --- Thin glowing progress line ---
-                    Positioned(
-                      bottom: 68,
-                      left: 52,
-                      right: 52,
-                      child: Opacity(
-                        opacity: (_textFade.value * 0.95).clamp(0.0, 1.0),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(2),
-                          child: Container(
-                            height: 2,
-                            color: Colors.white.withOpacity(0.08),
-                            child: FractionallySizedBox(
-                              alignment: Alignment.centerLeft,
-                              widthFactor: _progressValue.value,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [primary, secondary],
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: primary.withOpacity(0.75),
-                                      blurRadius: 6,
-                                      spreadRadius: 1,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
+
+              // Wallet Back
+              Opacity(
+                opacity: _walletFade.value,
+                child: CustomPaint(
+                  size: size,
+                  painter: WalletBackPainter(primaryColor: primary),
+                ),
+              ),
+
+              // Cards & Cash
+              _buildAnimatableCard(size: size, index: 2, color: Colors.green.shade700, isCash: true),
+              _buildAnimatableCard(size: size, index: 1, color: secondary),
+              _buildAnimatableCard(size: size, index: 0, color: primary),
+
+              // Wallet Front
+              Opacity(
+                opacity: _walletFade.value,
+                child: CustomPaint(
+                  size: size,
+                  painter: WalletFrontPainter(
+                    openProgress: _walletOpen.value,
+                    primaryColor: primary,
+                    accentColor: secondary,
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),
     );
   }
-}
 
-// ─── Data class for a single star particle ───────────────────────────────────
-class _Particle {
-  final double x;
-  final double y;
-  final double size;
-  final double opacity;
-  final double phaseOffset;
+  Widget _buildAnimatableCard({
+    required Size size,
+    required int index,
+    required Color color,
+    bool isCash = false,
+  }) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final w = size.width * 0.5;
+    final h = size.height * 0.3;
 
-  const _Particle({
-    required this.x,
-    required this.y,
-    required this.size,
-    required this.opacity,
-    required this.phaseOffset,
-  });
-}
+    // State A: In Wallet (tucked inside)
+    final double inWalletY = cy - h * 0.05 + (index * 15);
+    final double inWalletWidth = w * 0.85;
+    final double inWalletHeight = h * 0.55;
 
-// ─── Outer sweep-gradient rotating ring ──────────────────────────────────────
-class _SweepRingPainter extends CustomPainter {
-  final Color primaryColor;
-  final Color secondaryColor;
-  final double intensity;
-  final double strokeWidth;
+    // State B: Ejected (sliding out to display)
+    final double ejectedY = cy - h * 0.75 + (index * 40);
+    final double ejectedWidth = w * 0.95;
+    final double ejectedHeight = h * 0.65;
 
-  const _SweepRingPainter({
-    required this.primaryColor,
-    required this.secondaryColor,
-    required this.intensity,
-    required this.strokeWidth,
-  });
+    // State C: Dashboard (Full Screen layout)
+    double dashY = 0;
+    double dashWidth = size.width * 0.9;
+    double dashHeight = 0;
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (intensity == 0) return;
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - strokeWidth;
+    if (index == 0) { // Top Summary Card
+      dashY = size.height * 0.20;
+      dashHeight = size.height * 0.22;
+    } else if (index == 1) { // Middle List
+      dashY = size.height * 0.55;
+      dashHeight = size.height * 0.40;
+    } else { // Bottom Cash / Action
+      dashY = size.height * 0.86;
+      dashHeight = size.height * 0.08;
+    }
 
-    // Soft glow halo
-    final glowPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth + 8
-      ..color = primaryColor.withOpacity(0.1 * intensity)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 9);
-    canvas.drawCircle(center, radius, glowPaint);
+    // Interpolate Positions & Sizes
+    double currentY = inWalletY + (ejectedY - inWalletY) * _cardsEject.value;
+    currentY = currentY + (dashY - currentY) * _dashboardTransform.value;
 
-    // Sweep arc
-    final sweepShader = SweepGradient(
-      colors: [
-        Colors.transparent,
-        primaryColor.withOpacity(0.25 * intensity),
-        secondaryColor.withOpacity(0.9 * intensity),
-        primaryColor.withOpacity(0.85 * intensity),
-        Colors.transparent,
-      ],
-      stops: const [0.0, 0.1, 0.5, 0.9, 1.0],
-    ).createShader(Rect.fromCircle(center: center, radius: radius));
+    double currentWidth = inWalletWidth + (ejectedWidth - inWalletWidth) * _cardsEject.value;
+    currentWidth = currentWidth + (dashWidth - currentWidth) * _dashboardTransform.value;
 
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..shader = sweepShader
-      ..strokeCap = StrokeCap.round;
+    double currentHeight = inWalletHeight + (ejectedHeight - inWalletHeight) * _cardsEject.value;
+    currentHeight = currentHeight + (dashHeight - currentHeight) * _dashboardTransform.value;
 
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      0,
-      2 * pi,
-      false,
-      paint,
+    // Slight rotation when ejecting, then snapping flat for dashboard
+    double currentRotation = (0.08 * (1 - index)) * _cardsEject.value;
+    currentRotation = currentRotation * (1.0 - _dashboardTransform.value);
+
+    // Dashboard UI slowly fades in as the final transition starts
+    double dashUiOpacity = _dashboardTransform.value;
+
+    return Positioned(
+      left: cx - currentWidth / 2,
+      top: currentY - currentHeight / 2,
+      child: Transform.rotate(
+        angle: currentRotation,
+        child: Container(
+          width: currentWidth,
+          height: currentHeight,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(16 + 8 * (1 - _dashboardTransform.value)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3 * _cardsEject.value),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              )
+            ],
+          ),
+          child: Stack(
+            children: [
+              // Shows cash design initially
+              if (isCash)
+                Opacity(
+                  opacity: (1.0 - dashUiOpacity * 2).clamp(0.0, 1.0),
+                  child: Center(
+                    child: Text(
+                      '\$',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(_cardsEject.value),
+                        fontSize: 36 * _cardsEject.value,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+              // Fades into Dashboard UI components
+              if (dashUiOpacity > 0)
+                Opacity(
+                  opacity: dashUiOpacity,
+                  child: _buildDashboardMockup(index, dashUiOpacity),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  @override
-  bool shouldRepaint(_SweepRingPainter old) => old.intensity != intensity;
-}
-
-// ─── Inner dashed counter-rotating ring ──────────────────────────────────────
-class _DashedRingPainter extends CustomPainter {
-  final Color color;
-  final double intensity;
-
-  const _DashedRingPainter({required this.color, required this.intensity});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (intensity == 0) return;
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 2;
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5
-      ..color = color.withOpacity(0.5 * intensity)
-      ..strokeCap = StrokeCap.round;
-
-    const dashCount = 18;
-    const gapRatio = 0.38;
-    final dashAngle = (2 * pi) / dashCount;
-    for (int i = 0; i < dashCount; i++) {
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        i * dashAngle,
-        dashAngle * (1 - gapRatio),
-        false,
-        paint,
+  Widget _buildDashboardMockup(int index, double opacity) {
+    if (index == 0) { // Balance Summary Card
+      return Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(width: 100, height: 14, color: Colors.white.withOpacity(0.5)),
+            const SizedBox(height: 12),
+            Container(width: 160, height: 32, color: Colors.white),
+            const Spacer(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(width: 80, height: 45, decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12))),
+                Container(width: 80, height: 45, decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12))),
+              ],
+            )
+          ],
+        ),
+      );
+    } else if (index == 1) { // Transactions List
+      return Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          children: List.generate(3, (i) => Padding(
+            padding: const EdgeInsets.only(bottom: 20.0),
+            child: Row(
+              children: [
+                Container(width: 48, height: 48, decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.2))),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(width: 120, height: 14, color: Colors.white.withOpacity(0.8)),
+                    const SizedBox(height: 8),
+                    Container(width: 80, height: 10, color: Colors.white.withOpacity(0.4)),
+                  ],
+                ),
+                const Spacer(),
+                Container(width: 50, height: 16, color: Colors.white),
+              ],
+            ),
+          )),
+        ),
+      );
+    } else { // New Transaction Button / Bottom Nav
+      return const Center(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_circle_rounded, color: Colors.white, size: 28),
+            SizedBox(width: 12),
+            Text("NEW ENTRY", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.5, fontSize: 16)),
+          ],
+        ),
       );
     }
   }
-
-  @override
-  bool shouldRepaint(_DashedRingPainter old) => old.intensity != intensity;
 }
