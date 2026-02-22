@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../home/home_screen.dart';
@@ -184,7 +185,7 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
               // ── App name (fades with wallet) ────────────────
               _buildAppName(size, walletVis),
 
-              // ── Leather wallet (back body only) ────────────
+              // ── Leather wallet ──────────────────────────────
               Opacity(
                 opacity: walletVis,
                 child: Transform.scale(
@@ -202,17 +203,14 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
               ),
 
               // ── Flying items (z-order: cash behind cards) ───
-              // Item 2: Cash bill (green)
               _buildFlyingItem(
                 size: size, index: 2, isCash: true,
                 color: const Color(0xFF2D7A3A),
               ),
-              // Item 1: Blue Visa card
               _buildFlyingItem(
                 size: size, index: 1, isCash: false,
                 color: const Color(0xFF3A4DB7),
               ),
-              // Item 0: Gold card (topmost)
               _buildFlyingItem(
                 size: size, index: 0, isCash: false,
                 color: const Color(0xFFC8960C),
@@ -277,84 +275,67 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
     final cx = size.width / 2;
     final cy = size.height / 2;
 
-    // Natural item dimensions
-    const cardW = 300.0;  const cardH = 185.0;
-    const cashW = 285.0;  const cashH = 148.0;
+    const cardW = 300.0; const cardH = 185.0;
+    const cashW = 285.0; const cashH = 148.0;
     final itemW = isCash ? cashW : cardW;
     final itemH = isCash ? cashH : cardH;
 
-    // ── Phase positions ────────────────────────────────────────
-
-    // PEEK: items rise slightly from wallet slot (staggered depth)
-    final double peekY = cy - 10.0 - (index * 18.0);
+    // PEEK phase
+    final double peekY     = cy - 10.0 - (index * 18.0);
     final double peekScale = 0.68 + index * 0.035;
 
-    // FLY: each item fans to a unique position with tilt
-    // index 0 (gold)  → top-left
-    // index 1 (blue)  → top-center-right
-    // index 2 (cash)  → top-center slightly left
+    // FLY phase — fan spread
     final flyPositions = [
       Offset(cx - size.width * 0.18, cy - size.height * 0.30),
       Offset(cx + size.width * 0.14, cy - size.height * 0.26),
       Offset(cx - size.width * 0.05, cy - size.height * 0.22),
     ];
-    final flyAngles = [-0.18, 0.12, -0.05]; // tilt when flying
+    final flyAngles = [-0.18, 0.12, -0.05];
     final flyScales = [0.82, 0.80, 0.78];
 
-    // DASHBOARD LAND: each item becomes a dashboard panel
-    double dashX = cx;
+    // DASHBOARD phase
+    final double dashX = cx;
     double dashY, dashW, dashH;
     if (index == 0) {
-      // Gold card → Balance summary (upper panel)
       dashY = size.height * 0.27;
       dashW = size.width * 0.88;
       dashH = size.height * 0.20;
     } else if (index == 1) {
-      // Blue card → Transactions list (mid panel)
       dashY = size.height * 0.565;
       dashW = size.width * 0.88;
       dashH = size.height * 0.32;
     } else {
-      // Cash → Bottom action bar
       dashY = size.height * 0.865;
       dashW = size.width * 0.88;
       dashH = 58.0;
     }
 
-    // ── Interpolate through peek → fly → dash ─────────────────
-    double curX = cx;
-    double curY  = cy + 14.0 + (index * 10.0); // start hidden inside wallet
-    double curW  = itemW;
-    double curH  = itemH;
-    double curS  = 0.60;
+    // ── Interpolate peek → fly → dash ────────────────────────
+    double curX   = cx;
+    double curY   = cy + 14.0 + (index * 10.0);
+    double curW   = itemW;
+    double curH   = itemH;
+    double curS   = 0.60;
     double curRot = 0.0;
 
-    // Peek phase
-    curY = lerpDouble(curY, peekY, _peek.value)!;
+    curY = lerpDouble(curY, peekY,     _peek.value)!;
     curS = lerpDouble(curS, peekScale, _peek.value)!;
 
-    // Fly phase
     curX   = lerpDouble(curX,   flyPositions[index].dx, _fly.value)!;
     curY   = lerpDouble(curY,   flyPositions[index].dy, _fly.value)!;
     curS   = lerpDouble(curS,   flyScales[index],        _fly.value)!;
     curRot = lerpDouble(curRot, flyAngles[index],         _fly.value)!;
 
-    // Dash phase
-    curX   = lerpDouble(curX,   dashX,    _dash.value)!;
-    curY   = lerpDouble(curY,   dashY,    _dash.value)!;
-    curW   = lerpDouble(curW,   dashW,    _dash.value)!;
-    curH   = lerpDouble(curH,   dashH,    _dash.value)!;
-    curS   = lerpDouble(curS,   1.0,      _dash.value)!;
-    curRot = lerpDouble(curRot, 0.0,      _dash.value)!;
+    curX   = lerpDouble(curX,   dashX,  _dash.value)!;
+    curY   = lerpDouble(curY,   dashY,  _dash.value)!;
+    curW   = lerpDouble(curW,   dashW,  _dash.value)!;
+    curH   = lerpDouble(curH,   dashH,  _dash.value)!;
+    curS   = lerpDouble(curS,   1.0,    _dash.value)!;
+    curRot = lerpDouble(curRot, 0.0,    _dash.value)!;
 
-    // Corner radius: card-like → panel-like
-    final curRadius = lerpDouble(20.0, 14.0, _dash.value)!;
-
-    // Opacity: invisible until peek starts
-    final curOpacity = _peek.value.clamp(0.0, 1.0);
-
-    // Glow shadow fades in on fly, fades slightly on dash
-    final shadowOpacity = (_fly.value * (1.0 - _dash.value * 0.5)).clamp(0.0, 1.0);
+    final curRadius      = lerpDouble(20.0, 14.0, _dash.value)!;
+    final curOpacity     = _peek.value.clamp(0.0, 1.0);
+    final shadowOpacity  = (_fly.value * (1.0 - _dash.value * 0.5)).clamp(0.0, 1.0);
 
     return Positioned(
       left: curX - curW / 2,
@@ -384,14 +365,12 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
                 borderRadius: BorderRadius.circular(curRadius),
                 child: Stack(
                   children: [
-                    // Original item design (card / cash)
                     Opacity(
                       opacity: (1.0 - _dash.value * 1.8).clamp(0.0, 1.0),
                       child: isCash
                           ? _buildCashBill(curW, curH)
                           : _buildCreditCard(index, curW, curH),
                     ),
-                    // Dashboard panel fades over the top
                     Opacity(
                       opacity: _dash.value.clamp(0.0, 1.0),
                       child: _buildDashboardPanel(index, curW, curH),
@@ -407,7 +386,7 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
   }
 
   // ╔══════════════════════════════════════════╗
-  // ║  CASH BILL DESIGN                        ║
+  // ║  CASH BILL                               ║
   // ╚══════════════════════════════════════════╝
   Widget _buildCashBill(double w, double h) {
     return Container(
@@ -415,7 +394,6 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
       color: const Color(0xFF2D7A3A),
       child: Stack(
         children: [
-          // Outer inset border (like real bills)
           Positioned.fill(
             child: Padding(
               padding: const EdgeInsets.all(9),
@@ -430,7 +408,6 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
               ),
             ),
           ),
-          // Portrait oval
           Center(
             child: Container(
               width: h * 0.56, height: h * 0.56,
@@ -443,7 +420,6 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
               ),
             ),
           ),
-          // Dollar sign
           const Center(
             child: Text(
               '\$',
@@ -454,20 +430,22 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
               ),
             ),
           ),
-          // "100" denomination corners
           Positioned(
             left: 14, top: 9,
             child: Text('100',
-              style: TextStyle(color: Colors.green.shade200.withOpacity(0.75),
-                fontSize: 11, fontWeight: FontWeight.bold)),
+              style: TextStyle(
+                color: Colors.green.shade200.withOpacity(0.75),
+                fontSize: 11, fontWeight: FontWeight.bold,
+              )),
           ),
           Positioned(
             right: 14, bottom: 9,
             child: Text('100',
-              style: TextStyle(color: Colors.green.shade200.withOpacity(0.75),
-                fontSize: 11, fontWeight: FontWeight.bold)),
+              style: TextStyle(
+                color: Colors.green.shade200.withOpacity(0.75),
+                fontSize: 11, fontWeight: FontWeight.bold,
+              )),
           ),
-          // "UNITED STATES" text strip
           Positioned(
             bottom: 22, left: 0, right: 0,
             child: Center(
@@ -488,7 +466,7 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
   }
 
   // ╔══════════════════════════════════════════╗
-  // ║  CREDIT CARD DESIGN                      ║
+  // ║  CREDIT CARD                             ║
   // ╚══════════════════════════════════════════╝
   Widget _buildCreditCard(int index, double w, double h) {
     final isGold = index == 0;
@@ -507,7 +485,6 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
       ),
       child: Stack(
         children: [
-          // Light shimmer diagonal
           Positioned(
             top: 0, right: 0,
             width: w * 0.5, height: h,
@@ -524,7 +501,6 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
               ),
             ),
           ),
-          // Network logo (top right)
           Positioned(
             top: 16, right: 18,
             child: Row(
@@ -547,7 +523,6 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
               ],
             ),
           ),
-          // EMV Chip
           Positioned(
             left: 22, top: h * 0.27,
             child: Container(
@@ -560,13 +535,11 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
               child: CustomPaint(painter: _ChipLinePainter()),
             ),
           ),
-          // Contactless wave icon
           Positioned(
             left: 72, top: h * 0.29,
             child: Icon(Icons.wifi_rounded,
               color: Colors.white.withOpacity(0.65), size: 22),
           ),
-          // Card number (dot groups)
           Positioned(
             left: 22, bottom: h * 0.32,
             child: Row(
@@ -585,7 +558,6 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
               )),
             ),
           ),
-          // Card holder name
           Positioned(
             left: 22, bottom: 16,
             child: Text(
@@ -598,7 +570,6 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
               ),
             ),
           ),
-          // Expiry
           Positioned(
             right: 22, bottom: 16,
             child: Text(
@@ -621,13 +592,12 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
   // ╚══════════════════════════════════════════╝
   Widget _buildDashboardPanel(int index, double w, double h) {
     switch (index) {
-      case 0: return _buildBalancePanel(w, h);
-      case 1: return _buildTransactionsPanel(w, h);
+      case 0:  return _buildBalancePanel(w, h);
+      case 1:  return _buildTransactionsPanel(w, h);
       default: return _buildActionBar(w, h);
     }
   }
 
-  // Balance Summary Panel (gold card → this)
   Widget _buildBalancePanel(double w, double h) {
     return Container(
       width: w, height: h,
@@ -677,10 +647,9 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
     );
   }
 
-  // Transactions Panel (blue card → this)
   Widget _buildTransactionsPanel(double w, double h) {
-    final txIcons   = [Icons.restaurant, Icons.local_gas_station, Icons.shopping_bag];
-    final txColors  = [Colors.purple, Colors.blue, Colors.orange];
+    final txIcons  = [Icons.restaurant, Icons.local_gas_station, Icons.shopping_bag];
+    final txColors = [Colors.purple,    Colors.blue,             Colors.orange];
 
     return Container(
       width: w, height: h,
@@ -693,7 +662,7 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _shimmerBar(130, 12, color: Colors.white60),
-              _shimmerBar(55, 12, color: Colors.purple.withOpacity(0.7)),
+              _shimmerBar(55,  12, color: Colors.purple.withOpacity(0.7)),
             ],
           ),
           const SizedBox(height: 18),
@@ -715,7 +684,7 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
                   children: [
                     _shimmerBar(100, 11, color: Colors.white70),
                     const SizedBox(height: 5),
-                    _shimmerBar(65, 9, color: Colors.white30),
+                    _shimmerBar(65,   9, color: Colors.white30),
                   ],
                 ),
                 const Spacer(),
@@ -728,25 +697,23 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
     );
   }
 
-  // Bottom Action Bar (cash → this)
   Widget _buildActionBar(double w, double h) {
-    final items = [
-      (_iconBtn(Icons.add_rounded,       'Add',      Colors.purpleAccent)),
-      (_iconBtn(Icons.swap_horiz_rounded,'Transfer', Colors.blueAccent)),
-      (_iconBtn(Icons.bar_chart_rounded, 'Stats',    Colors.greenAccent)),
-      (_iconBtn(Icons.settings_rounded,  'Settings', Colors.white38)),
-    ];
     return Container(
       width: w, height: h,
       color: const Color(0xFF16213E),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: items,
+        children: [
+          _iconBtn(Icons.add_rounded,        'Add',      Colors.purpleAccent),
+          _iconBtn(Icons.swap_horiz_rounded, 'Transfer', Colors.blueAccent),
+          _iconBtn(Icons.bar_chart_rounded,  'Stats',    Colors.greenAccent),
+          _iconBtn(Icons.settings_rounded,   'Settings', Colors.white38),
+        ],
       ),
     );
   }
 
-  // ── Helper Widgets ───────────────────────────────────────────
+  // ── Helpers ──────────────────────────────────────────────────
   Widget _shimmerBar(double w, double h, {Color? color}) => Container(
     width: w, height: h,
     decoration: BoxDecoration(
@@ -771,7 +738,7 @@ class _WalletSplashScreenState extends State<WalletSplashScreen>
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _shimmerBar(40, 7, color: Colors.white30),
+              _shimmerBar(40, 7,  color: Colors.white30),
               const SizedBox(height: 4),
               _shimmerBar(58, 11, color: Colors.white.withOpacity(0.8)),
             ],
@@ -807,12 +774,12 @@ class _ChipLinePainter extends CustomPainter {
       ..color = Colors.amber.shade600
       ..strokeWidth = 0.9
       ..style = PaintingStyle.stroke;
-    final cx = size.width / 2;
+    final cx = size.width  / 2;
     final cy = size.height / 2;
-    canvas.drawLine(Offset(cx, 0),        Offset(cx, size.height), p);
-    canvas.drawLine(Offset(0, cy),        Offset(size.width, cy),  p);
-    canvas.drawLine(Offset(0, 0),         Offset(0, cy * 0.6),     p);
-    canvas.drawLine(Offset(size.width, 0),Offset(size.width, cy * 0.6), p);
+    canvas.drawLine(Offset(cx, 0),         Offset(cx, size.height),    p);
+    canvas.drawLine(Offset(0,  cy),        Offset(size.width, cy),     p);
+    canvas.drawLine(Offset(0,  0),         Offset(0, cy * 0.6),        p);
+    canvas.drawLine(Offset(size.width, 0), Offset(size.width, cy*0.6), p);
   }
   @override
   bool shouldRepaint(_ChipLinePainter o) => false;
