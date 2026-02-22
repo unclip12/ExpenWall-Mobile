@@ -1,13 +1,75 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
-/// Custom painter for drawing the wallet with realistic shadows and gradients
-class WalletPainter extends CustomPainter {
+/// Custom painter for drawing the back of the wallet
+class WalletBackPainter extends CustomPainter {
+  final Color primaryColor;
+
+  WalletBackPainter({
+    required this.primaryColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final w = size.width * 0.5;
+    final h = size.height * 0.3;
+
+    // Draw shadow
+    final shadowPaint = Paint()
+      ..color = Colors.black.withOpacity(0.3)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
+
+    final shadowPath = Path()
+      ..addOval(Rect.fromCenter(
+        center: Offset(cx, cy + h * 0.3 + 20),
+        width: w * 1.2,
+        height: h * 0.3,
+      ));
+
+    canvas.drawPath(shadowPath, shadowPaint);
+
+    // Draw inside back of wallet
+    final gradient = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        primaryColor.withOpacity(0.6),
+        primaryColor.withOpacity(0.9),
+      ],
+    );
+
+    // Make the back slightly taller so it sits behind the cards properly
+    final rect = Rect.fromCenter(
+      center: Offset(cx, cy - h * 0.1),
+      width: w * 0.95,
+      height: h * 1.1,
+    );
+
+    final paint = Paint()
+      ..shader = gradient.createShader(rect)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(16)),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(WalletBackPainter oldDelegate) {
+    return oldDelegate.primaryColor != primaryColor;
+  }
+}
+
+/// Custom painter for drawing the front of the wallet
+class WalletFrontPainter extends CustomPainter {
   final double openProgress; // 0.0 to 1.0
   final Color primaryColor;
   final Color accentColor;
 
-  WalletPainter({
+  WalletFrontPainter({
     required this.openProgress,
     required this.primaryColor,
     required this.accentColor,
@@ -15,40 +77,12 @@ class WalletPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final centerX = size.width / 2;
-    final centerY = size.height / 2;
-    final walletWidth = size.width * 0.5;
-    final walletHeight = size.height * 0.3;
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final w = size.width * 0.5;
+    final h = size.height * 0.3;
 
-    // Draw shadow
-    _drawShadow(canvas, centerX, centerY, walletWidth, walletHeight);
-
-    // Draw bottom part of wallet (stays fixed)
-    _drawBottomWallet(canvas, centerX, centerY, walletWidth, walletHeight);
-
-    // Draw top flap (animates)
-    _drawTopFlap(canvas, centerX, centerY, walletWidth, walletHeight);
-
-    // Draw wallet details (clasp, stitching)
-    _drawDetails(canvas, centerX, centerY, walletWidth, walletHeight);
-  }
-
-  void _drawShadow(Canvas canvas, double cx, double cy, double width, double height) {
-    final shadowPaint = Paint()
-      ..color = Colors.black.withOpacity(0.3 * (1 - openProgress * 0.5))
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
-
-    final shadowPath = Path()
-      ..addOval(Rect.fromCenter(
-        center: Offset(cx, cy + height * 0.3 + openProgress * 20),
-        width: width * 1.2,
-        height: height * 0.3,
-      ));
-
-    canvas.drawPath(shadowPath, shadowPaint);
-  }
-
-  void _drawBottomWallet(Canvas canvas, double cx, double cy, double width, double height) {
+    // Draw bottom front part of wallet (fixed)
     final gradient = LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
@@ -60,20 +94,18 @@ class WalletPainter extends CustomPainter {
 
     final rect = Rect.fromCenter(
       center: Offset(cx, cy),
-      width: width,
-      height: height,
+      width: w,
+      height: h,
     );
 
     final paint = Paint()
       ..shader = gradient.createShader(rect)
       ..style = PaintingStyle.fill;
 
-    final rRect = RRect.fromRectAndRadius(
-      rect,
-      const Radius.circular(20),
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(20)),
+      paint,
     );
-
-    canvas.drawRRect(rRect, paint);
 
     // Add inner shadow/depth
     final innerShadowPaint = Paint()
@@ -82,42 +114,34 @@ class WalletPainter extends CustomPainter {
 
     final innerRect = Rect.fromCenter(
       center: Offset(cx, cy),
-      width: width * 0.9,
-      height: height * 0.8,
+      width: w * 0.9,
+      height: h * 0.8,
     );
 
     canvas.drawRRect(
       RRect.fromRectAndRadius(innerRect, const Radius.circular(15)),
       innerShadowPaint,
     );
-  }
 
-  void _drawTopFlap(Canvas canvas, double cx, double cy, double width, double height) {
+    // Draw top flap (animates)
     canvas.save();
 
     // Calculate rotation angle (0 to 120 degrees)
     final angle = openProgress * math.pi * 0.66; // 120 degrees in radians
-    final pivotY = cy - height / 2;
+    final pivotY = cy - h / 2;
 
     // Apply 3D perspective transformation
     canvas.translate(cx, pivotY);
-    
-    // Create perspective effect
-    final matrix = Matrix4.identity()
-      ..setEntry(3, 2, 0.001) // perspective
-      ..rotateX(-angle); // rotate around X axis
 
-    final perspectiveTransform = matrix.storage;
-    
     // Simplified 2D projection of 3D rotation
     final scaleY = math.cos(angle);
-    final offsetY = height / 2 * (1 - scaleY);
-    
+    final offsetY = h / 2 * (1 - scaleY);
+
     canvas.translate(0, offsetY);
     canvas.scale(1, scaleY.abs());
 
     // Draw the flap
-    final gradient = LinearGradient(
+    final flapGradient = LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
       colors: [
@@ -126,44 +150,43 @@ class WalletPainter extends CustomPainter {
       ],
     );
 
-    final rect = Rect.fromCenter(
-      center: Offset(0, height / 4),
-      width: width,
-      height: height * 0.6,
+    final flapRect = Rect.fromCenter(
+      center: Offset(0, h / 4),
+      width: w,
+      height: h * 0.6,
     );
 
-    final paint = Paint()
-      ..shader = gradient.createShader(rect)
+    final flapPaint = Paint()
+      ..shader = flapGradient.createShader(flapRect)
       ..style = PaintingStyle.fill;
 
-    // Adjust opacity based on rotation
-    paint.color = paint.color.withOpacity((1 - openProgress * 0.3));
+    // If angle > 90 degrees (pi/2), we are looking at the inside of the flap
+    if (angle > math.pi / 2) {
+      flapPaint.color = primaryColor.withOpacity(0.6); // Inner color
+    } else {
+      flapPaint.color = flapPaint.color.withOpacity((1 - openProgress * 0.3));
+    }
 
-    final rRect = RRect.fromRectAndRadius(
-      rect,
-      const Radius.circular(20),
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(flapRect, const Radius.circular(20)),
+      flapPaint,
     );
 
-    canvas.drawRRect(rRect, paint);
-
     canvas.restore();
-  }
 
-  void _drawDetails(Canvas canvas, double cx, double cy, double width, double height) {
-    // Draw clasp/button
+    // Draw details (clasp, stitching)
     final claspPaint = Paint()
       ..color = accentColor.withOpacity(0.8)
       ..style = PaintingStyle.fill;
 
-    final claspY = cy + (openProgress * height * 0.2);
-    
+    final claspY = cy + (openProgress * h * 0.2);
+
     canvas.drawCircle(
       Offset(cx, claspY),
       8,
       claspPaint,
     );
 
-    // Draw inner circle for clasp detail
     final claspInnerPaint = Paint()
       ..color = primaryColor.withOpacity(0.6)
       ..style = PaintingStyle.fill;
@@ -174,19 +197,18 @@ class WalletPainter extends CustomPainter {
       claspInnerPaint,
     );
 
-    // Draw stitching lines (decorative)
     final stitchPaint = Paint()
       ..color = Colors.white.withOpacity(0.3)
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
     final stitchPath = Path();
-    final stitchY = cy + height * 0.35;
-    final stitchCount = 8;
-    final stitchSpacing = width * 0.8 / stitchCount;
+    final stitchY = cy + h * 0.35;
+    const stitchCount = 8;
+    final stitchSpacing = w * 0.8 / stitchCount;
 
     for (int i = 0; i < stitchCount; i++) {
-      final x = cx - width * 0.4 + (i * stitchSpacing);
+      final x = cx - w * 0.4 + (i * stitchSpacing);
       stitchPath.moveTo(x, stitchY);
       stitchPath.lineTo(x + stitchSpacing * 0.4, stitchY);
     }
@@ -195,7 +217,7 @@ class WalletPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(WalletPainter oldDelegate) {
+  bool shouldRepaint(WalletFrontPainter oldDelegate) {
     return oldDelegate.openProgress != openProgress ||
         oldDelegate.primaryColor != primaryColor ||
         oldDelegate.accentColor != accentColor;
