@@ -16,10 +16,9 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
+# VSCode (keep settings but not secrets)
 #.vscode/
+.vscode/launch.json
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -44,15 +43,14 @@ app.*.map.json
 /android/app/release
 
 # 🔒 SECURITY: Firebase configuration files with API keys
-# These should NEVER be committed - they're stored in GitHub Secrets
+# These should NEVER be committed - stored in GitHub Secrets
 # and generated during build process
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 lib/firebase_options.dart
 
 # 🔑 SECURITY: Release signing keystores
-# CRITICAL: Never commit keystore files - they're your app's identity!
-# If leaked, someone can impersonate your app
+# CRITICAL: Never commit keystore files
 *.jks
 *.keystore
 key.properties
@@ -65,7 +63,20 @@ android/key.properties
 .env.local
 .env.*.local
 
-# API Keys and Secrets
+# API Keys and Secrets in Dart files
 **/*secret*.dart
 **/*apikey*.dart
 **/*config*.dart
+**/*_keys.dart
+
+# 🤖 AI Agent workspace data — NEVER commit
+# Contains full AI session history, code context, prompts
+# Major privacy/IP risk if made public
+.cognetivy/
+.cursor/mcp.json
+.claude/
+.antigravity/
+
+# Receipt images (user PII)
+/receipts_local/
+/test_receipts/
